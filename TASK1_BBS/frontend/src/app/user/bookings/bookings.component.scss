@@ -1,0 +1,217 @@
+.bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.booking-card { overflow: hidden; }
+
+.booking-header {
+  background: var(--surface-2);
+  padding: 0.875rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.booking-id {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.booking-body { padding: 1.5rem; }
+
+.booking-route {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.point-time {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.point-city {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.route-arrow { text-align: center; }
+
+.arrow-line {
+  height: 2px;
+  background: var(--gradient-primary);
+  margin: 0.25rem 0;
+}
+
+.arrow-bus { font-size: 1.25rem; }
+
+.arrow-duration {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.booking-meta {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.meta-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: block;
+}
+
+.meta-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+
+  &.price { color: var(--primary); font-size: 1rem; }
+  &.refund { color: var(--warning); }
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.booked-on { font-size: 0.78rem; }
+.mt-2 { margin-top: 1rem; }
+
+.point-date { font-size: 0.75rem; }
+.arrow-op    { font-size: 0.72rem; }
+.right       { text-align: right; }
+
+// ── See More ──────────────────────────────
+.see-more-bar {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.see-more-link {
+  font-size: 0.82rem;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.75; }
+}
+
+// ── Expanded Detail Panel ─────────────────
+.detail-panel {
+  margin-top: 1rem;
+  border-top: 2px solid var(--primary-light);
+  padding-top: 1.25rem;
+  animation: fadeSlideDown 0.2s ease;
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.detail-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.detail-section {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 1rem;
+
+  &.full-width { grid-column: 1 / -1; }
+}
+
+.detail-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child { border-bottom: none; }
+
+  span:first-child { color: var(--text-muted); }
+  &.total-row { font-weight: 700; }
+}
+
+.text-primary { color: var(--primary) !important; }
+
+// ── Passenger Table ───────────────────────
+.passenger-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pass-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 60px 70px;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+
+  &.header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: transparent;
+    padding-bottom: 0.2rem;
+  }
+
+  &:not(.header):nth-child(even) { background: var(--bg); }
+}
+
+.seat-tag {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+

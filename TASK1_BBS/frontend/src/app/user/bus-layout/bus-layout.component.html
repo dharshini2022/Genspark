@@ -1,0 +1,110 @@
+<div class="container section">
+  @if (!bus) {
+    <div class="empty-state">
+      <div class="empty-icon">🚌</div>
+      <h3>No bus selected</h3>
+    </div>
+  } @else {
+    <div class="page-header flex-between">
+      <div>
+        <h2>{{ bus.busName }}</h2>
+        <p>{{ bus.source }} → {{ bus.destination }} • {{ formatDate(bus.departureTime) }}</p>
+      </div>
+      <div class="price-info">
+        <span class="price-main">₹{{ bus.totalPrice | number:'1.0-0' }}</span>
+        <span class="text-muted">per seat</span>
+      </div>
+    </div>
+
+    <div class="layout-wrapper">
+      <!-- Seat Layout -->
+      <div class="card layout-card">
+        <div class="card-header"><h4>🚌 Seat Layout</h4></div>
+        <div class="card-body">
+          <div class="driver-area">🚗 Driver</div>
+          <div class="seat-layout">
+            @for (row of grid; track $index) {
+              <div class="seat-row">
+                @for (cell of row; track $index) {
+                  @if (cell === null) {
+                    <div class="seat aisle"></div>
+                  } @else {
+                    <div class="seat"
+                      [class.available]="isAvailable(cell)"
+                      [class.selected]="isSelected(cell)"
+                      [class.booked]="isBooked(cell)"
+                      [class.blocked]="isBlocked(cell)"
+                      (click)="toggleSeat(cell)">
+                      {{ cell }}
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+          <div class="seat-legend">
+            <div class="seat-legend-item"><div class="seat-legend-dot available-dot"></div>Available</div>
+            <div class="seat-legend-item"><div class="seat-legend-dot selected-dot"></div>Selected</div>
+            <div class="seat-legend-item"><div class="seat-legend-dot booked-dot"></div>Booked</div>
+            <div class="seat-legend-item"><div class="seat-legend-dot blocked-dot"></div>Blocked</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passenger Details -->
+      @if (selectedSeats.length > 0) {
+        <div class="card passenger-card">
+          <div class="card-header">
+            <h4>Passenger Details</h4>
+            <span class="badge badge-primary">{{ selectedSeats.length }} seat(s)</span>
+          </div>
+          <div class="card-body">
+            @if (!blockedUntil) {
+              <button class="btn btn-primary w-full mb-2" (click)="blockSeats()" [disabled]="blocking">
+                @if (blocking) { <span class="spinner-sm"></span> } 🔒 Reserve Seats (5 min)
+              </button>
+            } @else {
+              <div class="timer-badge">⏱ Reserved until {{ blockedUntil }}</div>
+              <form [formGroup]="passengerForm" class="passenger-form">
+                <div formArrayName="passengers">
+                  @for (ctrl of passengers.controls; track $index) {
+                    <div [formGroupName]="$index" class="passenger-block">
+                      <div class="pass-header">Seat {{ selectedSeats[$index] }}</div>
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label class="form-label">Name</label>
+                          <input formControlName="passengerName" class="form-control" placeholder="Full name">
+                        </div>
+                        <div class="form-group">
+                          <label class="form-label">Age</label>
+                          <input type="number" formControlName="age" class="form-control" placeholder="Age">
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Gender</label>
+                        <select formControlName="gender" class="form-control">
+                          <option value="">Select</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+                  }
+                </div>
+                <div class="booking-summary">
+                  <div class="summary-row"><span>Seats ({{ selectedSeats.length }})</span><span>₹{{ bus.pricePerSeat * selectedSeats.length | number:'1.0-0' }}</span></div>
+                  <div class="summary-row"><span>Platform fee</span><span>₹{{ bus.platformFee * selectedSeats.length | number:'1.0-0' }}</span></div>
+                  <div class="summary-row total"><span>Total</span><span>₹{{ bus.totalPrice * selectedSeats.length | number:'1.0-0' }}</span></div>
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-full" (click)="confirmBooking()" [disabled]="booking">
+                  @if (booking) { <span class="spinner-sm"></span> } Confirm & Pay
+                </button>
+              </form>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

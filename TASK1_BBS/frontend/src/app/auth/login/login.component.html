@@ -1,0 +1,48 @@
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="brand-logo">🚌</div>
+      <h1>BusBooking</h1>
+      <p>The smarter way to book your bus journey across India.</p>
+    </div>
+    <div class="auth-features">
+      <div class="feature-item">✅ 5-minute seat reservation</div>
+      <div class="feature-item">✅ Tiered cancellation refunds</div>
+      <div class="feature-item">✅ Real-time seat availability</div>
+      <div class="feature-item">✅ Instant email confirmations</div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Welcome back</h2>
+        <p>Sign in to your account</p>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" formControlName="email" class="form-control" placeholder="you@example.com">
+          @if (form.get('email')?.invalid && form.get('email')?.touched) {
+            <span class="form-error">Valid email required</span>
+          }
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" formControlName="password" class="form-control" placeholder="••••••••">
+          @if (form.get('password')?.invalid && form.get('password')?.touched) {
+            <span class="form-error">Password required</span>
+          }
+        </div>
+        @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+        <button type="submit" class="btn btn-primary btn-xl w-full" [disabled]="loading">
+          @if (loading) { <span class="spinner-sm"></span> }
+          Sign In
+        </button>
+      </form>
+      <div class="auth-footer">
+        <p>Don't have an account? <a routerLink="/auth/register">Sign up as Customer</a></p>
+        <p>Are you an operator? <a routerLink="/auth/operator-register">Register as Operator</a></p>
+      </div>
+    </div>
+  </div>
+</div>

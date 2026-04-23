@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "tjOci2ueFoE=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\dhars\\Desktop\\Presidio\\Genspark\\TASK1_BBS\\HashGen\\HashGen.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\dhars\\.nuget\\packages\\bcrypt.net-next\\4.1.0\\bcrypt.net-next.4.1.0.nupkg.sha512"
+  ],
+  "logs": []
+}

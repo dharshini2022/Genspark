@@ -1,0 +1,50 @@
+<div class="container section">
+  <div class="page-header flex-between">
+    <div><h2>Bus Approvals</h2><p>Approve or reject bus registrations from operators</p></div>
+    <div class="filter-group">
+      @for (f of filters; track f) {
+        <button class="btn btn-sm" [class]="activeFilter === f ? 'btn-primary' : 'btn-ghost'" (click)="setFilter(f)">{{ f }}</button>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-overlay"><div class="spinner"></div></div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Bus Name</th><th>Reg. No.</th><th>Type</th><th>Operator</th><th>Company</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          @for (b of buses; track b.id) {
+            <tr>
+              <td><strong>{{ b.busName }}</strong></td>
+              <td>{{ b.registrationNumber }}</td>
+              <td>{{ b.busType }}</td>
+              <td>{{ b.operatorName }}</td>
+              <td>{{ b.companyName }}</td>
+              <td><span class="badge" [class]="statusClass(b.status)">{{ b.status }}</span></td>
+              <td>
+                <div class="flex gap-1">
+                  @if (b.status === 'Pending') {
+                    <button class="btn btn-success btn-sm" (click)="approve(b.id)" [disabled]="actionId === b.id">
+                      @if (actionId === b.id) { <span class="spinner-sm"></span> } Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" (click)="disable(b.id)" [disabled]="actionId === b.id">Reject</button>
+                  }
+                  @if (b.status === 'Active') {
+                    <button class="btn btn-danger btn-sm" (click)="disable(b.id)" [disabled]="actionId === b.id">Disable</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+          @if (buses.length === 0) {
+            <tr><td colspan="7" class="empty-cell">No buses found</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
