@@ -16,7 +16,10 @@ namespace BusBookingSystem.Services
         Task<CancelResponseDto> CancelBookingAsync(int userId, int bookingId, CancelBookingDto dto);
         Task<ProfileDto> GetProfileAsync(int userId);
         Task<ProfileDto> UpdateProfileAsync(int userId, UpdateProfileDto dto);
+        Task<BusSearchResultDto> GetScheduleDetailsAsync(int scheduleId);
     }
+
+    public class LayoutConfig { public string[][]? Seats { get; set; } }
 
     public class CustomerService : ICustomerService
     {
@@ -35,22 +38,128 @@ namespace BusBookingSystem.Services
             return setting != null ? decimal.Parse(setting.Value) : 5m;
         }
 
-        public async Task<List<BusSearchResultDto>> SearchBusesAsync(string source, string destination, DateOnly date)
+        public async Task<BusSearchResultDto> GetScheduleDetailsAsync(int scheduleId)
         {
-            var feePercent = await GetPlatformFeePercentAsync();
-            var now = DateTime.UtcNow;
-
-            // Convert DateOnly → explicit UTC DateTime range so Npgsql 6+ can compare
-            // against 'timestamp with time zone' columns without ambiguity.
-            var startOfDay = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
-            var endOfDay   = startOfDay.AddDays(1);
-
-            var schedules = await _db.BusSchedules
+            var s = await _db.BusSchedules
+                .Include(s => s.Bus).ThenInclude(b => b.Operator).ThenInclude(o => o.Offices)
                 .Include(s => s.Bus).ThenInclude(b => b.Operator).ThenInclude(o => o.User)
                 .Include(s => s.Bus).ThenInclude(b => b.Layout)
                 .Include(s => s.Route)
-                .Include(s => s.Bookings).ThenInclude(b => b.Passengers)
-                .Include(s => s.SeatBlocks)
+                .FirstOrDefaultAsync(sch => sch.Id == scheduleId)
+                ?? throw new InvalidOperationException("Schedule not found.");
+
+            return await MapToSearchResultAsync(s);
+        }
+
+        private async Task<BusSearchResultDto> MapToSearchResultAsync(BusSchedule s)
+        {
+            var now = DateTime.UtcNow;
+            var passengers = await _db.BookingPassengers
+                .Where(p => p.Booking.ScheduleId == s.Id && p.Booking.Status == BookingStatus.Confirmed)
+                .ToListAsync();
+
+            var bookedSeats = passengers.Select(p => p.SeatNumber).ToList();
+
+            var blockedSeats = await _db.SeatBlocks
+                .Where(sb => sb.ScheduleId == s.Id && !sb.IsReleased && sb.ExpiresAt > now)
+                .Select(sb => sb.SeatNumber)
+                .ToListAsync();
+
+            // Women-specific detailing logic
+            var femaleBooked = new List<string>();
+            var womenOnly = new List<string>();
+
+            if (!string.IsNullOrEmpty(s.Bus.Layout?.LayoutJson))
+            {
+                try
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var layout = System.Text.Json.JsonSerializer.Deserialize<LayoutConfig>(s.Bus.Layout.LayoutJson, options);
+                    if (layout?.Seats != null)
+                    {
+                        foreach (var p in passengers.Where(p => string.Equals(p.Gender, "Female", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            femaleBooked.Add(p.SeatNumber);
+
+                            // Find adjacent seat
+                            string? adjacentSeat = null;
+                            for (int r = 0; r < layout.Seats.Length; r++)
+                            {
+                                for (int c = 0; c < layout.Seats[r].Length; c++)
+                                {
+                                    if (layout.Seats[r][c] == p.SeatNumber)
+                                    {
+                                        // Check left and right
+                                        if (c > 0 && layout.Seats[r][c - 1] != null) adjacentSeat = layout.Seats[r][c - 1];
+                                        else if (c < layout.Seats[r].Length - 1 && layout.Seats[r][c + 1] != null) adjacentSeat = layout.Seats[r][c + 1];
+                                        break;
+                                    }
+                                }
+                                if (adjacentSeat != null) break;
+                            }
+
+                            if (adjacentSeat != null && !bookedSeats.Contains(adjacentSeat) && !blockedSeats.Contains(adjacentSeat))
+                            {
+                                var otherInSameBooking = passengers.Any(op => op.BookingId == p.BookingId && op.SeatNumber == adjacentSeat);
+                                if (!otherInSameBooking)
+                                {
+                                    womenOnly.Add(adjacentSeat);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { /* Layout parsing failed */ }
+            }
+
+            var uniqueBooked = bookedSeats.Distinct().ToList();
+            var uniqueBlocked = blockedSeats.Distinct().ToList();
+            int totalSeats = s.Bus.Layout?.TotalRows * s.Bus.Layout?.SeatsPerRow ?? 40;
+            int available = totalSeats - uniqueBooked.Count - uniqueBlocked.Count;
+
+            decimal platformFee = Math.Round(s.PricePerSeat * 0.05m, 2);
+            decimal gst = Math.Round(s.PricePerSeat * 0.02m, 2);
+
+            return new BusSearchResultDto
+            {
+                ScheduleId = s.Id,
+                BusId = s.BusId,
+                BusName = s.Bus.BusName,
+                BusType = s.Bus.BusType,
+                OperatorName = s.Bus.Operator.CompanyName,
+                OperatorPhone = s.Bus.Operator.User.Phone,
+                Source = s.Route.SourceCity,
+                Destination = s.Route.DestinationCity,
+                DepartureTime = s.DepartureTime,
+                ArrivalTime = s.ArrivalTime,
+                PricePerSeat = s.PricePerSeat,
+                PlatformFee = platformFee,
+                Gst = gst,
+                TotalPrice = s.PricePerSeat + platformFee + gst,
+                BoardingAddress = s.Bus.Operator.Offices.FirstOrDefault(o => o.City.Trim().Equals(s.Route.SourceCity.Trim(), StringComparison.OrdinalIgnoreCase))?.Address ?? $"{s.Route.SourceCity} Bus Stand",
+                DroppingAddress = s.Bus.Operator.Offices.FirstOrDefault(o => o.City.Trim().Equals(s.Route.DestinationCity.Trim(), StringComparison.OrdinalIgnoreCase))?.Address ?? $"{s.Route.DestinationCity} Bus Stand",
+                AvailableSeats = Math.Max(0, available),
+                TotalSeats = totalSeats,
+                LayoutJson = s.Bus.Layout?.LayoutJson ?? string.Empty,
+                BookedSeats = uniqueBooked,
+                BlockedSeats = uniqueBlocked,
+                FemaleBookedSeats = femaleBooked.Distinct().ToList(),
+                WomenOnlySeats = womenOnly.Distinct().ToList(),
+                Features = s.Bus.Features != null ? s.Bus.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
+                Photos = s.Bus.Photos != null ? s.Bus.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new()
+            };
+        }
+
+        public async Task<List<BusSearchResultDto>> SearchBusesAsync(string source, string destination, DateOnly date)
+        {
+            var startOfDay = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1);
+
+            var schedules = await _db.BusSchedules
+                .Include(s => s.Bus).ThenInclude(b => b.Operator).ThenInclude(o => o.Offices)
+                .Include(s => s.Bus).ThenInclude(b => b.Operator).ThenInclude(o => o.User)
+                .Include(s => s.Bus).ThenInclude(b => b.Layout)
+                .Include(s => s.Route)
                 .Where(s =>
                     s.Route.SourceCity.ToLower() == source.ToLower() &&
                     s.Route.DestinationCity.ToLower() == destination.ToLower() &&
@@ -59,48 +168,11 @@ namespace BusBookingSystem.Services
                     s.Bus.Status == BusStatus.Active)
                 .ToListAsync();
 
-
             var result = new List<BusSearchResultDto>();
-
             foreach (var s in schedules)
             {
-                var bookedSeats = s.Bookings
-                    .Where(b => b.Status == BookingStatus.Confirmed)
-                    .SelectMany(b => b.Passengers.Select(p => p.SeatNumber))
-                    .ToList();
-
-                var blockedSeats = s.SeatBlocks
-                    .Where(sb => !sb.IsReleased && sb.ExpiresAt > now)
-                    .Select(sb => sb.SeatNumber)
-                    .ToList();
-
-                int totalSeats = s.Bus.Layout?.TotalRows * s.Bus.Layout?.SeatsPerRow ?? 40;
-                int available = totalSeats - bookedSeats.Count - blockedSeats.Count;
-
-                decimal platformFee = Math.Round(s.PricePerSeat * feePercent / 100, 2);
-
-                result.Add(new BusSearchResultDto
-                {
-                    ScheduleId = s.Id,
-                    BusId = s.BusId,
-                    BusName = s.Bus.BusName,
-                    BusType = s.Bus.BusType,
-                    OperatorName = s.Bus.Operator.User.Name,
-                    Source = s.Route.SourceCity,
-                    Destination = s.Route.DestinationCity,
-                    DepartureTime = s.DepartureTime,
-                    ArrivalTime = s.ArrivalTime,
-                    PricePerSeat = s.PricePerSeat,
-                    PlatformFee = platformFee,
-                    TotalPrice = s.PricePerSeat + platformFee,
-                    AvailableSeats = Math.Max(0, available),
-                    TotalSeats = totalSeats,
-                    LayoutJson = s.Bus.Layout?.LayoutJson ?? string.Empty,
-                    BookedSeats = bookedSeats,
-                    BlockedSeats = blockedSeats
-                });
+                result.Add(await MapToSearchResultAsync(s));
             }
-
             return result;
         }
 
@@ -121,13 +193,13 @@ namespace BusBookingSystem.Services
                 .ToListAsync();
 
             var activeBlocks = await _db.SeatBlocks
-                .Where(sb => sb.ScheduleId == dto.ScheduleId && !sb.IsReleased && sb.ExpiresAt > now)
+                .Where(sb => sb.ScheduleId == dto.ScheduleId && !sb.IsReleased && sb.ExpiresAt > now && sb.BlockedByUserId != userId)
                 .Select(sb => sb.SeatNumber)
                 .ToListAsync();
 
             var conflict = dto.SeatNumbers.FirstOrDefault(s => bookedSeats.Contains(s) || activeBlocks.Contains(s));
             if (conflict != null)
-                return new SeatBlockResponseDto { Success = false, Message = $"Seat {conflict} is already taken." };
+                return new SeatBlockResponseDto { Success = false, Message = $"Seat {conflict} is already taken by another user." };
 
             // Release any previous blocks by this user for this schedule
             var myOldBlocks = await _db.SeatBlocks
@@ -163,10 +235,10 @@ namespace BusBookingSystem.Services
         public async Task<BookingResponseDto> CreateBookingAsync(int userId, CreateBookingDto dto)
         {
             var now = DateTime.UtcNow;
-            var feePercent = await GetPlatformFeePercentAsync();
 
             var schedule = await _db.BusSchedules
                 .Include(s => s.Bus).ThenInclude(b => b.Layout)
+                .Include(s => s.Bus).ThenInclude(b => b.Operator).ThenInclude(o => o.Offices)
                 .Include(s => s.Route)
                 .FirstOrDefaultAsync(s => s.Id == dto.ScheduleId && !s.IsCancelled)
                 ?? throw new InvalidOperationException("Schedule not found or cancelled.");
@@ -183,7 +255,8 @@ namespace BusBookingSystem.Services
                 throw new InvalidOperationException("Seat block expired. Please reselect your seats.");
 
             decimal operatorTotal = schedule.PricePerSeat * dto.Passengers.Count;
-            decimal platformFee = Math.Round(operatorTotal * feePercent / 100, 2);
+            decimal platformFee = Math.Round(operatorTotal * 0.05m, 2);
+            decimal gst = Math.Round(operatorTotal * 0.02m, 2);
 
             var booking = new Booking
             {
@@ -191,6 +264,7 @@ namespace BusBookingSystem.Services
                 ScheduleId = dto.ScheduleId,
                 TotalAmount = operatorTotal,
                 PlatformFee = platformFee,
+                Gst = gst,
                 Status = BookingStatus.Confirmed,
                 BookedAt = now
             };
@@ -214,47 +288,66 @@ namespace BusBookingSystem.Services
             myBlocks.ForEach(b => b.IsReleased = true);
             await _db.SaveChangesAsync();
 
+            // Find boarding/dropping addresses
+            var boardingOffice = schedule.Bus.Operator.Offices.FirstOrDefault(o => o.City.ToLower() == schedule.Route.SourceCity.ToLower());
+            var droppingOffice = schedule.Bus.Operator.Offices.FirstOrDefault(o => o.City.ToLower() == schedule.Route.DestinationCity.ToLower());
+            string boardingAddress = boardingOffice?.Address ?? $"{schedule.Route.SourceCity} Bus Stand";
+            string droppingAddress = droppingOffice?.Address ?? $"{schedule.Route.DestinationCity} Bus Stand";
+
             var response = new BookingResponseDto
             {
                 BookingId = booking.Id,
                 Status = booking.Status.ToString(),
                 TotalAmount = operatorTotal,
                 PlatformFee = platformFee,
-                GrandTotal = operatorTotal + platformFee,
+                Gst = gst,
+                GrandTotal = operatorTotal + platformFee + gst,
                 BusName = schedule.Bus.BusName,
                 Source = schedule.Route.SourceCity,
                 Destination = schedule.Route.DestinationCity,
+                BoardingAddress = boardingAddress,
+                DroppingAddress = droppingAddress,
                 DepartureTime = schedule.DepartureTime,
                 BookedAt = booking.BookedAt,
                 Passengers = dto.Passengers
             };
 
-            // Fire-and-forget email notification
+            // Await email notification to ensure it's sent
             var customer = await _db.Users.FindAsync(userId);
             if (customer != null)
             {
-                _ = _email.SendBookingConfirmationAsync(customer.Email, customer.Name, new BookingEmailDto
+                try
                 {
-                    BookingId     = booking.Id,
-                    BusName       = schedule.Bus.BusName,
-                    BusType       = schedule.Bus.BusType,
-                    OperatorName  = schedule.Bus.Operator?.User?.Name ?? "Operator",
-                    Source        = schedule.Route.SourceCity,
-                    Destination   = schedule.Route.DestinationCity,
-                    DepartureTime = schedule.DepartureTime,
-                    ArrivalTime   = schedule.ArrivalTime,
-                    BaseAmount    = operatorTotal,
-                    PlatformFee   = platformFee,
-                    GrandTotal    = operatorTotal + platformFee,
-                    SeatNumbers   = dto.Passengers.Select(p => p.SeatNumber).ToList(),
-                    Passengers    = dto.Passengers.Select(p => new PassengerInfo
+                    await _email.SendBookingConfirmationAsync(customer.Email, customer.Name, new BookingEmailDto
                     {
-                        SeatNumber = p.SeatNumber,
-                        Name       = p.PassengerName,
-                        Age        = p.Age,
-                        Gender     = p.Gender
-                    }).ToList()
-                });
+                        BookingId     = booking.Id,
+                        BusName       = schedule.Bus.BusName,
+                        BusType       = schedule.Bus.BusType,
+                        OperatorName  = schedule.Bus.Operator?.User?.Name ?? "Operator",
+                        Source        = schedule.Route.SourceCity,
+                        Destination   = schedule.Route.DestinationCity,
+                        BoardingAddress = boardingAddress,
+                        DroppingAddress = droppingAddress,
+                        DepartureTime = schedule.DepartureTime,
+                        ArrivalTime   = schedule.ArrivalTime,
+                        BaseAmount    = operatorTotal,
+                        PlatformFee   = platformFee,
+                        GrandTotal    = operatorTotal + platformFee,
+                        SeatNumbers   = dto.Passengers.Select(p => p.SeatNumber).ToList(),
+                        Passengers    = dto.Passengers.Select(p => new PassengerInfo
+                        {
+                            SeatNumber = p.SeatNumber,
+                            Name       = p.PassengerName,
+                            Age        = p.Age,
+                            Gender     = p.Gender
+                        }).ToList()
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail the booking if email fails
+                    // The email service already has a try-catch, but extra safety here
+                }
             }
 
             return response;
@@ -274,7 +367,7 @@ namespace BusBookingSystem.Services
                 return new PaymentResponseDto { Success = true, Message = "Already paid.", TransactionId = booking.Payment.TransactionId, Amount = booking.Payment.Amount };
 
             var transactionId = $"TXN{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
-            var total = booking.TotalAmount + booking.PlatformFee;
+            var total = booking.TotalAmount + booking.PlatformFee + booking.Gst;
 
             var payment = new Payment
             {
@@ -315,7 +408,9 @@ namespace BusBookingSystem.Services
                     Destination = b.Schedule.Route.DestinationCity,
                     DepartureTime = b.Schedule.DepartureTime,
                     BookedAt = b.BookedAt,
-                    TotalAmount = b.TotalAmount + b.PlatformFee,
+                    TotalAmount = b.TotalAmount,
+                    PlatformFee = b.PlatformFee,
+                    Gst = b.Gst,
                     Status = b.Status.ToString(),
                     RefundAmount = b.RefundAmount,
                     PassengerCount = b.Passengers.Count,
@@ -328,10 +423,15 @@ namespace BusBookingSystem.Services
         {
             var b = await _db.Bookings
                 .Include(b => b.Schedule).ThenInclude(s => s.Route)
-                .Include(b => b.Schedule).ThenInclude(s => s.Bus)
+                .Include(b => b.Schedule).ThenInclude(s => s.Bus).ThenInclude(bus => bus.Operator).ThenInclude(o => o.Offices)
                 .Include(b => b.Passengers)
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.CustomerId == userId)
                 ?? throw new InvalidOperationException("Booking not found.");
+
+            var boardingOffice = b.Schedule.Bus.Operator.Offices.FirstOrDefault(o => o.City.ToLower() == b.Schedule.Route.SourceCity.ToLower());
+            var droppingOffice = b.Schedule.Bus.Operator.Offices.FirstOrDefault(o => o.City.ToLower() == b.Schedule.Route.DestinationCity.ToLower());
+            string boardingAddress = boardingOffice?.Address ?? $"{b.Schedule.Route.SourceCity} Bus Stand";
+            string droppingAddress = droppingOffice?.Address ?? $"{b.Schedule.Route.DestinationCity} Bus Stand";
 
             return new BookingResponseDto
             {
@@ -339,10 +439,13 @@ namespace BusBookingSystem.Services
                 Status = b.Status.ToString(),
                 TotalAmount = b.TotalAmount,
                 PlatformFee = b.PlatformFee,
-                GrandTotal = b.TotalAmount + b.PlatformFee,
+                Gst = b.Gst,
+                GrandTotal = b.TotalAmount + b.PlatformFee + b.Gst,
                 BusName = b.Schedule.Bus.BusName,
                 Source = b.Schedule.Route.SourceCity,
                 Destination = b.Schedule.Route.DestinationCity,
+                BoardingAddress = boardingAddress,
+                DroppingAddress = droppingAddress,
                 DepartureTime = b.Schedule.DepartureTime,
                 BookedAt = b.BookedAt,
                 Passengers = b.Passengers.Select(p => new PassengerDto
@@ -392,7 +495,7 @@ namespace BusBookingSystem.Services
                 policy = $"Cancelled < 12 hours before departure: {refundPercent}% refund";
             }
 
-            decimal totalPaid = booking.TotalAmount + booking.PlatformFee;
+            decimal totalPaid = booking.TotalAmount + booking.PlatformFee + booking.Gst;
             decimal refundAmount = Math.Round(totalPaid * refundPercent / 100, 2);
 
             booking.Status = BookingStatus.Cancelled;
@@ -413,19 +516,23 @@ namespace BusBookingSystem.Services
                 RefundPolicy = policy
             };
 
-            // Fire-and-forget cancellation email
+            // Await cancellation email
             var customer = await _db.Users.FindAsync(userId);
             if (customer != null)
             {
-                _ = _email.SendBookingCancellationAsync(customer.Email, customer.Name, new CancellationEmailDto
+                try
                 {
-                    BookingId = booking.Id,
-                    BusName = booking.Schedule.Bus?.BusName ?? "Bus",
-                    Source = booking.Schedule.Route?.SourceCity ?? string.Empty,
-                    Destination = booking.Schedule.Route?.DestinationCity ?? string.Empty,
-                    RefundAmount = refundAmount,
-                    RefundPolicy = policy
-                });
+                    await _email.SendBookingCancellationAsync(customer.Email, customer.Name, new CancellationEmailDto
+                    {
+                        BookingId = booking.Id,
+                        BusName = booking.Schedule.Bus?.BusName ?? "Bus",
+                        Source = booking.Schedule.Route?.SourceCity ?? string.Empty,
+                        Destination = booking.Schedule.Route?.DestinationCity ?? string.Empty,
+                        RefundAmount = refundAmount,
+                        RefundPolicy = policy
+                    });
+                }
+                catch { }
             }
 
             return cancelResponse;

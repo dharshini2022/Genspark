@@ -12,6 +12,7 @@ export const routes: Routes = [
 
   // User / Customer (search is public, rest protected)
   { path: 'user/home',       loadComponent: () => import('./user/home/home.component').then(m => m.HomeComponent) },
+  { path: 'user/bus-details', loadComponent: () => import('./user/bus-details/bus-details.component').then(m => m.BusDetailsComponent) },
   { path: 'user/bus-layout', loadComponent: () => import('./user/bus-layout/bus-layout.component').then(m => m.BusLayoutComponent), canActivate: [authGuard] },
   { path: 'user/bookings',   loadComponent: () => import('./user/bookings/bookings.component').then(m => m.BookingsComponent),       canActivate: [authGuard, roleGuard], data: { role: 'Customer' } },
   { path: 'user/profile',    loadComponent: () => import('./user/profile/profile.component').then(m => m.ProfileComponent),           canActivate: [authGuard, roleGuard], data: { role: 'Customer' } },
@@ -21,6 +22,8 @@ export const routes: Routes = [
   { path: 'operator/buses',     loadComponent: () => import('./operator/buses/buses.component').then(m => m.OperatorBusesComponent),             canActivate: [authGuard, roleGuard], data: { role: 'Operator' } },
   { path: 'operator/schedules', loadComponent: () => import('./operator/schedules/schedules.component').then(m => m.OperatorSchedulesComponent), canActivate: [authGuard, roleGuard], data: { role: 'Operator' } },
   { path: 'operator/layouts',   loadComponent: () => import('./operator/layouts/layouts.component').then(m => m.OperatorLayoutsComponent),       canActivate: [authGuard, roleGuard], data: { role: 'Operator' } },
+  { path: 'operator/revenue',   loadComponent: () => import('./operator/revenue/revenue.component').then(m => m.RevenueComponent),               canActivate: [authGuard, roleGuard], data: { role: 'Operator' } },
+  { path: 'operator/manage-bookings', loadComponent: () => import('./operator/manage-bookings/manage-bookings.component').then(m => m.ManageBookingsComponent), canActivate: [authGuard, roleGuard], data: { role: 'Operator' } },
 
   // Admin
   { path: 'admin/dashboard', loadComponent: () => import('./admin/dashboard/dashboard.component').then(m => m.AdminDashboardComponent), canActivate: [authGuard, roleGuard], data: { role: 'Admin' } },

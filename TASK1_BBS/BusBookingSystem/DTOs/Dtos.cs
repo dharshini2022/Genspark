@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 namespace BusBookingSystem.DTOs
 {
     // ── AUTH ──────────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ namespace BusBookingSystem.DTOs
 
     public class OfficeDto
     {
+        public int Id { get; set; }
         public string District { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
@@ -53,18 +55,26 @@ namespace BusBookingSystem.DTOs
         public string BusName { get; set; } = string.Empty;
         public string BusType { get; set; } = string.Empty;
         public string OperatorName { get; set; } = string.Empty;
+        public string OperatorPhone { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
         public string Destination { get; set; } = string.Empty;
         public DateTime DepartureTime { get; set; }
         public DateTime ArrivalTime { get; set; }
         public decimal PricePerSeat { get; set; }
         public decimal PlatformFee { get; set; }
+        public decimal Gst { get; set; }
         public decimal TotalPrice { get; set; }
+        public string BoardingAddress { get; set; } = string.Empty;
+        public string DroppingAddress { get; set; } = string.Empty;
         public int AvailableSeats { get; set; }
         public int TotalSeats { get; set; }
         public string LayoutJson { get; set; } = string.Empty;
         public List<string> BookedSeats { get; set; } = new();
         public List<string> BlockedSeats { get; set; } = new();
+        public List<string> Features { get; set; } = new();
+        public List<string> Photos { get; set; } = new();
+        public List<string> FemaleBookedSeats { get; set; } = new();
+        public List<string> WomenOnlySeats { get; set; } = new();
     }
 
     // ── SEAT BLOCK ────────────────────────────────────────────────────────────
@@ -105,10 +115,13 @@ namespace BusBookingSystem.DTOs
         public string Status { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
         public decimal PlatformFee { get; set; }
+        public decimal Gst { get; set; }
         public decimal GrandTotal { get; set; }
         public string BusName { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
         public string Destination { get; set; } = string.Empty;
+        public string BoardingAddress { get; set; } = string.Empty;
+        public string DroppingAddress { get; set; } = string.Empty;
         public DateTime DepartureTime { get; set; }
         public DateTime BookedAt { get; set; }
         public List<PassengerDto> Passengers { get; set; } = new();
@@ -125,6 +138,9 @@ namespace BusBookingSystem.DTOs
         public DateTime DepartureTime { get; set; }
         public DateTime BookedAt { get; set; }
         public decimal TotalAmount { get; set; }
+        public decimal PlatformFee { get; set; }
+        public decimal Gst { get; set; }
+        public decimal GrandTotal => TotalAmount + PlatformFee + Gst;
         public string Status { get; set; } = string.Empty;
         public decimal? RefundAmount { get; set; }
         public int PassengerCount { get; set; }
@@ -169,6 +185,9 @@ namespace BusBookingSystem.DTOs
         public string RegistrationNumber { get; set; } = string.Empty;
         public string BusType { get; set; } = string.Empty;
         public int? LayoutId { get; set; }
+        public List<string>? Features { get; set; }
+        public List<string>? Photos { get; set; }
+        public List<IFormFile>? PhotoFiles { get; set; }
     }
 
     public class BusDto
@@ -180,6 +199,8 @@ namespace BusBookingSystem.DTOs
         public string Status { get; set; } = string.Empty;
         public string? LayoutName { get; set; }
         public int? LayoutId { get; set; }
+        public List<string>? Features { get; set; }
+        public List<string>? Photos { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -275,6 +296,8 @@ namespace BusBookingSystem.DTOs
         public string OperatorName { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public List<string> Features { get; set; } = new();
+        public List<string> Photos { get; set; } = new();
         public DateTime CreatedAt { get; set; }
     }
 
@@ -302,6 +325,48 @@ namespace BusBookingSystem.DTOs
         public string Key { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+    }
+
+    // ── OPERATOR DETAILED REVENUE & PASSENGERS ───────────────────────────────
+
+    public class OperatorDetailedRevenueDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int TotalBookings { get; set; }
+        public int TotalCancellations { get; set; }
+        public List<BusRevenueDto> ByBus { get; set; } = new();
+        public List<ScheduleRevenueDto> BySchedule { get; set; } = new();
+    }
+
+    public class BusRevenueDto
+    {
+        public int BusId { get; set; }
+        public string BusName { get; set; } = string.Empty;
+        public string RegistrationNumber { get; set; } = string.Empty;
+        public int TotalBookings { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class ScheduleRevenueDto
+    {
+        public int ScheduleId { get; set; }
+        public int BusId { get; set; }
+        public string BusName { get; set; } = string.Empty;
+        public string RouteName { get; set; } = string.Empty;
+        public DateTime DepartureTime { get; set; }
+        public int TotalSeats { get; set; }
+        public int BookedSeats { get; set; }
+        public double OccupancyPercentage { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class SchedulePassengerDto
+    {
+        public int BookingId { get; set; }
+        public string PassengerName { get; set; } = string.Empty;
+        public string SeatNumber { get; set; } = string.Empty;
+        public string BoardingPoint { get; set; } = string.Empty;
+        public string MaskedContact { get; set; } = string.Empty;
     }
 
     // ── PROFILE ───────────────────────────────────────────────────────────────

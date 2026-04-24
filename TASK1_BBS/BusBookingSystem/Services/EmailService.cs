@@ -8,6 +8,7 @@ namespace BusBookingSystem.Services
     {
         Task SendBookingConfirmationAsync(string toEmail, string name, BookingEmailDto booking);
         Task SendBookingCancellationAsync(string toEmail, string name, CancellationEmailDto cancellation);
+        Task SendBusServiceCancellationAsync(string toEmail, string name, string busName, string source, string destination, DateTime departureTime);
         Task SendOperatorApprovalAsync(string toEmail, string companyName, bool approved);
     }
 
@@ -19,6 +20,8 @@ namespace BusBookingSystem.Services
         public string OperatorName { get; set; } = string.Empty;
         public string Source { get; set; } = string.Empty;
         public string Destination { get; set; } = string.Empty;
+        public string BoardingAddress { get; set; } = string.Empty;
+        public string DroppingAddress { get; set; } = string.Empty;
         public DateTime DepartureTime { get; set; }
         public DateTime ArrivalTime { get; set; }
         public decimal BaseAmount { get; set; }
@@ -64,7 +67,7 @@ namespace BusBookingSystem.Services
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(
                     _config["Smtp:FromName"] ?? "BusBooking Platform",
-                    _config["Smtp:Username"] ?? "noreply@busbooking.com"));
+                    _config["Smtp:Username"] ?? "dharshini.k2022cce@sece.ac.in"));
                 message.To.Add(new MailboxAddress(toName, toEmail));
                 message.Subject = subject;
 
@@ -126,21 +129,22 @@ namespace BusBookingSystem.Services
 
                       <!-- Route banner -->
                       <div style="background: linear-gradient(135deg,#f5f7fa,#e8ecf0); border-radius:12px; padding:20px 24px; margin:20px 0; display:flex; align-items:center; justify-content:space-between;">
-                        <div style="text-align:center;">
+                        <div style="text-align:center; flex:1;">
                           <div style="font-size:22px; font-weight:800; color:#333;">{booking.Source}</div>
                           <div style="font-size:13px; color:#888; margin-top:4px;">{booking.DepartureTime:HH:mm}</div>
                           <div style="font-size:12px; color:#aaa;">{booking.DepartureTime:ddd dd MMM}</div>
+                          <div style="font-size:11px; color:#667eea; margin-top:8px; font-style:italic;">Boarding: {booking.BoardingAddress}</div>
                         </div>
-                        <div style="text-align:center; flex:1; padding:0 16px;">
+                        <div style="text-align:center; width:100px; padding:0 10px;">
                           <div style="color:#667eea; font-size:20px;">🚌</div>
                           <div style="height:2px; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:2px; margin:6px 0;"></div>
-                          <div style="font-size:11px; color:#888;">{booking.BusName}</div>
-                          <div style="font-size:11px; color:#aaa;">{booking.BusType} • {booking.OperatorName}</div>
+                          <div style="font-size:10px; color:#888; white-space:nowrap;">{booking.BusName}</div>
                         </div>
-                        <div style="text-align:center;">
+                        <div style="text-align:center; flex:1;">
                           <div style="font-size:22px; font-weight:800; color:#333;">{booking.Destination}</div>
                           <div style="font-size:13px; color:#888; margin-top:4px;">{booking.ArrivalTime:HH:mm}</div>
                           <div style="font-size:12px; color:#aaa;">{booking.ArrivalTime:ddd dd MMM}</div>
+                          <div style="font-size:11px; color:#667eea; margin-top:8px; font-style:italic;">Drop: {booking.DroppingAddress}</div>
                         </div>
                       </div>
 
@@ -250,6 +254,47 @@ namespace BusBookingSystem.Services
                 """;
 
             await SendAsync(toEmail, name, $"Booking Cancelled — #{cancellation.BookingId} | Refund: ₹{cancellation.RefundAmount:F2}", html);
+        }
+
+        public async Task SendBusServiceCancellationAsync(string toEmail, string name, string busName, string source, string destination, DateTime departureTime)
+        {
+            var html = $"""
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;">
+                  <div style="max-width: 560px; margin: auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.08);">
+                    <div style="background: #e53e3e; padding: 32px; text-align: center;">
+                      <h1 style="color:#fff; margin:0; font-size:26px;">Service Cancelled 🚌💨</h1>
+                    </div>
+                    <div style="padding: 28px;">
+                      <p style="color:#333; font-size:16px;">Hi <strong>{name}</strong>,</p>
+                      <p style="color:#555;">We regret to inform you that the bus service you booked has been cancelled by the operator.</p>
+
+                      <div style="background: #fff5f5; border: 1px solid #feb2b2; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <div style="font-weight: bold; color: #c53030; margin-bottom: 8px;">Journey Details:</div>
+                        <div style="color: #4a5568; font-size: 15px;">
+                          <strong>Bus:</strong> {busName}<br>
+                          <strong>Route:</strong> {source} → {destination}<br>
+                          <strong>Date:</strong> {departureTime:ddd dd MMM yyyy}<br>
+                          <strong>Time:</strong> {departureTime:HH:mm}
+                        </div>
+                      </div>
+
+                      <div style="background:#f0fff4; border-left:4px solid #48bb78; padding:14px 18px; border-radius:4px;">
+                        <p style="margin:0; color:#2f855a; font-size:14px;">💳 <strong>Full Refund Initiated:</strong> Since this cancellation was from our side, a 100% refund has been initiated to your original payment method. It will reflect in your account within 5–7 business days.</p>
+                      </div>
+
+                      <p style="color: #718096; font-size: 13px; margin-top: 24px;">We apologize for the inconvenience caused. You can book another bus for your journey on our platform.</p>
+                    </div>
+                    <div style="background:#f8f8ff; padding:16px; text-align:center;">
+                      <p style="color:#aaa; font-size:12px; margin:0;">BusBooking Platform • Important Service Update</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """;
+
+            await SendAsync(toEmail, name, $"⚠️ URGENT: Bus Service Cancelled — {source} to {destination}", html);
         }
 
         public async Task SendOperatorApprovalAsync(string toEmail, string companyName, bool approved)

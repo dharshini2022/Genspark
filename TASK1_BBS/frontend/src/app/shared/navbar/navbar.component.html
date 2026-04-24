@@ -22,6 +22,8 @@
         <a routerLink="/operator/buses" class="nav-link">Buses</a>
         <a routerLink="/operator/schedules" class="nav-link">Schedules</a>
         <a routerLink="/operator/layouts" class="nav-link">Layouts</a>
+        <a routerLink="/operator/manage-bookings" class="nav-link">Bookings</a>
+        <a routerLink="/operator/revenue" class="nav-link">Revenue</a>
         <button class="btn btn-ghost btn-sm" (click)="logout()">Logout</button>
       }
       @if (user?.role === 'Admin') {

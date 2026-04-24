@@ -50,6 +50,8 @@ export class BusLayoutComponent implements OnInit, OnDestroy {
   isBooked(seat: string): boolean   { return !!this.bus?.bookedSeats.includes(seat); }
   isBlocked(seat: string): boolean  { return !!this.bus?.blockedSeats.includes(seat); }
   isSelected(seat: string): boolean { return this.selectedSeats.includes(seat); }
+  isWomenOnly(seat: string): boolean { return !!this.bus?.womenOnlySeats.includes(seat); }
+  isFemaleBooked(seat: string): boolean { return !!this.bus?.femaleBookedSeats.includes(seat); }
 
   toggleSeat(seat: string): void {
     if (this.isBooked(seat) || this.isBlocked(seat)) return;
@@ -104,7 +106,21 @@ export class BusLayoutComponent implements OnInit, OnDestroy {
     if (this.passengerForm.invalid) { this.passengerForm.markAllAsTouched(); return; }
     if (!this.bus) return;
     this.booking = true;
-    const dto = { scheduleId: this.bus.scheduleId, passengers: this.passengers.value as PassengerDto[] };
+
+    // Women-only seat validation
+    const passengers = this.passengers.value as PassengerDto[];
+    for (const p of passengers) {
+      if (this.isWomenOnly(p.seatNumber) && p.gender !== 'Female') {
+        this.toast.error('Gender Mismatch', `Seat ${p.seatNumber} is reserved for women only. Please change the passenger gender or select another seat.`);
+        this.booking = false;
+        return;
+      }
+    }
+
+    const dto = { scheduleId: this.bus.scheduleId, passengers };
+
+    // Open ticket window synchronously to bypass browser popup blockers
+    const ticketWin = this.ticketSvc.openTicketWindow();
 
     this.userSvc.createBooking(dto).subscribe({
       next: (bookingResult: BookingResponse) => {
@@ -115,24 +131,38 @@ export class BusLayoutComponent implements OnInit, OnDestroy {
             this.toast.success('Booking Confirmed! 🎉', `Booking #${bookingResult.bookingId} — check your email`);
 
             // ─── Auto-download ticket ────────────────────────
-            this.ticketSvc.downloadTicket(bookingResult, {
-              busType:      this.bus?.busType ?? '',
-              operatorName: this.bus?.operatorName ?? '',
-              arrivalTime:  this.bus?.arrivalTime ?? ''
-            });
+            if (ticketWin) {
+              this.ticketSvc.writeTicketToWindow(ticketWin, bookingResult, {
+                busType:      this.bus?.busType ?? '',
+                operatorName: this.bus?.operatorName ?? '',
+                arrivalTime:  this.bus?.arrivalTime ?? ''
+              });
+            }
             // ────────────────────────────────────────────────
 
             this.router.navigate(['/user/bookings']);
           },
-          error: () => { this.booking = false; this.toast.error('Payment failed', 'Please try again'); }
+          error: () => { 
+            this.booking = false; 
+            this.toast.error('Payment failed', 'Please try again'); 
+            if (ticketWin) ticketWin.close();
+          }
         });
       },
-      error: err => { this.toast.error('Booking failed', err.error?.message); this.booking = false; }
+      error: err => { 
+        this.toast.error('Booking failed', err.error?.message); 
+        this.booking = false; 
+        if (ticketWin) ticketWin.close();
+      }
     });
   }
 
   formatDate(dt: string): string {
     return new Date(dt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/user/bus-details'], { state: { bus: this.bus } });
   }
 
   ngOnDestroy(): void { clearTimeout(this.timer); }

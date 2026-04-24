@@ -33,7 +33,16 @@
               @for (l of layouts; track l.id) { <option [value]="l.id">{{ l.name }}</option> }
             </select>
           </div>
-          <button type="submit" class="btn btn-primary" [disabled]="adding">
+          <div class="form-group">
+            <label class="form-label">Features (comma separated)</label>
+            <textarea formControlName="features" class="form-control" placeholder="WiFi, AC, Charging Point, Water Bottle"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Photos (Upload from device)</label>
+            <input type="file" (change)="onFileSelected($event)" class="form-control" multiple accept="image/*">
+            <p class="text-muted small mt-1" *ngIf="selectedFiles.length">{{ selectedFiles.length }} file(s) selected</p>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" [disabled]="adding">
             @if (adding) { <span class="spinner-sm"></span> } Add Bus
           </button>
         </form>
@@ -53,21 +62,33 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Bus Name</th><th>Reg. No.</th><th>Type</th><th>Layout</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>Bus Name</th><th>Type</th><th>Layout</th><th>Status</th><th>Actions</th></tr>
         </thead>
         <tbody>
           @for (b of buses; track b.id) {
             <tr>
-              <td><strong>{{ b.busName }}</strong><br><span class="text-muted reg-no">{{ b.registrationNumber }}</span></td>
-              <td>{{ b.registrationNumber }}</td>
+              <td>
+                <div class="flex flex-col">
+                  <strong>{{ b.busName }}</strong>
+                  <span class="text-muted small">{{ b.registrationNumber }}</span>
+                </div>
+              </td>
+              <td><span class="badge badge-info">{{ b.busType }}</span></td>
               <td>{{ b.layoutName ?? '—' }}</td>
               <td><span class="badge" [class]="statusClass(b.status)">{{ b.status }}</span></td>
               <td>
-                @if (b.status === 'Active') {
-                  <button class="btn btn-danger btn-sm" (click)="bringDown(b.id)" [disabled]="downId === b.id">
-                    @if (downId === b.id) { <span class="spinner-sm"></span> } Take Down
-                  </button>
-                }
+                <div class="flex gap-2">
+                  @if (b.status === 'Active') {
+                    <button class="btn btn-danger btn-sm" (click)="bringDown(b.id)" [disabled]="downId === b.id">
+                      @if (downId === b.id) { <span class="spinner-sm"></span> } Take Down
+                    </button>
+                  }
+                  @if (b.status === 'Down') {
+                    <button class="btn btn-primary btn-sm" (click)="bringUp(b.id)" [disabled]="upId === b.id">
+                      @if (upId === b.id) { <span class="spinner-sm"></span> } Bring Up
+                    </button>
+                  }
+                </div>
               </td>
             </tr>
           }

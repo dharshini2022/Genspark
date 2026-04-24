@@ -13,6 +13,8 @@ namespace BusBookingSystem.Models
         public int? LayoutId { get; set; }
         public BusStatus Status { get; set; } = BusStatus.Pending;
         public int? ApprovedByAdminId { get; set; }
+        public string? Features { get; set; } // Comma separated features
+        public string? Photos { get; set; }   // Comma separated photo URLs
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public BusOperator Operator { get; set; } = null!;

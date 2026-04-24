@@ -10,6 +10,8 @@ namespace BusBookingSystem.Models
         public int ScheduleId { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PlatformFee { get; set; }
+        [System.ComponentModel.DataAnnotations.Schema.Column("GST")]
+        public decimal Gst { get; set; }
         public BookingStatus Status { get; set; } = BookingStatus.Confirmed;
         public DateTime BookedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CancelledAt { get; set; }

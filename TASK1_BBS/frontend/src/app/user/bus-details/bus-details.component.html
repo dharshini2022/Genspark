@@ -1,0 +1,79 @@
+<div class="container section">
+  @if (!bus) {
+    <div class="empty-state">
+      <h3>No bus selected</h3>
+      <button class="btn btn-primary mt-2" (click)="goBack()">Back to Search</button>
+    </div>
+  } @else {
+    <div class="details-page">
+      <div class="back-nav mb-3">
+        <button class="btn btn-ghost" (click)="goBack()">← Back to Search Results</button>
+      </div>
+
+      <div class="details-container card">
+        <div class="details-header">
+          <div class="flex-between align-start">
+            <div>
+              <h1>{{ bus.busName }}</h1>
+              <p class="subtitle">{{ bus.busType }} • {{ bus.operatorName }}</p>
+            </div>
+            <div class="price-box text-right">
+              <span class="price-label">Starting from</span>
+              <div class="price-value">₹{{ bus.totalPrice | number:'1.0-0' }}</div>
+              <span class="tax-info">incl. all taxes</span>
+            </div>
+          </div>
+          <div class="route-info mt-2">
+            <strong>{{ bus.source }}</strong> → <strong>{{ bus.destination }}</strong>
+            <span class="mx-2">•</span>
+            <span>{{ formatDate(bus.departureTime) }}</span>
+          </div>
+        </div>
+
+        <div class="details-body">
+          <div class="gallery-section mb-4">
+            <h3>Bus Photos</h3>
+            @if (bus.photos && bus.photos.length > 0) {
+              <div class="photo-grid">
+                @for (p of bus.photos; track p) {
+                  <img [src]="p" alt="Bus photo" class="bus-photo">
+                }
+              </div>
+            } @else {
+              <p class="text-muted">No photos available for this bus.</p>
+            }
+          </div>
+
+          <div class="features-section mb-4">
+            <h3>Amenities & Features</h3>
+            <div class="features-stack">
+              @for (f of bus.features; track f) {
+                <div class="feature-item" [innerHTML]="formatFeature(f)"></div>
+              }
+              @if (!bus.features?.length) { <p class="text-muted">No features listed.</p> }
+            </div>
+          </div>
+
+          <div class="other-info card bg-light">
+            <div class="card-body">
+              <h4>Policies & Information</h4>
+              <ul>
+                <li><strong>Boarding:</strong> {{ bus.boardingAddress }}</li>
+                <li><strong>Dropping:</strong> {{ bus.droppingAddress }}</li>
+                <li><strong>Arrival:</strong> {{ formatDate(bus.arrivalTime) }}</li>
+                <li><strong>Refund Policy:</strong> Standard cancellation fees apply based on timing.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-footer flex-between">
+          <div class="avail-seats">
+            <strong>{{ bus.availableSeats }}</strong> seats remaining out of {{ bus.totalSeats }}
+          </div>
+          <button class="btn btn-primary btn-lg" (click)="proceed()">Proceed to Seat Selection →</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

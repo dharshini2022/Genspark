@@ -8,11 +8,11 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── DATABASE ─────────────────────────────────────────────────────────────────
+//DB Connection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ── JWT AUTHENTICATION ────────────────────────────────────────────────────────
+//JWT
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -32,14 +32,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ── SERVICES ──────────────────────────────────────────────────────────────────
+// Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
+//CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -48,7 +48,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// ── CONTROLLERS + SWAGGER ─────────────────────────────────────────────────────
+//Controlllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -60,7 +60,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API for Bus Booking Platform — Customers, Operators, and Admin"
     });
 
-    // JWT support in Swagger UI
+    
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -84,14 +84,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ── AUTO-MIGRATE ON STARTUP ───────────────────────────────────────────────────
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
 
-// ── MIDDLEWARE PIPELINE ───────────────────────────────────────────────────────
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -99,8 +98,15 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-app.UseDefaultFiles();       // serves frontend/index.html
-app.UseStaticFiles();        // serves frontend/ CSS/JS
+app.UseDefaultFiles();
+app.UseStaticFiles(); // Default wwwroot
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "img")),
+    RequestPath = "/img"
+});
+
+
 
 app.UseCors();
 app.UseAuthentication();

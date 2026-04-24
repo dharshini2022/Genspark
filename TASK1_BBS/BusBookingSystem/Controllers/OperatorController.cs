@@ -13,10 +13,13 @@ namespace BusBookingSystem.Controllers
     {
         private readonly IOperatorService _svc;
         private readonly IAdminService _adminSvc;
-        public OperatorController(IOperatorService svc, IAdminService adminSvc)
+        private readonly IWebHostEnvironment _env;
+
+        public OperatorController(IOperatorService svc, IAdminService adminSvc, IWebHostEnvironment env)
         {
             _svc = svc;
             _adminSvc = adminSvc;
+            _env = env;
         }
 
         private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -59,12 +62,29 @@ namespace BusBookingSystem.Controllers
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
-        /// <summary>Add a new bus (sends for admin approval)</summary>
         [HttpPost("buses")]
-        public async Task<IActionResult> AddBus([FromBody] AddBusDto dto)
+        public async Task<IActionResult> AddBus([FromForm] AddBusDto dto)
         {
             try
             {
+                if (dto.PhotoFiles != null && dto.PhotoFiles.Count > 0)
+                {
+                    dto.Photos ??= new List<string>();
+                    var uploadDir = Path.Combine(_env.ContentRootPath, "..", "frontend", "src", "assets", "img");
+                    if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+                    foreach (var file in dto.PhotoFiles)
+                    {
+                        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                        var filePath = Path.Combine(uploadDir, fileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                        dto.Photos.Add($"/assets/img/{fileName}");
+                    }
+                }
+
                 var result = await _svc.AddBusAsync(GetUserId(), dto);
                 return Ok(result);
             }
@@ -78,6 +98,18 @@ namespace BusBookingSystem.Controllers
             try
             {
                 var result = await _svc.BringDownBusAsync(GetUserId(), busId);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        /// <summary>Bring a bus up (request admin approval)</summary>
+        [HttpPut("buses/{busId:int}/up")]
+        public async Task<IActionResult> BringUp(int busId)
+        {
+            try
+            {
+                var result = await _svc.BringUpBusAsync(GetUserId(), busId);
                 return Ok(result);
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
@@ -147,6 +179,18 @@ namespace BusBookingSystem.Controllers
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
 
+        /// <summary>Cancel a bus schedule and notify all passengers</summary>
+        [HttpPut("schedules/{scheduleId:int}/cancel")]
+        public async Task<IActionResult> CancelSchedule(int scheduleId)
+        {
+            try
+            {
+                var result = await _svc.CancelScheduleAsync(GetUserId(), scheduleId);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
         // ── BOOKINGS ──────────────────────────────────────────────────────────
 
         /// <summary>View all bookings on this operator's buses</summary>
@@ -156,6 +200,77 @@ namespace BusBookingSystem.Controllers
             try
             {
                 var result = await _svc.GetOperatorBookingsAsync(GetUserId());
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        /// <summary>Cancel a specific booking (operator initiated)</summary>
+        [HttpPut("bookings/{bookingId:int}/cancel")]
+        public async Task<IActionResult> CancelBooking(int bookingId, [FromBody] CancelBookingDto dto)
+        {
+            try
+            {
+                var result = await _svc.CancelBookingAsync(GetUserId(), bookingId, dto);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+        // ── REVENUE ───────────────────────────────────────────────────────────
+
+        /// <summary>Get detailed revenue for operator</summary>
+        [HttpGet("revenue")]
+        public async Task<IActionResult> GetDetailedRevenue([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] int? busId)
+        {
+            try
+            {
+                var result = await _svc.GetDetailedRevenueAsync(GetUserId(), startDate, endDate, busId);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        /// <summary>Get passengers for a specific schedule</summary>
+        [HttpGet("schedules/{scheduleId:int}/passengers")]
+        public async Task<IActionResult> GetSchedulePassengers(int scheduleId)
+        {
+            try
+            {
+                var result = await _svc.GetSchedulePassengersAsync(GetUserId(), scheduleId);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+        // ── OFFICES ───────────────────────────────────────────────────────────
+
+        [HttpGet("offices")]
+        public async Task<IActionResult> GetOffices()
+        {
+            try
+            {
+                var result = await _svc.GetOfficesAsync(GetUserId());
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpPost("offices")]
+        public async Task<IActionResult> AddOffice([FromBody] OfficeDto dto)
+        {
+            try
+            {
+                var result = await _svc.AddOfficeAsync(GetUserId(), dto);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpPut("offices/{officeId:int}")]
+        public async Task<IActionResult> UpdateOffice(int officeId, [FromBody] OfficeDto dto)
+        {
+            try
+            {
+                var result = await _svc.UpdateOfficeAsync(GetUserId(), officeId, dto);
                 return Ok(result);
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }

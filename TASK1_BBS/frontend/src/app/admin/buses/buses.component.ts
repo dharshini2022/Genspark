@@ -17,10 +17,14 @@ export class AdminBusesComponent implements OnInit {
   actionId: number | null = null;
   filters = ['All', 'Pending', 'Active', 'Down'];
   activeFilter = 'Pending';
+  selectedBus: BusPendingDto | null = null;
 
   constructor(private svc: AdminService, private toast: ToastService) {}
 
   ngOnInit(): void { this.load(); }
+
+  selectBus(b: BusPendingDto): void { this.selectedBus = b; }
+  closeDetails(): void { this.selectedBus = null; }
 
   load(): void {
     const status = this.activeFilter === 'All' ? undefined : this.activeFilter;

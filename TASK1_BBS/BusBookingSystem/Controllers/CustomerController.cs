@@ -36,6 +36,22 @@ namespace BusBookingSystem.Controllers
             return Ok(results);
         }
 
+        /// <summary>Get details for a single bus schedule</summary>
+        [HttpGet("buses/schedule/{id:int}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetSchedule(int id)
+        {
+            try
+            {
+                var result = await _svc.GetScheduleDetailsAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
         // ── SEAT BLOCKING ────────────────────────────────────────────────────
 
         /// <summary>Block selected seats for 5 minutes</summary>

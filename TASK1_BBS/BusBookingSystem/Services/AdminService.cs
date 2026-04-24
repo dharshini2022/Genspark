@@ -19,6 +19,8 @@ namespace BusBookingSystem.Services
         Task<RevenueDto> GetRevenueAsync();
         Task<List<PlatformSettingDto>> GetSettingsAsync();
         Task<MessageResponseDto> UpdateSettingAsync(int adminId, string key, string value);
+        Task<MessageResponseDto> CancelScheduleAsync(int adminId, int scheduleId);
+        Task<CancelResponseDto> CancelBookingAsync(int adminId, int bookingId, CancelBookingDto dto);
     }
 
     public class AdminService : IAdminService
@@ -73,7 +75,7 @@ namespace BusBookingSystem.Services
             op.ApprovedByAdminId = adminId;
             op.User.IsActive = true;
             await _db.SaveChangesAsync();
-            _ = _email.SendOperatorApprovalAsync(op.User.Email, op.CompanyName, true);
+            try { await _email.SendOperatorApprovalAsync(op.User.Email, op.CompanyName, true); } catch { }
             return new MessageResponseDto { Success = true, Message = $"Operator '{op.CompanyName}' approved." };
         }
 
@@ -90,7 +92,7 @@ namespace BusBookingSystem.Services
             buses.ForEach(b => b.Status = BusStatus.Down);
 
             await _db.SaveChangesAsync();
-            _ = _email.SendOperatorApprovalAsync(op.User.Email, op.CompanyName, false);
+            try { await _email.SendOperatorApprovalAsync(op.User.Email, op.CompanyName, false); } catch { }
             return new MessageResponseDto { Success = true, Message = $"Operator '{op.CompanyName}' disabled." };
         }
 
@@ -112,6 +114,8 @@ namespace BusBookingSystem.Services
                 OperatorName = b.Operator.User.Name,
                 CompanyName = b.Operator.CompanyName,
                 Status = b.Status.ToString(),
+                Features = b.Features != null ? b.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
+                Photos = b.Photos != null ? b.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
                 CreatedAt = b.CreatedAt
             }).ToListAsync();
         }
@@ -139,16 +143,44 @@ namespace BusBookingSystem.Services
 
         public async Task<List<RouteDto>> GetRoutesAsync()
         {
-            return await _db.Routes
-                .Include(r => r.Schedules)
-                .Select(r => new RouteDto
+            var routes = await _db.Routes.Include(r => r.Schedules).ToListAsync();
+            
+            // Auto-fix: Ensure bi-directional consistency
+            bool changed = false;
+            var currentRoutes = routes.ToList();
+            foreach (var r in currentRoutes)
+            {
+                var hasReverse = currentRoutes.Any(rev => 
+                    rev.SourceCity.ToLower() == r.DestinationCity.ToLower() && 
+                    rev.DestinationCity.ToLower() == r.SourceCity.ToLower());
+                
+                if (!hasReverse)
                 {
-                    Id = r.Id,
-                    SourceCity = r.SourceCity,
-                    DestinationCity = r.DestinationCity,
-                    IsActive = r.IsActive,
-                    TotalSchedules = r.Schedules.Count
-                }).ToListAsync();
+                    var reverse = new BusRoute
+                    {
+                        SourceCity = r.DestinationCity,
+                        DestinationCity = r.SourceCity,
+                        CreatedByAdminId = r.CreatedByAdminId,
+                        IsActive = r.IsActive
+                    };
+                    _db.Routes.Add(reverse);
+                    changed = true;
+                }
+            }
+            if (changed) 
+            {
+                await _db.SaveChangesAsync();
+                routes = await _db.Routes.Include(r => r.Schedules).ToListAsync(); // reload
+            }
+
+            return routes.Select(r => new RouteDto
+            {
+                Id = r.Id,
+                SourceCity = r.SourceCity,
+                DestinationCity = r.DestinationCity,
+                IsActive = r.IsActive,
+                TotalSchedules = r.Schedules.Count
+            }).ToList();
         }
 
         public async Task<RouteDto> CreateRouteAsync(int adminId, CreateRouteDto dto)
@@ -169,6 +201,24 @@ namespace BusBookingSystem.Services
             };
 
             _db.Routes.Add(route);
+
+            // Create reverse route if it doesn't exist
+            var reverseExists = await _db.Routes.AnyAsync(r =>
+                r.SourceCity.ToLower() == dto.DestinationCity.ToLower() &&
+                r.DestinationCity.ToLower() == dto.SourceCity.ToLower());
+
+            if (!reverseExists)
+            {
+                var reverseRoute = new BusRoute
+                {
+                    SourceCity = dto.DestinationCity,
+                    DestinationCity = dto.SourceCity,
+                    CreatedByAdminId = adminId,
+                    IsActive = true
+                };
+                _db.Routes.Add(reverseRoute);
+            }
+
             await _db.SaveChangesAsync();
 
             return new RouteDto
@@ -208,13 +258,13 @@ namespace BusBookingSystem.Services
                     OperatorName = g.First().Schedule.Bus.Operator.User.Name,
                     CompanyName = g.First().Schedule.Bus.Operator.CompanyName,
                     TotalBookings = g.Count(),
-                    GrossRevenue = g.Sum(b => b.TotalAmount + b.PlatformFee),
+                    GrossRevenue = g.Sum(b => b.TotalAmount),
                     PlatformFeeCollected = g.Sum(b => b.PlatformFee)
                 }).ToList();
 
             return new RevenueDto
             {
-                TotalRevenue = bookings.Sum(b => b.TotalAmount + b.PlatformFee),
+                TotalRevenue = bookings.Sum(b => b.PlatformFee),
                 TotalPlatformFee = bookings.Sum(b => b.PlatformFee),
                 TotalBookings = bookings.Count,
                 TotalCancellations = cancellations,
@@ -242,6 +292,95 @@ namespace BusBookingSystem.Services
             setting.UpdatedByAdminId = adminId;
             await _db.SaveChangesAsync();
             return new MessageResponseDto { Success = true, Message = $"Setting '{key}' updated to '{value}'." };
+        }
+
+        public async Task<MessageResponseDto> CancelScheduleAsync(int adminId, int scheduleId)
+        {
+            var schedule = await _db.BusSchedules
+                .Include(s => s.Bus)
+                .Include(s => s.Route)
+                .Include(s => s.Bookings).ThenInclude(b => b.Customer)
+                .Include(s => s.Bookings).ThenInclude(b => b.Payment)
+                .FirstOrDefaultAsync(s => s.Id == scheduleId)
+                ?? throw new InvalidOperationException("Schedule not found.");
+
+            if (schedule.IsCancelled)
+                throw new InvalidOperationException("Schedule is already cancelled.");
+
+            schedule.IsCancelled = true;
+
+            foreach (var booking in schedule.Bookings.Where(b => b.Status == BookingStatus.Confirmed))
+            {
+                booking.Status = BookingStatus.Cancelled;
+                booking.CancelledAt = DateTime.UtcNow;
+                booking.CancellationReason = "Service cancelled by system administrator.";
+                booking.RefundAmount = booking.TotalAmount + booking.PlatformFee + booking.Gst;
+
+                if (booking.Payment != null)
+                    booking.Payment.Status = PaymentStatus.Refunded;
+
+                if (booking.Customer != null)
+                {
+                    try
+                    {
+                        await _email.SendBusServiceCancellationAsync(
+                            booking.Customer.Email,
+                            booking.Customer.Name,
+                            schedule.Bus.BusName,
+                            schedule.Route.SourceCity,
+                            schedule.Route.DestinationCity,
+                            schedule.DepartureTime);
+                    }
+                    catch { }
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            return new MessageResponseDto { Success = true, Message = "Schedule cancelled by admin." };
+        }
+
+        public async Task<CancelResponseDto> CancelBookingAsync(int adminId, int bookingId, CancelBookingDto dto)
+        {
+            var booking = await _db.Bookings
+                .Include(b => b.Schedule).ThenInclude(s => s.Bus)
+                .Include(b => b.Schedule).ThenInclude(s => s.Route)
+                .Include(b => b.Payment)
+                .Include(b => b.Customer)
+                .FirstOrDefaultAsync(b => b.Id == bookingId)
+                ?? throw new InvalidOperationException("Booking not found.");
+
+            if (booking.Status == BookingStatus.Cancelled)
+                throw new InvalidOperationException("Booking already cancelled.");
+
+            decimal totalPaid = booking.TotalAmount + booking.PlatformFee + booking.Gst;
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancelledAt = DateTime.UtcNow;
+            booking.RefundAmount = totalPaid;
+            booking.CancellationReason = dto.Reason;
+
+            if (booking.Payment != null)
+                booking.Payment.Status = PaymentStatus.Refunded;
+
+            await _db.SaveChangesAsync();
+
+            if (booking.Customer != null)
+            {
+                try
+                {
+                    await _email.SendBookingCancellationAsync(booking.Customer.Email, booking.Customer.Name, new CancellationEmailDto
+                    {
+                        BookingId = booking.Id,
+                        BusName = booking.Schedule.Bus?.BusName ?? "Bus",
+                        Source = booking.Schedule.Route?.SourceCity ?? string.Empty,
+                        Destination = booking.Schedule.Route?.DestinationCity ?? string.Empty,
+                        RefundAmount = totalPaid,
+                        RefundPolicy = "Admin Cancellation: 100% refund"
+                    });
+                }
+                catch { }
+            }
+
+            return new CancelResponseDto { Success = true, Message = "Booking cancelled by admin.", RefundAmount = totalPaid };
         }
     }
 }

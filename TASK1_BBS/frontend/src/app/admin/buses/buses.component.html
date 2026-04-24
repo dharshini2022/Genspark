@@ -18,7 +18,7 @@
         </thead>
         <tbody>
           @for (b of buses; track b.id) {
-            <tr>
+            <tr class="clickable" (click)="selectBus(b)">
               <td><strong>{{ b.busName }}</strong></td>
               <td>{{ b.registrationNumber }}</td>
               <td>{{ b.busType }}</td>
@@ -28,13 +28,13 @@
               <td>
                 <div class="flex gap-1">
                   @if (b.status === 'Pending') {
-                    <button class="btn btn-success btn-sm" (click)="approve(b.id)" [disabled]="actionId === b.id">
+                    <button class="btn btn-success btn-sm" (click)="approve(b.id); $event.stopPropagation()" [disabled]="actionId === b.id">
                       @if (actionId === b.id) { <span class="spinner-sm"></span> } Approve
                     </button>
-                    <button class="btn btn-danger btn-sm" (click)="disable(b.id)" [disabled]="actionId === b.id">Reject</button>
+                    <button class="btn btn-danger btn-sm" (click)="disable(b.id); $event.stopPropagation()" [disabled]="actionId === b.id">Reject</button>
                   }
                   @if (b.status === 'Active') {
-                    <button class="btn btn-danger btn-sm" (click)="disable(b.id)" [disabled]="actionId === b.id">Disable</button>
+                    <button class="btn btn-danger btn-sm" (click)="disable(b.id); $event.stopPropagation()" [disabled]="actionId === b.id">Disable</button>
                   }
                 </div>
               </td>
@@ -45,6 +45,54 @@
           }
         </tbody>
       </table>
+    </div>
+  }
+
+  <!-- Bus Details Modal -->
+  @if (selectedBus) {
+    <div class="modal-overlay" (click)="closeDetails()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ selectedBus.busName }} - Details</h3>
+          <button class="btn-close" (click)="closeDetails()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="details-grid">
+            <div class="info-section">
+              <p><strong>Operator:</strong> {{ selectedBus.operatorName }} ({{ selectedBus.companyName }})</p>
+              <p><strong>Registration:</strong> {{ selectedBus.registrationNumber }}</p>
+              <p><strong>Type:</strong> {{ selectedBus.busType }}</p>
+              <p><strong>Status:</strong> <span class="badge" [class]="statusClass(selectedBus.status)">{{ selectedBus.status }}</span></p>
+              
+              <div class="mt-3">
+                <h5>Features</h5>
+                <div class="features-stack mt-1">
+                  @for (f of selectedBus.features; track f) {
+                    <div class="feature-row">✨ {{ f }}</div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="photo-section">
+              <h5>Photos</h5>
+              <div class="photo-gallery">
+                @for (p of selectedBus.photos; track p) {
+                  <img [src]="p" alt="Bus Photo" class="modal-photo">
+                }
+                @if (!selectedBus.photos?.length) { <p class="text-muted">No photos uploaded</p> }
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          @if (selectedBus.status === 'Pending') {
+            <button class="btn btn-success" (click)="approve(selectedBus.id)">Approve Bus</button>
+            <button class="btn btn-danger" (click)="disable(selectedBus.id)">Reject Bus</button>
+          }
+          <button class="btn btn-secondary" (click)="closeDetails()">Close</button>
+        </div>
+      </div>
     </div>
   }
 </div>

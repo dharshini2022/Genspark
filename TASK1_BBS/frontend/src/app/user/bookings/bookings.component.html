@@ -53,7 +53,7 @@
               </div>
               <div class="meta-item">
                 <span class="meta-label">Total Paid</span>
-                <span class="meta-value price">₹{{ b.totalAmount | number:'1.0-0' }}</span>
+                <span class="meta-value price">₹{{ b.grandTotal | number:'1.0-0' }}</span>
               </div>
               @if (b.refundAmount !== null && b.refundAmount !== undefined) {
                 <div class="meta-item">
@@ -87,12 +87,13 @@
                     </div>
 
                     <!-- Fare breakdown -->
-                    <div class="detail-section">
-                      <div class="detail-section-title">💰 Fare Breakdown</div>
-                      <div class="detail-row"><span>Base fare</span><strong>₹{{ details[b.bookingId].totalAmount | number:'1.0-0' }}</strong></div>
-                      <div class="detail-row"><span>Platform fee</span><strong>₹{{ details[b.bookingId].platformFee | number:'1.0-0' }}</strong></div>
-                      <div class="detail-row total-row"><span>Grand Total</span><strong class="text-primary">₹{{ details[b.bookingId].grandTotal | number:'1.0-0' }}</strong></div>
-                    </div>
+                     <div class="detail-section">
+                       <div class="detail-section-title">💰 Fare Breakdown</div>
+                       <div class="detail-row"><span>Base fare</span><strong>₹{{ details[b.bookingId].totalAmount | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row"><span>Platform fee (5%)</span><strong>₹{{ details[b.bookingId].platformFee | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row"><span>GST (2%)</span><strong>₹{{ details[b.bookingId].gst | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row total-row"><span>Grand Total</span><strong class="text-primary">₹{{ details[b.bookingId].grandTotal | number:'1.0-0' }}</strong></div>
+                     </div>
 
                     <!-- Passengers -->
                     <div class="detail-section full-width">
@@ -119,11 +120,15 @@
 
           @if (b.status === 'Confirmed') {
             <div class="card-footer">
-              <button class="btn btn-danger btn-sm" (click)="cancelBooking(b.bookingId)"
-                [disabled]="cancelling === b.bookingId">
-                @if (cancelling === b.bookingId) { <span class="spinner-sm"></span> }
-                Cancel Booking
-              </button>
+               <button class="btn btn-danger btn-sm" (click)="cancelBooking(b.bookingId)"
+                 [disabled]="cancelling === b.bookingId">
+                 @if (cancelling === b.bookingId) { <span class="spinner-sm"></span> }
+                 Cancel Booking
+               </button>
+               <button class="btn btn-outline btn-sm" (click)="downloadTicket(b.bookingId, b.busName, b.operatorName)"
+                 [disabled]="!details[b.bookingId]">
+                 🎫 Download Ticket
+               </button>
               <span class="text-muted booked-on">Booked on {{ formatDate(b.bookedAt) }}</span>
             </div>
           }

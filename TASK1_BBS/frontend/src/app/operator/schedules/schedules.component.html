@@ -29,6 +29,34 @@
               </select>
             </div>
           </div>
+
+          @if (selectedRoute) {
+            <div class="form-row" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label class="form-label">Source Boarding Address ({{ selectedRoute.sourceCity }})</label>
+                <input type="text" class="form-control" [(ngModel)]="sourceAddress" [ngModelOptions]="{standalone: true}" placeholder="Enter office/boarding address">
+                @if (!sourceOffice) {
+                  <label class="checkbox-label" style="font-size: 0.85rem; margin-top: 5px;">
+                    <input type="checkbox" [(ngModel)]="saveSourceOffice" [ngModelOptions]="{standalone: true}"> Save as new office address
+                  </label>
+                } @else {
+                  <button type="button" class="btn btn-sm btn-outline mt-2" (click)="updateOffice('source')">Update Office Address</button>
+                }
+              </div>
+              <div class="form-group">
+                <label class="form-label">Destination Drop Address ({{ selectedRoute.destinationCity }})</label>
+                <input type="text" class="form-control" [(ngModel)]="destinationAddress" [ngModelOptions]="{standalone: true}" placeholder="Enter office/dropping address">
+                @if (!destinationOffice) {
+                  <label class="checkbox-label" style="font-size: 0.85rem; margin-top: 5px;">
+                    <input type="checkbox" [(ngModel)]="saveDestinationOffice" [ngModelOptions]="{standalone: true}"> Save as new office address
+                  </label>
+                } @else {
+                  <button type="button" class="btn btn-sm btn-outline mt-2" (click)="updateOffice('destination')">Update Office Address</button>
+                }
+              </div>
+            </div>
+          }
+
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Departure</label>
@@ -80,7 +108,15 @@
                 {{ s.isCancelled ? 'Cancelled' : 'Active' }}
               </span>
             </td>
-            <td>—</td>
+            <td>
+              @if (!s.isCancelled) {
+                <button class="btn btn-danger btn-sm" (click)="cancelSchedule(s.id)" [disabled]="cancelling === s.id">
+                  @if (cancelling === s.id) { <span class="spinner-sm"></span> } Cancel Trip
+                </button>
+              } @else {
+                —
+              }
+            </td>
           </tr>
         }
         @if (schedules.length === 0) {

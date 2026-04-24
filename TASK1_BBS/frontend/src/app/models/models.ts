@@ -18,6 +18,7 @@ export interface OperatorRegisterDto {
 }
 
 export interface OfficeDto {
+  id?: number;
   district: string;
   city: string;
   address: string;
@@ -43,18 +44,26 @@ export interface BusSearchResult {
   busName: string;
   busType: string;
   operatorName: string;
+  operatorPhone: string;
   source: string;
   destination: string;
   departureTime: string;
   arrivalTime: string;
   pricePerSeat: number;
   platformFee: number;
+  gst: number;
   totalPrice: number;
+  boardingAddress: string;
+  droppingAddress: string;
   availableSeats: number;
   totalSeats: number;
   layoutJson: string;
   bookedSeats: string[];
   blockedSeats: string[];
+  femaleBookedSeats: string[];
+  womenOnlySeats: string[];
+  features?: string[];
+  photos?: string[];
 }
 
 // ── Seat Block ────────────────────────────────────────────────────────────────
@@ -74,10 +83,13 @@ export interface BookingResponse {
   status: string;
   totalAmount: number;
   platformFee: number;
+  gst: number;
   grandTotal: number;
   busName: string;
   source: string;
   destination: string;
+  boardingAddress: string;
+  droppingAddress: string;
   departureTime: string;
   bookedAt: string;
   passengers: PassengerDto[];
@@ -93,6 +105,9 @@ export interface BookingList {
   arrivalTime: string;
   bookedAt: string;
   totalAmount: number;
+  platformFee: number;
+  gst: number;
+  grandTotal: number;
   status: string;
   refundAmount?: number;
   passengerCount: number;
@@ -108,10 +123,13 @@ export interface PaymentResponse { success: boolean; transactionId: string; amou
 // ── Operator ──────────────────────────────────────────────────────────────────
 export interface AddBusDto {
   busName: string; registrationNumber: string; busType: string; layoutId?: number;
+  features?: string[]; photos?: string[];
 }
 export interface BusDto {
   id: number; busName: string; registrationNumber: string;
-  busType: string; status: string; layoutName?: string; layoutId?: number; createdAt: string;
+  busType: string; status: string; layoutName?: string; layoutId?: number; 
+  features?: string[]; photos?: string[];
+  createdAt: string;
 }
 export interface CreateScheduleDto {
   busId: number; routeId: number; departureTime: string; arrivalTime: string; pricePerSeat: number;
@@ -135,13 +153,32 @@ export interface OperatorProfile {
   email: string; phone: string; gstNumber: string; status: string;
   registeredAt: string; offices: OfficeDto[]; totalBuses: number;
 }
+export interface OperatorDetailedRevenueDto {
+  totalRevenue: number; totalBookings: number; totalCancellations: number;
+  byBus: BusRevenueDto[]; bySchedule: ScheduleRevenueDto[];
+}
+export interface BusRevenueDto {
+  busId: number; busName: string; registrationNumber: string;
+  totalBookings: number; revenue: number;
+}
+export interface ScheduleRevenueDto {
+  scheduleId: number; busId: number; busName: string; routeName: string;
+  departureTime: string; totalSeats: number; bookedSeats: number;
+  occupancyPercentage: number; revenue: number;
+}
+export interface SchedulePassengerDto {
+  bookingId: number; passengerName: string; seatNumber: string;
+  boardingPoint: string; maskedContact: string;
+}
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export interface RouteDto { id: number; sourceCity: string; destinationCity: string; isActive: boolean; totalSchedules: number; }
 export interface CreateRouteDto { sourceCity: string; destinationCity: string; }
 export interface BusPendingDto {
   id: number; busName: string; registrationNumber: string;
-  busType: string; operatorName: string; companyName: string; status: string; createdAt: string;
+  busType: string; operatorName: string; companyName: string; status: string; 
+  features?: string[]; photos?: string[];
+  createdAt: string;
 }
 export interface RevenueDto {
   totalRevenue: number; totalPlatformFee: number; totalBookings: number;

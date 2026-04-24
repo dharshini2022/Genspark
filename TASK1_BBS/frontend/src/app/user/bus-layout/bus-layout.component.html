@@ -5,6 +5,9 @@
       <h3>No bus selected</h3>
     </div>
   } @else {
+    <div class="back-nav mb-3">
+      <button class="btn btn-ghost" (click)="goBack()">← Back to Bus Details</button>
+    </div>
     <div class="page-header flex-between">
       <div>
         <h2>{{ bus.busName }}</h2>
@@ -14,6 +17,23 @@
         <span class="price-main">₹{{ bus.totalPrice | number:'1.0-0' }}</span>
         <span class="text-muted">per seat</span>
       </div>
+    </div>
+
+    <div class="bus-details-bar mb-3">
+      @if (bus.photos && bus.photos.length > 0) {
+        <div class="photo-gallery">
+          @for (photo of bus.photos; track photo) {
+            <img [src]="photo" alt="Bus Photo" class="bus-photo-thumb">
+          }
+        </div>
+      }
+      @if (bus.features && bus.features.length > 0) {
+        <div class="features-list mt-2">
+          @for (f of bus.features; track f) {
+            <span class="badge badge-outline mr-2">✨ {{ f }}</span>
+          }
+        </div>
+      }
     </div>
 
     <div class="layout-wrapper">
@@ -34,6 +54,8 @@
                       [class.selected]="isSelected(cell)"
                       [class.booked]="isBooked(cell)"
                       [class.blocked]="isBlocked(cell)"
+                      [class.female-booked]="isFemaleBooked(cell)"
+                      [class.women-only]="isWomenOnly(cell)"
                       (click)="toggleSeat(cell)">
                       {{ cell }}
                     </div>
@@ -47,6 +69,8 @@
             <div class="seat-legend-item"><div class="seat-legend-dot selected-dot"></div>Selected</div>
             <div class="seat-legend-item"><div class="seat-legend-dot booked-dot"></div>Booked</div>
             <div class="seat-legend-item"><div class="seat-legend-dot blocked-dot"></div>Blocked</div>
+            <div class="seat-legend-item"><div class="seat-legend-dot female-dot"></div>Female Booked</div>
+            <div class="seat-legend-item"><div class="seat-legend-dot women-only-dot"></div>Women Only</div>
           </div>
         </div>
       </div>
@@ -93,9 +117,10 @@
                   }
                 </div>
                 <div class="booking-summary">
-                  <div class="summary-row"><span>Seats ({{ selectedSeats.length }})</span><span>₹{{ bus.pricePerSeat * selectedSeats.length | number:'1.0-0' }}</span></div>
-                  <div class="summary-row"><span>Platform fee</span><span>₹{{ bus.platformFee * selectedSeats.length | number:'1.0-0' }}</span></div>
-                  <div class="summary-row total"><span>Total</span><span>₹{{ bus.totalPrice * selectedSeats.length | number:'1.0-0' }}</span></div>
+                  <div class="summary-row"><span>Base Fare ({{ selectedSeats.length }})</span><span>₹{{ bus.pricePerSeat * selectedSeats.length | number:'1.0-2' }}</span></div>
+                  <div class="summary-row"><span>Platform fee (5%)</span><span>₹{{ bus.platformFee * selectedSeats.length | number:'1.0-2' }}</span></div>
+                  <div class="summary-row"><span>GST (2%)</span><span>₹{{ bus.gst * selectedSeats.length | number:'1.0-2' }}</span></div>
+                  <div class="summary-row total"><span>Total</span><span>₹{{ bus.totalPrice * selectedSeats.length | number:'1.0-2' }}</span></div>
                 </div>
                 <button type="button" class="btn btn-primary btn-lg w-full" (click)="confirmBooking()" [disabled]="booking">
                   @if (booking) { <span class="spinner-sm"></span> } Confirm & Pay

@@ -51,23 +51,30 @@
                   <span class="badge badge-info">{{ bus.busType }}</span>
                   <span class="text-muted" style="margin-left:.5rem;font-size:.8rem">by {{ bus.operatorName }}</span>
                 </div>
-                <div class="route-time">
-                  <span class="time">{{ formatTime(bus.departureTime) }}</span>
                   <div class="route-line">
-                    <span class="city">{{ bus.source }}</span>
-                    <div class="line"></div>
-                    <span class="city">{{ bus.destination }}</span>
+                    <div class="city-info">
+                      <span class="time">{{ formatTime(bus.departureTime) }}</span>
+                      <span class="city">{{ bus.source }}</span>
+                      <span class="point" title="{{ bus.boardingAddress }}">📍 {{ bus.boardingAddress }}</span>
+                    </div>
+                    <div class="line-box">
+                      <div class="line"></div>
+                      <span class="duration">{{ getDuration(bus.departureTime, bus.arrivalTime) }}</span>
+                    </div>
+                    <div class="city-info text-right">
+                      <span class="time">{{ formatTime(bus.arrivalTime) }}</span>
+                      <span class="city">{{ bus.destination }}</span>
+                      <span class="point" title="{{ bus.droppingAddress }}">📍 {{ bus.droppingAddress }}</span>
+                    </div>
                   </div>
-                  <span class="time">{{ formatTime(bus.arrivalTime) }}</span>
-                </div>
                 <div class="seat-info">
                   <div class="seat-count" [class.low]="bus.availableSeats < 5">
                     {{ bus.availableSeats }} seats left
                   </div>
                 </div>
                 <div class="price-box">
-                  <div class="price">₹{{ bus.totalPrice | number:'1.0-0' }}</div>
-                  <div class="price-sub">incl. ₹{{ bus.platformFee | number:'1.0-0' }} fee</div>
+                  <div class="price">₹{{ bus.totalPrice | number:'1.0-2' }}</div>
+                  <div class="price-sub">incl. fees & GST</div>
                   <button class="btn btn-primary btn-sm" (click)="selectBus(bus); $event.stopPropagation()">Select Seats</button>
                 </div>
               </div>

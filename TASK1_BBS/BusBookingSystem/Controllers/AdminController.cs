@@ -149,5 +149,29 @@ namespace BusBookingSystem.Controllers
             }
             catch (InvalidOperationException ex) { return NotFound(new { message = ex.Message }); }
         }
+
+        /// <summary>Cancel any booking (admin initiated)</summary>
+        [HttpPut("bookings/{bookingId:int}/cancel")]
+        public async Task<IActionResult> CancelBooking(int bookingId, [FromBody] CancelBookingDto dto)
+        {
+            try
+            {
+                var result = await _svc.CancelBookingAsync(GetAdminId(), bookingId, dto);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        /// <summary>Cancel any bus schedule and notify passengers (admin initiated)</summary>
+        [HttpPut("schedules/{scheduleId:int}/cancel")]
+        public async Task<IActionResult> CancelSchedule(int scheduleId)
+        {
+            try
+            {
+                var result = await _svc.CancelScheduleAsync(GetAdminId(), scheduleId);
+                return Ok(result);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
     }
 }

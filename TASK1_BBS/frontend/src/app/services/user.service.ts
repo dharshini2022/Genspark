@@ -9,12 +9,19 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
+  lastSearchResults: BusSearchResult[] = [];
+  lastFilters: { source: string, destination: string, date: string } | null = null;
   constructor(private http: HttpClient) {}
 
   searchBuses(source: string, destination: string, date: string): Observable<BusSearchResult[]> {
+    this.lastFilters = { source, destination, date };
     return this.http.get<BusSearchResult[]>(`/api/buses/search`, {
       params: { source, destination, date }
     });
+  }
+
+  getScheduleDetails(id: number): Observable<BusSearchResult> {
+    return this.http.get<BusSearchResult>(`/api/buses/schedule/${id}`);
   }
 
   blockSeats(dto: SeatBlockRequest): Observable<SeatBlockResponse> {

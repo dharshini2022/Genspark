@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
+import { TicketService } from '../../services/ticket.service';
 import { ToastService } from '../../services/toast.service';
 import { BookingList, BookingResponse } from '../../models/models';
 
@@ -24,7 +25,25 @@ export class BookingsComponent implements OnInit {
   /** Currently loading detail for bookingId */
   detailLoading: number | null = null;
 
-  constructor(private userSvc: UserService, private toast: ToastService, private router: Router) {}
+  constructor(
+    private userSvc: UserService,
+    private ticketSvc: TicketService,
+    private toast: ToastService,
+    private router: Router
+  ) {}
+
+  downloadTicket(id: number, busName: string, operatorName: string): void {
+    const detail = this.details[id];
+    if (!detail) {
+      this.toast.error('Error', 'Please expand the booking details first to download the ticket.');
+      return;
+    }
+    this.ticketSvc.downloadTicket(detail, {
+      busType: 'Standard', // We might not have busType in BookingResponse, could fetch or default
+      operatorName: operatorName,
+      arrivalTime: '' // Could add to response if needed
+    });
+  }
 
   ngOnInit(): void { this.load(); }
 

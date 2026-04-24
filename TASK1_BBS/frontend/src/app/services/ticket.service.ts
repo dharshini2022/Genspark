@@ -4,26 +4,31 @@ import { BookingResponse } from '../models/models';
 @Injectable({ providedIn: 'root' })
 export class TicketService {
 
-  /**
-   * Generates an HTML ticket and opens a new window for the user to
-   * print/save as PDF. Called automatically after a successful booking.
-   */
-  downloadTicket(booking: BookingResponse, busInfo: { busType: string; operatorName: string; arrivalTime: string }): void {
-    const html = this.buildTicketHtml(booking, busInfo);
+  openTicketWindow(): Window | null {
     const win = window.open('', '_blank', 'width=700,height=900');
-    if (!win) return;
+    if (win) {
+      win.document.write('<div style="padding: 20px; font-family: sans-serif;"><h2>Generating Ticket...</h2><p>Please wait.</p></div>');
+    }
+    return win;
+  }
 
+  writeTicketToWindow(win: Window, booking: BookingResponse, busInfo: { busType: string; operatorName: string; arrivalTime: string }): void {
+    const html = this.buildTicketHtml(booking, busInfo);
     win.document.open();
     win.document.write(html);
     win.document.close();
 
-    // Auto-trigger print dialog after content loads
     win.onload = () => {
       win.focus();
       win.print();
-      // Close the tab after printing (or dismissing the dialog)
       win.onafterprint = () => win.close();
     };
+  }
+
+  downloadTicket(booking: BookingResponse, busInfo: { busType: string; operatorName: string; arrivalTime: string }): void {
+    const win = this.openTicketWindow();
+    if (!win) return;
+    this.writeTicketToWindow(win, booking, busInfo);
   }
 
   private fmt(dt: string | Date, opts: Intl.DateTimeFormatOptions): string {
@@ -185,6 +190,8 @@ export class TicketService {
         <div class="name">${b.source}</div>
         <div class="time">${depTime}</div>
         <div class="date">${depDate}</div>
+        <div style="font-size:10px; color:#a78bfa; margin-top:8px; opacity:0.8;">Boarding Point:</div>
+        <div style="font-size:11px; color:#fff;">${b.boardingAddress}</div>
       </div>
       <div class="arrow-box">
         <div class="bus-icon">🚌</div>
@@ -195,7 +202,8 @@ export class TicketService {
       <div class="city right">
         <div class="name">${b.destination}</div>
         <div class="time">${arrTime}</div>
-        <div class="date">&nbsp;</div>
+        <div style="font-size:10px; color:#a78bfa; margin-top:8px; opacity:0.8;">Dropping Point:</div>
+        <div style="font-size:11px; color:#fff;">${b.droppingAddress}</div>
       </div>
     </div>
 
@@ -237,12 +245,24 @@ export class TicketService {
         <tbody>${passengers}</tbody>
       </table>
 
-      <div class="fare-strip">
-        <div>
-          <div class="label">Base Fare: ₹${b.totalAmount.toFixed(2)} + Fee: ₹${b.platformFee.toFixed(2)}</div>
-          <div class="label" style="font-size:11px; margin-top:2px;">Total Amount Paid</div>
+      <div class="fare-strip" style="background: #f8f8ff; border: 1px solid #eee; color: #333; flex-direction: column; align-items: flex-end; padding: 12px 20px;">
+        <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #666;">
+          <span>Base Fare:</span>
+          <span>₹${b.totalAmount.toFixed(2)}</span>
         </div>
-        <div class="amount">₹${b.grandTotal.toFixed(2)}</div>
+        <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #666;">
+          <span>Platform Fee (5%):</span>
+          <span>₹${b.platformFee.toFixed(2)}</span>
+        </div>
+        <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #666;">
+          <span>GST (2%):</span>
+          <span>₹${b.gst.toFixed(2)}</span>
+        </div>
+        <div style="width: 100%; height: 1px; background: #eee; margin: 4px 0 8px;"></div>
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; color: #333;">Total Amount Paid:</span>
+          <span style="font-size: 24px; font-weight: 800; color: #764ba2;">₹${b.grandTotal.toFixed(2)}</span>
+        </div>
       </div>
 
       <div class="advisory">

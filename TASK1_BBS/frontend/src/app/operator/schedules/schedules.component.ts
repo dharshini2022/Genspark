@@ -26,6 +26,15 @@ export class OperatorSchedulesComponent implements OnInit {
 
   constructor(private svc: OperatorService, private toast: ToastService, private fb: FormBuilder) {}
 
+  offices: any[] = [];
+  sourceOffice: any = null;
+  destinationOffice: any = null;
+  sourceAddress = '';
+  destinationAddress = '';
+  saveSourceOffice = false;
+  saveDestinationOffice = false;
+  selectedRoute: RouteDto | null = null;
+
   ngOnInit(): void {
     this.addForm = this.fb.group({
       busId:         ['', Validators.required],
@@ -34,13 +43,57 @@ export class OperatorSchedulesComponent implements OnInit {
       arrivalTime:   ['', Validators.required],
       pricePerSeat:  ['', [Validators.required, Validators.min(1)]]
     });
+
+    this.addForm.get('routeId')?.valueChanges.subscribe(rId => {
+      if (!rId) {
+        this.selectedRoute = null;
+        this.sourceOffice = null;
+        this.destinationOffice = null;
+        return;
+      }
+      this.selectedRoute = this.routes.find(r => r.id === +rId) || null;
+      if (this.selectedRoute) {
+        this.sourceOffice = this.offices.find(o => o.city.toLowerCase() === this.selectedRoute!.sourceCity.toLowerCase()) || null;
+        this.destinationOffice = this.offices.find(o => o.city.toLowerCase() === this.selectedRoute!.destinationCity.toLowerCase()) || null;
+        this.sourceAddress = this.sourceOffice?.address || '';
+        this.destinationAddress = this.destinationOffice?.address || '';
+      }
+    });
+
     this.svc.getSchedules().subscribe(s => { this.schedules = s; this.loading = false; });
     this.svc.getBuses().subscribe(b => this.activeBuses = b.filter(bus => bus.status === 'Active'));
     this.svc.getRoutes().subscribe(r => this.routes = r);
+    this.svc.getOffices().subscribe(o => this.offices = o);
+  }
+
+  updateOffice(type: 'source' | 'destination'): void {
+    if (type === 'source' && this.sourceOffice) {
+      this.svc.updateOffice(this.sourceOffice.id, { district: '', city: this.sourceOffice.city, address: this.sourceAddress }).subscribe({
+        next: () => { this.toast.success('Source office updated'); this.sourceOffice.address = this.sourceAddress; },
+        error: err => this.toast.error('Error', err.error?.message)
+      });
+    } else if (type === 'destination' && this.destinationOffice) {
+      this.svc.updateOffice(this.destinationOffice.id, { district: '', city: this.destinationOffice.city, address: this.destinationAddress }).subscribe({
+        next: () => { this.toast.success('Destination office updated'); this.destinationOffice.address = this.destinationAddress; },
+        error: err => this.toast.error('Error', err.error?.message)
+      });
+    }
   }
 
   addSchedule(): void {
     if (this.addForm.invalid) { this.addForm.markAllAsTouched(); return; }
+
+    if (this.saveSourceOffice && this.selectedRoute && !this.sourceOffice) {
+      this.svc.addOffice({ district: '', city: this.selectedRoute.sourceCity, address: this.sourceAddress }).subscribe(
+        () => this.svc.getOffices().subscribe(o => { this.offices = o; this.addForm.get('routeId')?.updateValueAndValidity(); })
+      );
+    }
+    if (this.saveDestinationOffice && this.selectedRoute && !this.destinationOffice) {
+      this.svc.addOffice({ district: '', city: this.selectedRoute.destinationCity, address: this.destinationAddress }).subscribe(
+        () => this.svc.getOffices().subscribe(o => { this.offices = o; this.addForm.get('routeId')?.updateValueAndValidity(); })
+      );
+    }
+
     this.adding = true;
     const raw = this.addForm.value;
     const toUtc = (dt: string) => dt.includes('Z') ? dt : dt + ':00Z';
@@ -68,6 +121,25 @@ export class OperatorSchedulesComponent implements OnInit {
         this.editingPrice = null;
       },
       error: err => this.toast.error('Error', err.error?.message)
+    });
+  }
+
+  cancelling: number | null = null;
+
+  cancelSchedule(id: number): void {
+    if (!confirm('Are you sure you want to cancel this trip? All confirmed bookings will be refunded automatically.')) return;
+    this.cancelling = id;
+    this.svc.cancelSchedule(id).subscribe({
+      next: res => {
+        this.toast.success('Trip Cancelled', res.message);
+        const s = this.schedules.find(x => x.id === id);
+        if (s) s.isCancelled = true;
+        this.cancelling = null;
+      },
+      error: err => {
+        this.toast.error('Cancellation Failed', err.error?.message);
+        this.cancelling = null;
+      }
     });
   }
 

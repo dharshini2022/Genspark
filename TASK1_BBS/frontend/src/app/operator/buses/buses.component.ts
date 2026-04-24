@@ -19,6 +19,8 @@ export class OperatorBusesComponent implements OnInit {
   showAdd = false;
   adding = false;
   downId: number | null = null;
+  upId: number | null = null;
+  selectedFiles: File[] = [];
   addForm!: FormGroup;
 
   constructor(private svc: OperatorService, private toast: ToastService, private fb: FormBuilder) {}
@@ -28,18 +30,48 @@ export class OperatorBusesComponent implements OnInit {
       busName:            ['', Validators.required],
       busType:            ['', Validators.required],
       registrationNumber: ['', Validators.required],
-      layoutId:           [null]
+      layoutId:           [null],
+      features:           ['']
     });
     this.svc.getBuses().subscribe(b => { this.buses = b; this.loading = false; });
     this.svc.getLayouts().subscribe(l => this.layouts = l);
   }
 
+  onFileSelected(event: any): void {
+    if (event.target.files) {
+      this.selectedFiles = Array.from(event.target.files);
+    }
+  }
+
   addBus(): void {
     if (this.addForm.invalid) { this.addForm.markAllAsTouched(); return; }
     this.adding = true;
-    const val = { ...this.addForm.value, layoutId: this.addForm.value.layoutId || null };
-    this.svc.addBus(val).subscribe({
-      next: b => { this.buses = [...this.buses, b]; this.toast.success('Bus added!', 'Pending admin approval'); this.showAdd = false; this.adding = false; this.addForm.reset(); },
+    
+    const formVal = this.addForm.value;
+    const formData = new FormData();
+    formData.append('busName', formVal.busName);
+    formData.append('busType', formVal.busType);
+    formData.append('registrationNumber', formVal.registrationNumber);
+    if (formVal.layoutId) formData.append('layoutId', formVal.layoutId);
+    
+    if (formVal.features) {
+      const features = formVal.features.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      features.forEach((f: string) => formData.append('features', f));
+    }
+
+    this.selectedFiles.forEach(file => {
+      formData.append('photoFiles', file, file.name);
+    });
+
+    this.svc.addBus(formData).subscribe({
+      next: b => { 
+        this.buses = [...this.buses, b]; 
+        this.toast.success('Bus added!', 'Pending admin approval'); 
+        this.showAdd = false; 
+        this.adding = false; 
+        this.addForm.reset(); 
+        this.selectedFiles = [];
+      },
       error: err => { this.toast.error('Error', err.error?.message); this.adding = false; }
     });
   }
@@ -49,6 +81,14 @@ export class OperatorBusesComponent implements OnInit {
     this.svc.bringDownBus(id).subscribe({
       next: () => { this.toast.success('Bus taken down'); this.svc.getBuses().subscribe(b => this.buses = b); this.downId = null; },
       error: err => { this.toast.error('Error', err.error?.message); this.downId = null; }
+    });
+  }
+
+  bringUp(id: number): void {
+    this.upId = id;
+    this.svc.bringUpBus(id).subscribe({
+      next: () => { this.toast.success('Bus sent for approval'); this.svc.getBuses().subscribe(b => this.buses = b); this.upId = null; },
+      error: err => { this.toast.error('Error', err.error?.message); this.upId = null; }
     });
   }
 

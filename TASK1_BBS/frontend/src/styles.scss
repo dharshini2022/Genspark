@@ -304,16 +304,24 @@ tbody tr:hover { background: var(--surface-2); }
 }
 .seat.available:hover { background: var(--primary); color: white; transform: scale(1.08); }
 .seat.selected {
-  background: var(--gradient-primary); color: white;
-  border-color: var(--primary); transform: scale(1.08);
-  box-shadow: 0 4px 10px rgba(103,126,234,.4);
+  background: #22c55e; color: white;
+  border-color: #16a34a; transform: scale(1.08);
+  box-shadow: 0 4px 10px rgba(34,197,94,.4);
 }
 .seat.booked  { background: #fee2e2; color: #991b1b; cursor: not-allowed; border-color: #fecaca; }
 .seat.blocked { background: #fef3c7; color: #92400e; cursor: not-allowed; border-color: #fde68a; }
+.seat.female-booked { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; cursor: not-allowed; font-weight: 800; }
+.seat.women-only    { background: #fdf2f8; color: #be185d; border-color: #ec4899; border-style: dashed; border-width: 2px; }
 .seat.aisle   { background: transparent; width: 18px; cursor: default; }
 .seat-legend { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; }
 .seat-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text-secondary); }
 .seat-legend-dot  { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid; }
+.seat-legend-dot.available-dot { background: var(--primary-light); border-color: var(--border-dark); }
+.seat-legend-dot.selected-dot  { background: #22c55e;               border-color: #16a34a; }
+.seat-legend-dot.booked-dot    { background: #fee2e2;               border-color: #fecaca; }
+.seat-legend-dot.blocked-dot   { background: #fef3c7;               border-color: #fde68a; }
+.seat-legend-dot.female-dot       { background: #fdf2f8;               border-color: #f9a8d4; }
+.seat-legend-dot.women-only-dot   { background: #fdf2f8;               border-color: #ec4899; border-style: dashed; }
 
 /* ── Stat Card ─────────────────────────────────────────────────── */
 .stat-card {
