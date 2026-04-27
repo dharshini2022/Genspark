@@ -1,1 +1,0 @@
-1) I need a bus specific page. When the user is adding the bus he enters its details like layout, seats and vehicle number. I want to add more details in it. Add the details of the bus like photos, features.

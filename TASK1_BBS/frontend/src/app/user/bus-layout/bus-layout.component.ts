@@ -119,7 +119,7 @@ export class BusLayoutComponent implements OnInit, OnDestroy {
 
     const dto = { scheduleId: this.bus.scheduleId, passengers };
 
-    // Open ticket window synchronously to bypass browser popup blockers
+   
     const ticketWin = this.ticketSvc.openTicketWindow();
 
     this.userSvc.createBooking(dto).subscribe({

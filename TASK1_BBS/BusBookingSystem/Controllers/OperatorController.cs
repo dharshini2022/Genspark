@@ -70,7 +70,7 @@ namespace BusBookingSystem.Controllers
                 if (dto.PhotoFiles != null && dto.PhotoFiles.Count > 0)
                 {
                     dto.Photos ??= new List<string>();
-                    var uploadDir = Path.Combine(_env.ContentRootPath, "..", "frontend", "src", "assets", "img");
+                    var uploadDir = Path.Combine(_env.ContentRootPath, "img");
                     if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
 
                     foreach (var file in dto.PhotoFiles)
@@ -81,7 +81,7 @@ namespace BusBookingSystem.Controllers
                         {
                             await file.CopyToAsync(stream);
                         }
-                        dto.Photos.Add($"/assets/img/{fileName}");
+                        dto.Photos.Add(fileName);
                     }
                 }
 

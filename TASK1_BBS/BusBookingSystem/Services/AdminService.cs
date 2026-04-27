@@ -27,6 +27,7 @@ namespace BusBookingSystem.Services
     {
         private readonly AppDbContext _db;
         private readonly IEmailService _email;
+        private static readonly string[] DefaultPhotos = { "10fb39a7-8c38-46ba-bdb8-181724599a06.jpg", "18168f51-1d29-4440-a1e5-e6cc91e574c9.webp" };
 
         public AdminService(AppDbContext db, IEmailService email)
         {
@@ -105,7 +106,8 @@ namespace BusBookingSystem.Services
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<BusStatus>(status, true, out var busStatus))
                 query = query.Where(b => b.Status == busStatus);
 
-            return await query.Select(b => new BusPendingDto
+            var busEntities = await query.ToListAsync();
+            return busEntities.Select(b => new BusPendingDto
             {
                 Id = b.Id,
                 BusName = b.BusName,
@@ -115,9 +117,9 @@ namespace BusBookingSystem.Services
                 CompanyName = b.Operator.CompanyName,
                 Status = b.Status.ToString(),
                 Features = b.Features != null ? b.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
-                Photos = b.Photos != null ? b.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
+                Photos = (string.IsNullOrWhiteSpace(b.Photos) ? DefaultPhotos : b.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries)).Select(p => p.StartsWith("/") ? p : "/img/" + p).ToList(),
                 CreatedAt = b.CreatedAt
-            }).ToListAsync();
+            }).ToList();
         }
 
         public async Task<MessageResponseDto> ApproveBusAsync(int adminId, int busId)

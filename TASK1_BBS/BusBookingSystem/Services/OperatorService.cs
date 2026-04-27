@@ -31,6 +31,7 @@ namespace BusBookingSystem.Services
     {
         private readonly AppDbContext _db;
         private readonly IEmailService _email;
+        private static readonly string[] DefaultPhotos = { "10fb39a7-8c38-46ba-bdb8-181724599a06.jpg", "18168f51-1d29-4440-a1e5-e6cc91e574c9.webp" };
 
         public OperatorService(AppDbContext db, IEmailService email)
         {
@@ -55,22 +56,24 @@ namespace BusBookingSystem.Services
         public async Task<List<BusDto>> GetMyBusesAsync(int userId)
         {
             var op = await GetApprovedOperatorAsync(userId);
-            return await _db.Buses
+            var busEntities = await _db.Buses
                 .Include(b => b.Layout)
                 .Where(b => b.OperatorId == op.Id)
-                .Select(b => new BusDto
-                {
-                    Id = b.Id,
-                    BusName = b.BusName,
-                    RegistrationNumber = b.RegistrationNumber,
-                    BusType = b.BusType,
-                    Status = b.Status.ToString(),
-                    LayoutName = b.Layout != null ? b.Layout.Name : null,
-                    LayoutId = b.LayoutId,
-                    Features = b.Features != null ? b.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
-                    Photos = b.Photos != null ? b.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
-                    CreatedAt = b.CreatedAt
-                }).ToListAsync();
+                .ToListAsync();
+
+            return busEntities.Select(b => new BusDto
+            {
+                Id = b.Id,
+                BusName = b.BusName,
+                RegistrationNumber = b.RegistrationNumber,
+                BusType = b.BusType,
+                Status = b.Status.ToString(),
+                LayoutName = b.Layout != null ? b.Layout.Name : null,
+                LayoutId = b.LayoutId,
+                Features = b.Features != null ? b.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
+                Photos = (string.IsNullOrWhiteSpace(b.Photos) ? DefaultPhotos : b.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries)).Select(p => p.StartsWith("/") ? p : "/img/" + p).ToList(),
+                CreatedAt = b.CreatedAt
+            }).ToList();
         }
 
         public async Task<BusDto> AddBusAsync(int userId, AddBusDto dto)
@@ -104,7 +107,7 @@ namespace BusBookingSystem.Services
                 Status = bus.Status.ToString(),
                 LayoutId = bus.LayoutId,
                 Features = dto.Features,
-                Photos = dto.Photos,
+                Photos = (dto.Photos != null && dto.Photos.Count > 0 ? dto.Photos : DefaultPhotos.ToList()).Select(p => p.StartsWith("/") ? p : "/img/" + p).ToList(),
                 CreatedAt = bus.CreatedAt
             };
         }

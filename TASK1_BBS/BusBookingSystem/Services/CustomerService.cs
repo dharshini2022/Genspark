@@ -25,6 +25,7 @@ namespace BusBookingSystem.Services
     {
         private readonly AppDbContext _db;
         private readonly IEmailService _email;
+        private static readonly string[] DefaultPhotos = { "10fb39a7-8c38-46ba-bdb8-181724599a06.jpg", "18168f51-1d29-4440-a1e5-e6cc91e574c9.webp" };
 
         public CustomerService(AppDbContext db, IEmailService email)
         {
@@ -146,7 +147,7 @@ namespace BusBookingSystem.Services
                 FemaleBookedSeats = femaleBooked.Distinct().ToList(),
                 WomenOnlySeats = womenOnly.Distinct().ToList(),
                 Features = s.Bus.Features != null ? s.Bus.Features.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new(),
-                Photos = s.Bus.Photos != null ? s.Bus.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList() : new()
+                Photos = (string.IsNullOrWhiteSpace(s.Bus.Photos) ? DefaultPhotos : s.Bus.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries)).Select(p => p.StartsWith("/") ? p : "/img/" + p).ToList()
             };
         }
 
