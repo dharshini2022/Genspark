@@ -4,7 +4,7 @@ using NotificationSystem.Models;
 namespace NotificationSystem.Models
 {
 
-    internal class WhatsappNotification : INotificationMode
+    internal class WhatsappNotification : INotification
     {
         public bool CanSend(User user)
         {

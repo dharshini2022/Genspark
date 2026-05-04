@@ -10,7 +10,7 @@ namespace NotificationSystem.Models
         }
 
         public string Message { get; set; } = string.Empty;
-        public DateTime SentDate { get; set; }
+        public DateTime SentDate { get; set; } = DateTime.Now;
         public User Sender { get; set; }
         public User Receiver { get; set; }
         public NotificationType Type { get; set; }

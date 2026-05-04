@@ -3,7 +3,7 @@ using NotificationSystem.Models;
 
 namespace NotificationSystem.Models
 {
-    internal class SMSNotification : INotificationMode
+    internal class SMSNotification : INotification
     {
         public bool CanSend(User user)
         {

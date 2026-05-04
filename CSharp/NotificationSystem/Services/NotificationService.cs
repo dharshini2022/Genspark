@@ -7,7 +7,7 @@ namespace NotificationSystem.Services
     internal class NotificationService
     {
 
-        public void Send(INotificationMode mode, User sender, User receiver, string message, Notification.NotificationType type)
+        public void Send(INotification mode, User sender, User receiver, string message, Notification.NotificationType type)
         {
             if (!mode.CanSend(receiver))
             {
