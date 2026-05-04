@@ -159,19 +159,31 @@ export class TicketService {
     }
     .ticket-footer p { color: #bbb; font-size: 11px; }
 
-    /* Print button */
+    /* Buttons */
+    .btn-container {
+      display: flex; justify-content: center; gap: 16px; margin-top: 16px;
+    }
     .print-btn {
-      display: block; width: 200px; margin: 16px auto 0;
+      width: 220px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: #fff; border: none; border-radius: 8px; padding: 10px 20px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .booking-btn {
+      width: 220px;
+      background: #fff; border: 2px solid #764ba2;
+      color: #764ba2; border-radius: 8px; padding: 10px 20px;
       font-size: 14px; font-weight: 600; cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="no-print" style="text-align:center; padding: 16px; background:#eef2f7;">
-    <strong>🎫 Your Ticket</strong>&nbsp;&nbsp;
-    <button class="print-btn" onclick="window.print()">⬇️ Download / Print Ticket</button>
+    <strong>🎫 Your Ticket</strong>
+    <div class="btn-container">
+      <button class="print-btn" onclick="window.print()">⬇️ Download / Print Ticket</button>
+      <button class="booking-btn" onclick="if(window.opener){ window.opener.location.href='/user/bookings'; window.close(); } else { window.location.href='/user/bookings'; }">📅 Go to My Bookings</button>
+    </div>
   </div>
 
   <div class="ticket-wrapper">
