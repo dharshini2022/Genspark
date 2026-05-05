@@ -7,8 +7,13 @@ namespace NotificationSystem.Interfaces
         void RegisterUser();
         User GetUserDetails();
         void PrintUserDetails(User user);
+        void GetUserByName(string name);
         void GetUserByEmail(string email);
         void GetUserByPhone(string phone);
-        void DeleteUser(User user);
+
+        void GetAllUsers();
+        bool AdminCredentials();
+        void UpdateUser(string name);
+        void DeleteUser(string name);
     }
 }

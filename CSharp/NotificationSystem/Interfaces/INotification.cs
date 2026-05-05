@@ -1,10 +1,11 @@
+// Interfaces/INotification.cs
 using NotificationSystem.Models;
 
 namespace NotificationSystem.Interfaces
 {
     internal interface INotification
     {
-        bool CanSend(User user);
-        void Send(User sender, User receiver, string message);
+        bool CanSend(User sender, User receiver);
+        Notification? Send(User sender, User receiver, string message);
     }
 }

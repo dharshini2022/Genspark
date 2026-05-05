@@ -1,36 +1,39 @@
+// Models/Notification.cs
 namespace NotificationSystem.Models
 {
     internal class Notification
     {
-        public enum NotificationType
-        {
-            Email = 1,
-            SMS = 2,
-            WhatsApp = 3
-        }
+        public enum NotificationType { Email = 1, SMS = 2, WhatsApp = 3 }
+        public enum DeliveryStatus { Sent = 1, Received = 2}
 
         public string Message { get; set; } = string.Empty;
-        public DateTime SentDate { get; set; } = DateTime.Now;
-        public User Sender { get; set; }
-        public User Receiver { get; set; }
+        public DateTime SentDate { get; set; }
+        public User Sender { get; set; } = null;
+        public User Receiver { get; set; } = null;
         public NotificationType Type { get; set; }
+        public DeliveryStatus Status { get; set; }
+        public string SenderContact { get; set; }   
+        public string ReceiverContact { get; set; }
 
-        public Notification(string message, User sender, User receiver, NotificationType type)
+        public Notification(string Message, User Sender, User Receiver, NotificationType Type, string SenderContact, string ReceiverContact)
         {
-            Message = message;
+            this.Message = Message;
             SentDate = DateTime.Now;
-            Sender = sender;
-            Receiver = receiver;
-            Type = type;
+            this.Sender = this.Sender;
+            this.Receiver = this.Receiver;
+            this.Type = this.Type;
+            Status = DeliveryStatus.Sent;
+            this.SenderContact = SenderContact;
+            this.ReceiverContact = ReceiverContact;
         }
 
         public override string ToString()
         {
-            return $"{Type} Notification\n" +
-                   $"  Message : {Message}\n" +
-                   $"  Sent At : {SentDate:yyyy-MM-dd HH:mm:ss}\n" +
-                   $"  From    : {Sender.Name}\n" +
-                   $"  To      : {Receiver.Name}";
+            string label = Type == NotificationType.Email ? "Email" : "Phone";
+            return $"  [{Type}] {SentDate:yyyy-MM-dd HH:mm:ss} | Status: {Status}\n" +
+                   $"  From : {Sender.Name} ({label}: {SenderContact})\n" +
+                   $"  To   : {Receiver.Name} ({label}: {ReceiverContact})\n" +
+                   $"  Msg  : {Message}";
         }
     }
 }
