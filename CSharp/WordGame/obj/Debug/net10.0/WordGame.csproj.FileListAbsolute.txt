@@ -1,0 +1,15 @@
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.GeneratedMSBuildEditorConfig.editorconfig
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.AssemblyInfoInputs.cache
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.AssemblyInfo.cs
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.csproj.CoreCompileInputs.cache
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.sourcelink.json
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/WordGame
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/WordGame.deps.json
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/WordGame.runtimeconfig.json
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/WordGame.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/WordGame.pdb
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/refint/WordGame.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.pdb
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.genruntimeconfig.cache
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/ref/WordGame.dll
