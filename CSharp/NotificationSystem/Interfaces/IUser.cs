@@ -6,6 +6,7 @@ namespace NotificationSystem.Interfaces
     {
         void RegisterUser();
         User GetUserDetails();
+        User GetUser(string name);
         void PrintUserDetails(User user);
         void GetUserByName(string name);
         void GetUserByEmail(string email);

@@ -14,12 +14,16 @@ namespace NotificationSystem.Services
 
         public void RegisterUser()
         {
-            User user = GetUserDetails();
+            User? user = GetUserDetails();
+            if(user == null)
+            {
+                return;
+            }
             user = _repo.Create(user);
             PrintUserDetails(user);
         }
 
-        public User GetUserDetails()
+        public User? GetUserDetails()
         {
             var users = _repo.GetAllEntities() ?? new List<User>();
             
@@ -79,6 +83,12 @@ namespace NotificationSystem.Services
             Console.WriteLine("---------------------------");
         }
 
+        
+        public User? GetUser(string name)
+        {
+            return _repo.GetEntity(name);
+        }
+
         public void GetUserByName(string name)
         {
             var user = _repo.GetEntity(name);
@@ -132,7 +142,6 @@ namespace NotificationSystem.Services
             {
                 if(user.Email == email)
                 {
-                    PrintUserDetails(user);
                     return user;
                 }
             }
@@ -152,7 +161,6 @@ namespace NotificationSystem.Services
             {
                 if(user.Phone == phone)
                 {
-                    PrintUserDetails(user);
                     return user;
                 }
             }

@@ -58,12 +58,12 @@ namespace NotificationSystem
                         break;
 
                     case 2:
-                        Console.Write("  Enter sender's username: ");
+                        Console.Write("  Enter sender's mail id: ");
                         string emailSenderName = Console.ReadLine() ?? "";
                         User? emailSender = userService.GetUserByEmail(emailSenderName);
                         if (emailSender == null) { Console.WriteLine($"  User '{emailSenderName}' not found."); break; }
 
-                        Console.Write("  Enter receiver's username: ");
+                        Console.Write("  Enter receiver's mail id: ");
                         string emailReceiverName = Console.ReadLine() ?? "";
                         User? emailReceiver = userService.GetUserByEmail(emailReceiverName);
                         if (emailReceiver == null) { Console.WriteLine($"  User '{emailReceiverName}' not found."); break; }
@@ -74,12 +74,12 @@ namespace NotificationSystem
                         break;
 
                     case 3:
-                        Console.Write("  Enter sender's username: ");
+                        Console.Write("  Enter sender's phone: ");
                         string smsSenderName = Console.ReadLine() ?? "";
                         User? smsSender = userService.GetUserByPhone(smsSenderName);
                         if (smsSender == null) { Console.WriteLine($"  User '{smsSenderName}' not found."); break; }
 
-                        Console.Write("  Enter receiver's username: ");
+                        Console.Write("  Enter receiver's phone: ");
                         string smsReceiverName = Console.ReadLine() ?? "";
                         User? smsReceiver = userService.GetUserByPhone(smsReceiverName);
                         if (smsReceiver == null) { Console.WriteLine($"  User '{smsReceiverName}' not found."); break; }
@@ -130,11 +130,15 @@ namespace NotificationSystem
                     case 9:
                         Console.Write("  Enter username: ");
                         string notifUsername = Console.ReadLine() ?? "";
-                        User? notifUser = notificationService.PrintByUsername(notifUsername);
-                        if (notifUser == null) { Console.WriteLine($"  User '{notifUsername}' not found."); break; }
-                        notificationService.PrintByUsername(notifUser);
+                        User? notifUser = userService.GetUser(notifUsername); 
+                        if (notifUser == null) 
+                        { 
+                            Console.WriteLine($"  User '{notifUsername}' not found."); 
+                            break; 
+                        }
+                        notificationService.PrintByUsername(notifUser);      
                         break;
-                    
+                                        
                     case 10:
                         Console.WriteLine("\nExiting Notification System.");
                         flag = false;
