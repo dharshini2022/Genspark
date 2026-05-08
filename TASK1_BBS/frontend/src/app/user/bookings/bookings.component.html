@@ -1,0 +1,139 @@
+<div class="container section">
+  <div class="page-header">
+    <h2>My Bookings</h2>
+    <p>View and manage all your bus ticket bookings</p>
+  </div>
+
+  @if (loading) {
+    <div class="loading-overlay"><div class="spinner"></div><p>Loading bookings...</p></div>
+  } @else if (bookings.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">🎫</div>
+      <h3>No bookings yet</h3>
+      <p>Start by searching for buses on the home page</p>
+      <button class="btn btn-primary mt-2" (click)="goHome()">Search Buses</button>
+    </div>
+  } @else {
+    <div class="bookings-list">
+      @for (b of bookings; track b.bookingId) {
+        <div class="booking-card card">
+          <div class="booking-header">
+            <div class="booking-id">#{{ b.bookingId }}</div>
+            <span class="badge" [class]="statusClass(b.status)">{{ b.status }}</span>
+          </div>
+
+          <div class="booking-body card-body">
+            <!-- Route timeline -->
+            <div class="booking-route">
+              <div class="route-point">
+                <div class="point-time">{{ formatTime(b.departureTime) }}</div>
+                <div class="point-city">{{ b.source }}</div>
+                <div class="point-date text-muted">{{ formatDate(b.departureTime) }}</div>
+              </div>
+              <div class="route-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-bus">🚌</div>
+                <div class="arrow-duration">{{ b.busName }}</div>
+                <div class="arrow-op text-muted">by {{ b.operatorName }}</div>
+              </div>
+              <div class="route-point right">
+                <div class="point-city">{{ b.destination }}</div>
+              </div>
+            </div>
+
+            <!-- Summary meta -->
+            <div class="booking-meta">
+              <div class="meta-item">
+                <span class="meta-label">Seats</span>
+                <span class="meta-value">{{ b.seatNumbers.join(', ') }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Passengers</span>
+                <span class="meta-value">{{ b.passengerCount }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Total Paid</span>
+                <span class="meta-value price">₹{{ b.grandTotal | number:'1.0-0' }}</span>
+              </div>
+              @if (b.refundAmount !== null && b.refundAmount !== undefined) {
+                <div class="meta-item">
+                  <span class="meta-label">Refund</span>
+                  <span class="meta-value refund">₹{{ b.refundAmount | number:'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- See more / collapse -->
+            <div class="see-more-bar">
+              <a class="see-more-link" (click)="toggleExpand(b.bookingId)">
+                {{ isExpanded(b.bookingId) ? '▲ See less' : '▼ See more journey details' }}
+              </a>
+            </div>
+
+            <!-- Expanded details panel -->
+            @if (isExpanded(b.bookingId)) {
+              <div class="detail-panel">
+                @if (detailLoading === b.bookingId) {
+                  <div class="detail-loading"><div class="spinner-sm"></div> Loading details...</div>
+                } @else if (details[b.bookingId]) {
+                  <div class="detail-grid">
+                    <!-- Journey info -->
+                    <div class="detail-section">
+                      <div class="detail-section-title">🚌 Journey Info</div>
+                      <div class="detail-row"><span>Bus</span><strong>{{ details[b.bookingId].busName }}</strong></div>
+                      <div class="detail-row"><span>Route</span><strong>{{ details[b.bookingId].source }} → {{ details[b.bookingId].destination }}</strong></div>
+                      <div class="detail-row"><span>Departure</span><strong>{{ formatDateTime(details[b.bookingId].departureTime) }}</strong></div>
+                      <div class="detail-row"><span>Status</span><span class="badge" [class]="statusClass(details[b.bookingId].status)">{{ details[b.bookingId].status }}</span></div>
+                    </div>
+
+                    <!-- Fare breakdown -->
+                     <div class="detail-section">
+                       <div class="detail-section-title">💰 Fare Breakdown</div>
+                       <div class="detail-row"><span>Base fare</span><strong>₹{{ details[b.bookingId].totalAmount | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row"><span>Platform fee (5%)</span><strong>₹{{ details[b.bookingId].platformFee | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row"><span>GST (2%)</span><strong>₹{{ details[b.bookingId].gst | number:'1.0-0' }}</strong></div>
+                       <div class="detail-row total-row"><span>Grand Total</span><strong class="text-primary">₹{{ details[b.bookingId].grandTotal | number:'1.0-0' }}</strong></div>
+                     </div>
+
+                    <!-- Passengers -->
+                    <div class="detail-section full-width">
+                      <div class="detail-section-title">👥 Passengers</div>
+                      <div class="passenger-table">
+                        <div class="pass-row header">
+                          <span>Seat</span><span>Name</span><span>Age</span><span>Gender</span>
+                        </div>
+                        @for (p of details[b.bookingId].passengers; track p.seatNumber) {
+                          <div class="pass-row">
+                            <span class="seat-tag">{{ p.seatNumber }}</span>
+                            <span>{{ p.passengerName }}</span>
+                            <span>{{ p.age }} yrs</span>
+                            <span>{{ p.gender }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          @if (b.status === 'Confirmed') {
+            <div class="card-footer">
+               <button class="btn btn-danger btn-sm" (click)="cancelBooking(b.bookingId)"
+                 [disabled]="cancelling === b.bookingId">
+                 @if (cancelling === b.bookingId) { <span class="spinner-sm"></span> }
+                 Cancel Booking
+               </button>
+               <button class="btn btn-outline btn-sm" (click)="downloadTicket(b.bookingId, b.busName, b.operatorName)"
+                 [disabled]="!details[b.bookingId]">
+                 🎫 Download Ticket
+               </button>
+              <span class="text-muted booked-on">Booked on {{ formatDate(b.bookedAt) }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

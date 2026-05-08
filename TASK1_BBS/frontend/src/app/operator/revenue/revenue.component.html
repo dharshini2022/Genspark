@@ -1,0 +1,122 @@
+<div class="container section">
+  <div class="page-header flex-between">
+    <div>
+      <h2>Detailed Revenue Dashboard</h2>
+      <p>Analyze your earnings bus-wise and trip-wise.</p>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filterStartDate" (change)="loadData()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="filterEndDate" (change)="loadData()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Filter by Bus</label>
+          <select class="form-control" [(ngModel)]="filterBusId" (change)="loadData()">
+            <option value="">All Buses</option>
+            @for (b of buses; track b.id) {
+              <option [value]="b.id">{{ b.busName }} ({{ b.registrationNumber }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-group flex-center">
+          <button class="btn btn-outline w-full" style="margin-top:20px;" (click)="clearFilters()">Clear Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-overlay"><div class="spinner"></div><p>Calculating revenue...</p></div>
+  } @else if (revenueData) {
+    <div class="grid-3 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">₹{{ revenueData.totalRevenue | number:'1.0-0' }}</div>
+        <div class="stat-label">Filtered Revenue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-value">{{ revenueData.totalBookings }}</div>
+        <div class="stat-label">Total Bookings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">❌</div>
+        <div class="stat-value">{{ revenueData.totalCancellations }}</div>
+        <div class="stat-label">Cancellations</div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><h4>Revenue by Bus</h4></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bus Name</th>
+              <th>Reg. Number</th>
+              <th>Bookings</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of revenueData.byBus; track b.busId) {
+              <tr>
+                <td><strong>{{ b.busName }}</strong></td>
+                <td>{{ b.registrationNumber }}</td>
+                <td>{{ b.totalBookings }}</td>
+                <td style="color:var(--primary); font-weight:700;">₹{{ b.revenue | number:'1.0-0' }}</td>
+              </tr>
+            }
+            @if (revenueData.byBus.length === 0) {
+              <tr><td colspan="4" class="empty-cell">No revenue data found for these filters.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h4>Revenue by Schedule (Trip-wise)</h4></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bus & Route</th>
+              <th>Departure Time</th>
+              <th>Occupancy</th>
+              <th>Seats (Booked / Total)</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of revenueData.bySchedule; track s.scheduleId) {
+              <tr>
+                <td><strong>{{ s.busName }}</strong><br><span class="text-muted">{{ s.routeName }}</span></td>
+                <td>{{ formatDate(s.departureTime) }}</td>
+                <td>
+                  <div style="width: 100px; height: 6px; background: #eee; border-radius: 3px; margin-bottom:4px;">
+                    <div style="height: 100%; background: var(--primary); border-radius: 3px;" [style.width.%]="s.occupancyPercentage"></div>
+                  </div>
+                  <span class="text-muted" style="font-size:0.7rem;">{{ s.occupancyPercentage }}%</span>
+                </td>
+                <td><span class="badge" [class.badge-success]="s.occupancyPercentage > 80" [class.badge-primary]="s.occupancyPercentage <= 80">{{ s.bookedSeats }} / {{ s.totalSeats }}</span></td>
+                <td style="color:var(--primary); font-weight:700;">₹{{ s.revenue | number:'1.0-0' }}</td>
+              </tr>
+            }
+            @if (revenueData.bySchedule.length === 0) {
+              <tr><td colspan="5" class="empty-cell">No schedules found for these filters.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

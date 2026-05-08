@@ -1,0 +1,73 @@
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="brand-logo">🚌</div>
+      <h1>Join BusBooking</h1>
+      <p>Book smarter. Travel better.</p>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Create Account</h2>
+        <p>{{ isOperator ? 'Register as Bus Operator' : 'Sign up as a customer to start booking' }}</p>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input formControlName="name" class="form-control" placeholder="John Doe">
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <span class="form-error">Name required</span>
+          }
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" formControlName="email" class="form-control" placeholder="you@example.com">
+          @if (form.get('email')?.invalid && form.get('email')?.touched) {
+            <span class="form-error">Valid email required</span>
+          }
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input formControlName="phone" class="form-control" placeholder="9XXXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" formControlName="password" class="form-control" placeholder="Min 6 characters">
+          @if (form.get('password')?.invalid && form.get('password')?.touched) {
+            <span class="form-error">Min 6 characters</span>
+          }
+        </div>
+
+        <!-- Register as Operator toggle -->
+        <div class="form-group operator-toggle">
+          <label class="terms-label operator-label">
+            <input type="checkbox" [(ngModel)]="isOperator" [ngModelOptions]="{standalone: true}"
+                   (change)="onOperatorToggle()">
+            &nbsp;🏢 Register as Operator
+          </label>
+          @if (isOperator) {
+            <p class="operator-hint">You will be redirected to the Operator Registration page</p>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="terms-label">
+            <input type="checkbox" formControlName="acceptedTerms"> &nbsp;I accept the terms and conditions
+          </label>
+          @if (form.get('acceptedTerms')?.invalid && form.get('acceptedTerms')?.touched) {
+            <span class="form-error">You must accept terms</span>
+          }
+        </div>
+        @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+        <button type="submit" class="btn btn-primary btn-xl w-full" [disabled]="loading">
+          @if (loading) { <span class="spinner-sm"></span> }
+          {{ isOperator ? 'Continue as Operator →' : 'Create Account' }}
+        </button>
+      </form>
+      <div class="auth-footer">
+        <p>Already have an account? <a routerLink="/auth/login">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+</div>

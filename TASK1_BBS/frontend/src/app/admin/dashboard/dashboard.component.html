@@ -1,0 +1,58 @@
+<div class="container section">
+  <div class="page-header">
+    <h2>Admin Dashboard</h2>
+    <p>Platform overview and revenue analytics</p>
+  </div>
+
+  @if (loading) {
+    <div class="loading-overlay"><div class="spinner"></div><p>Loading...</p></div>
+  } @else if (revenue) {
+    <div class="grid-4 mb-3">
+      <div class="stat-card">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-value">{{ revenue.totalBookings }}</div>
+        <div class="stat-label">Total Bookings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">❌</div>
+        <div class="stat-value">{{ revenue.totalCancellations }}</div>
+        <div class="stat-label">Cancellations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">₹{{ revenue.totalRevenue | number:'1.0-0' }}</div>
+        <div class="stat-label">Gross Revenue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value">₹{{ revenue.totalPlatformFee | number:'1.0-0' }}</div>
+        <div class="stat-label">Platform Fees</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h4>Revenue by Operator</h4></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Operator</th><th>Company</th><th>Bookings</th><th>Gross Revenue</th><th>Platform Fee</th></tr>
+          </thead>
+          <tbody>
+            @for (op of revenue.byOperator; track op.operatorId) {
+              <tr>
+                <td>{{ op.operatorName }}</td>
+                <td>{{ op.companyName }}</td>
+                <td>{{ op.totalBookings }}</td>
+                <td><strong>₹{{ op.grossRevenue | number:'1.0-0' }}</strong></td>
+                <td>₹{{ op.platformFeeCollected | number:'1.0-0' }}</td>
+              </tr>
+            }
+            @if (revenue.byOperator.length === 0) {
+              <tr><td colspan="5" class="empty-cell">No revenue data yet</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

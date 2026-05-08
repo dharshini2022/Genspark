@@ -1,0 +1,87 @@
+<div class="search-hero">
+  <div class="container" style="position:relative;z-index:1">
+    <h1>Find Your Perfect Bus Journey</h1>
+    <p>Search from thousands of routes across India</p>
+    <div class="search-box" [formGroup]="searchForm">
+      <div class="form-group">
+        <label class="form-label" style="color:var(--text-secondary)">From</label>
+        <input formControlName="source" class="form-control" placeholder="Chennai">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:var(--text-secondary)">To</label>
+        <input formControlName="destination" class="form-control" placeholder="Coimbatore">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="color:var(--text-secondary)">Journey Date</label>
+        <input type="date" formControlName="date" class="form-control" [min]="today">
+      </div>
+      <button class="btn btn-primary btn-lg" (click)="search()" [disabled]="loading">
+        @if (loading) { <span class="spinner-sm"></span> }
+        🔍 Search
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (searched) {
+  <div class="container section">
+    <div class="results-header">
+      <h3>{{ buses.length }} buses found</h3>
+      @if (buses.length > 0) {
+        <p class="text-muted">{{ searchForm.value.source }} → {{ searchForm.value.destination }} • {{ searchForm.value.date }}</p>
+      }
+    </div>
+
+    @if (loading) {
+      <div class="loading-overlay"><div class="spinner"></div><p>Searching buses...</p></div>
+    } @else if (buses.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">🚌</div>
+        <h3>No buses found</h3>
+        <p>Try a different date or route</p>
+      </div>
+    } @else {
+      <div class="bus-list">
+        @for (bus of buses; track bus.scheduleId) {
+          <div class="bus-card card card-clickable" (click)="selectBus(bus)">
+            <div class="bus-card-body">
+              <div class="bus-info">
+                <div>
+                  <h4 class="bus-name">{{ bus.busName }}</h4>
+                  <span class="badge badge-info">{{ bus.busType }}</span>
+                  <span class="text-muted" style="margin-left:.5rem;font-size:.8rem">by {{ bus.operatorName }}</span>
+                </div>
+                  <div class="route-line">
+                    <div class="city-info">
+                      <span class="time">{{ formatTime(bus.departureTime) }}</span>
+                      <span class="city">{{ bus.source }}</span>
+                      <span class="point" title="{{ bus.boardingAddress }}">📍 {{ bus.boardingAddress }}</span>
+                    </div>
+                    <div class="line-box">
+                      <div class="line"></div>
+                      <span class="duration">{{ getDuration(bus.departureTime, bus.arrivalTime) }}</span>
+                    </div>
+                    <div class="city-info text-right">
+                      <span class="time">{{ formatTime(bus.arrivalTime) }}</span>
+                      <span class="city">{{ bus.destination }}</span>
+                      <span class="point" title="{{ bus.droppingAddress }}">📍 {{ bus.droppingAddress }}</span>
+                    </div>
+                  </div>
+                <div class="seat-info">
+                  <div class="seat-count" [class.low]="bus.availableSeats < 5">
+                    {{ bus.availableSeats }} seats left
+                  </div>
+                </div>
+                <div class="price-box">
+                  <div class="price">₹{{ bus.totalPrice | number:'1.0-2' }}</div>
+                  <div class="price-sub">incl. fees & GST</div>
+                  <button class="btn btn-primary btn-sm" (click)="selectBus(bus); $event.stopPropagation()">Select Seats</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
