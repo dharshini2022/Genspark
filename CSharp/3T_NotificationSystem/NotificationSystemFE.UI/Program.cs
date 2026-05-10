@@ -3,6 +3,9 @@ using NotificationSystem.BLL;
 using NotificationSystem.DAL.Interfaces;
 using NotificationSystem.DAL;
 using NotificationSenders;
+using NotificationSystem.Exceptions;
+using System.Reflection.Metadata;
+
 
 
 namespace NotificationSystemFE.UI
@@ -28,6 +31,47 @@ namespace NotificationSystemFE.UI
             whatsappMode = new WhatsappNotificationSender();
         }
 
+        User GetUserByEmailInput(string role)
+        {
+            Console.Write($"Enter {role} email id:");
+            string email = Console.ReadLine() ?? "";
+            return userService.GetUserByEmail(email);
+
+        }
+
+        User GetUserByPhoneInput(string role)
+        {
+            Console.Write($"Enter {role} phone number: ");
+            string phone = Console.ReadLine() ?? "";
+            return userService.GetUserByPhone(phone);  
+        }
+
+        User GetUserByNameInput(string role)
+        {
+            Console.Write($"Enter {role} Name: ");
+            string name = Console.ReadLine() ?? "";
+            return userService.GetUser(name);
+        }
+
+        string GetMessageInput()
+        {
+            Console.Write("Enter message: ");
+            return Console.ReadLine() ?? "";
+        }
+        
+        void SetConsoleColor(string message, string color)
+        {
+            if(color == "Green")
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+            }
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
         void InitiateWorking()
         {
             bool flag = true;
@@ -45,120 +89,96 @@ namespace NotificationSystemFE.UI
                 Console.WriteLine("9. View Notifications by Username");
                 Console.WriteLine("10. Exit");
                 Console.Write("Choose an option (1-10): ");
-
                 int choice;
-                while (!int.TryParse(Console.ReadLine(), out choice) && choice < 1 && choice > 10)
+
+                while (!int.TryParse(Console.ReadLine(), out choice) || choice < 1 || choice > 10)
                 {
-                    Console.Write("  Invalid Entry! Enter a number between 1 and 10: ");
+                    Console.Write("Invalid Entry! Enter 1-10: ");
                 }
 
-                switch (choice)
+                try
                 {
-                    case 1:
-                        userService.RegisterUser();
-                        break;
+                    switch (choice)
+                    {
+                        case 1:
+                            userService.RegisterUser();
+                            SetConsoleColor("User registered successfully.","Green");
+                            break;
 
-                    case 2:
-                        Console.Write("  Enter sender's mail id: ");
-                        string emailSenderName = Console.ReadLine() ?? "";
-                        // User? emailSender = userService.GetUserByEmail(emailSenderName);
-                        // if (emailSender == null) { 
-                        //     Console.WriteLine($"User not found with mail : {emailSender}");
-                        //     break; 
-                        // }
+                        case 2:
+                            User emailSender = GetUserByEmailInput("sender");
+                            User emailReceiver = GetUserByEmailInput("receiver");
+                            string emailMsg = GetMessageInput();
+                            notificationService.Send( emailMode, emailSender, emailReceiver, emailMsg);                         
+                            SetConsoleColor("Email notification sent successfully.","Green");
+                            break;
 
-                        Console.Write("  Enter receiver's mail id: ");
-                        string emailReceiverName = Console.ReadLine() ?? "";
-                        User? emailReceiver = userService.GetUserByEmail(emailReceiverName);
-                        // if (emailReceiver == null) { 
-                        //     Console.WriteLine($"User not found with email : {emailReceiver}");
-                        //     break; 
-                        // }
+                        case 3:
+                            User smsSender = GetUserByPhoneInput("sender");
+                            User smsReceiver = GetUserByPhoneInput("receiver");
+                            string smsMsg = GetMessageInput();
+                            notificationService.Send( smsMode, smsSender, smsReceiver, smsMsg);
+                            SetConsoleColor("SMS notification sent successfully.","Green");
+                            break;
 
-                        Console.Write("  Enter message: ");
-                        string emailMsg = Console.ReadLine() ?? "";
-                        notificationService.Send(emailMode, emailSender, emailReceiver, emailMsg);
-                        break;
+                        case 4:
+                            User waSender = GetUserByPhoneInput("sender");
+                            User waReceiver = GetUserByPhoneInput("receiver");
+                            string waMsg = GetMessageInput();
+                            notificationService.Send( whatsappMode, waSender, waReceiver, waMsg);
+                            SetConsoleColor("WhatsApp notification sent successfully.","Green");
+                            break;
 
-                    case 3:
-                        Console.Write("  Enter sender's phone: ");
-                        string smsSenderName = Console.ReadLine() ?? "";
-                        User? smsSender = userService.GetUserByPhone(smsSenderName);
-                        // if (smsSender == null) { 
-                        //     Console.WriteLine($"User not found with phone : {smsSender}");
-                        //     break; }
+                        case 5:
+                            User user = GetUserByNameInput("user");
+                            Console.WriteLine(user);
+                            break;
 
-                        Console.Write("  Enter receiver's phone: ");
-                        string smsReceiverName = Console.ReadLine() ?? "";
-                        User? smsReceiver = userService.GetUserByPhone(smsReceiverName);
-                        // if (smsReceiver == null) { 
-                        //     Console.WriteLine($"User not found with phone: {smsReceiver}");
-                        //     break; 
-                        // }
+                        case 6:
+                            userService.GetAllUsers();
+                            break;
 
-                        Console.Write("  Enter message: ");
-                        string smsMsg = Console.ReadLine() ?? "";
-                        notificationService.Send(smsMode, smsSender, smsReceiver, smsMsg);
-                        break;
+                        case 7:
+                            User updateUser = GetUserByNameInput("user");
+                            userService.UpdateUser(updateUser.Name);
+                            break;
 
-                    case 4:
-                        Console.Write("  Enter sender's WhatsApp Number: ");
-                        string waSenderName = Console.ReadLine() ?? "";
-                        User? waSender = userService.GetUserByPhone(waSenderName);
-                        // if (waSender == null) { break; }
+                        case 8:
+                            User deleteUser = GetUserByNameInput("user");
+                            userService.DeleteUser(deleteUser.Name);
+                            break;
 
-                        Console.Write("  Enter receiver's WhatsApp Number: ");
-                        string waReceiverName = Console.ReadLine() ?? "";
-                        User? waReceiver = userService.GetUserByPhone(waReceiverName);
-                        // if (waReceiver == null) { break; }
+                        case 9:
+                            User notifUser = GetUserByNameInput("user");
+                            notificationService.PrintByUsername( notifUser);
+                            break;
 
-                        Console.Write("  Enter message: ");
-                        string waMsg = Console.ReadLine() ?? "";
-                        notificationService.Send(whatsappMode, waSender, waReceiver, waMsg);
-                        break;
-                                        
-                    case 5:
-                        Console.Write("Enter username: ");
-                        string username = Console.ReadLine() ?? "";
-                        userService.GetUserByName(username);
-                        break;
+                        case 10:
+                            Console.WriteLine("\nExiting Notification System.");
+                            flag = false;
+                            break;
+                    }
+                }
 
-                    case 6:
-                        userService.GetAllUsers();
-                        break;
-
-                    case 7:
-                        Console.WriteLine("Enter Username: ");
-                        string updateUserName = Console.ReadLine() ?? "";
-                        userService.UpdateUser(updateUserName);
-                        break;
-
-                    case 8:
-                        Console.Write("Enter Username: ");
-                        string deleteUsername = Console.ReadLine() ?? "";
-                        userService.DeleteUser(deleteUsername);
-                        break;
-
-                    case 9:
-                        Console.Write("  Enter username: ");
-                        string notifUsername = Console.ReadLine() ?? "";
-                        User? notifUser = userService.GetUser(notifUsername); 
-                        if (notifUser == null) 
-                        { 
-                            Console.WriteLine($"  User '{notifUsername}' not found."); 
-                            break; 
-                        }
-                        notificationService.PrintByUsername(notifUser);      
-                        break;
-                                        
-                    case 10:
-                        Console.WriteLine("\nExiting Notification System.");
-                        flag = false;
-                        break;
-
-                    default:
-                        Console.WriteLine("Invalid Entry! Enter a number between 1 to 10");
-                        break;
+                catch (ContactNotFoundException ex)
+                {
+                    SetConsoleColor( $"Contact Error: {ex.Message}","Red");
+                }
+                catch (ExistingContactException ex)
+                {
+                    SetConsoleColor($"Existing Contact Error: {ex.Message}", "Red");
+                }
+                catch (InputFormatException ex)
+                {
+                    SetConsoleColor( $"Input Format Error: {ex.Message}","Red");
+                }
+                catch (InvalidMessageException ex)
+                {
+                    SetConsoleColor($"Message Error: {ex.Message}","Red");
+                }
+                catch (Exception ex)
+                {
+                    SetConsoleColor( $"Unexpected Error: {ex.Message}","Red");
                 }
             }
         }
@@ -167,5 +187,6 @@ namespace NotificationSystemFE.UI
         {
             new Program().InitiateWorking();
         }
+
     }
 }

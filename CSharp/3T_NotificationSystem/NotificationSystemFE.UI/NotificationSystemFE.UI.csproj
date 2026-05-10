@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NotificationSystem.BLL\NotificationSystem.BLL.csproj" />
     <ProjectReference Include="..\NotificationSenders\NotificationSenders.csproj" />
+    <ProjectReference Include="..\NotificationSystem.Exceptions\NotificationSystem.Exceptions.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

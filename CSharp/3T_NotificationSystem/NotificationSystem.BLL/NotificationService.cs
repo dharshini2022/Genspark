@@ -2,6 +2,7 @@ using NotificationSystem.DAL.Interfaces;
 using NotificationSystem.Models;
 using NotificationSystem.DAL;
 using NotificationSystem.BLL.Interfaces;
+using NotificationSystem.Exceptions;
 
 namespace NotificationSystem.BLL
 {
@@ -11,9 +12,28 @@ namespace NotificationSystem.BLL
 
         public void Send(INotificationSender mode, User sender, User receiver, string message)
         {
+            if( sender == null || receiver == null )
+            {
+                throw new ContactNotFoundException($"User Not Found");
+            }
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                throw new InvalidMessageException("Messsage cannot be empty");
+            }
+            if(message.Trim().Length < 5)
+            {
+                throw new InvalidMessageException("Message must contain minimum 5 characters");
+            }
+            if(mode.GetType().Name == "SMSNotificationSender" && message.Trim().Length > 160)
+            {
+                throw new InvalidMessageException("SMS Message can't exceed 160 characters");
+            }
             Notification? notification = mode.Send(sender, receiver, message);
-            if (notification != null)
-                _repo.SaveNotification(notification);
+            if(notification == null)
+            {
+                throw new Exception("Failed to Send Notification");
+            }
+            _repo.SaveNotification(notification);
         }
 
         public void PrintByUsername(User user)
