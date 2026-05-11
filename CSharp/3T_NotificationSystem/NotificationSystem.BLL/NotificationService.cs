@@ -33,6 +33,7 @@ namespace NotificationSystem.BLL
             {
                 throw new Exception("Failed to Send Notification");
             }
+            Console.WriteLine(sender.Id + " " + receiver.Id);
             _repo.SaveNotification(notification);
         }
 
@@ -41,8 +42,7 @@ namespace NotificationSystem.BLL
             Console.WriteLine("\nUser Details");
             Console.WriteLine(user);
 
-            //call of indexed data
-            var notifications = _repo[user.Name];
+            var notifications = _repo.GetNotificationByUsername(user.Name);
             if (notifications.Count == 0)
             {
                 Console.WriteLine("\n  No notifications sent by this user.");

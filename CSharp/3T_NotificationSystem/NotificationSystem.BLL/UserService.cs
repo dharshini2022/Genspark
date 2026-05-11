@@ -32,7 +32,7 @@ namespace NotificationSystem.BLL
             while (true)
             {
                 Console.Write("Enter your name: ");
-                name = Console.ReadLine() ?? "";
+                name = (Console.ReadLine() ?? "" ).ToLower();
 
                 if (!users.Any(u => u.Name == name))
                     break;
@@ -45,13 +45,18 @@ namespace NotificationSystem.BLL
             {
                 Console.Write("Enter your email address: ");
                 email = Console.ReadLine() ?? "";
-                if (email.Contains('@') && email.EndsWith(".com"))
-                    break;
-                throw new InputFormatException("Invalid Email ID!");
-            }
-            if (users.Any(u => u.Email == email))
-            {
-                throw new ExistingContactException($"{email} already exists!");
+                if(!email.Contains('@') || !email.EndsWith(".com"))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid Email ID!");
+                    Console.ResetColor();
+                    continue;
+                }
+                if(users.Any(u => u.Email == email))
+                {
+                    throw new ExistingContactException($"{email} already exists!");
+                }
+                break;
             }
 
             string phone;
@@ -59,15 +64,20 @@ namespace NotificationSystem.BLL
             {
                 Console.Write("Enter your 10-digit phone number: ");
                 phone = Console.ReadLine() ?? "";
-                if (phone.Length == 10 && phone.All(char.IsDigit))
-                    break;
-                throw new InputFormatException("Enter a valid phone no. 10 digits");
+                if (phone.Length != 10 || !phone.All(char.IsDigit))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Enter a Valid Phone Number of Length 10");
+                    Console.ResetColor();
+                    continue;
+                }
+                if (users.Any(u => u.Phone == phone))
+                {
+                    throw new ExistingContactException($"{phone} already exisits");
+                }
+                break;
             }
 
-            if (users.Any(u => u.Phone == phone))
-            {
-                throw new ExistingContactException($"{phone} already exisits");
-            }
 
             Console.Write("Is WhatsApp active on this number? (Y/N): ");
             string whatsappInput = Console.ReadLine()?.ToLower() ?? "n";
@@ -119,7 +129,7 @@ namespace NotificationSystem.BLL
         bool AdminCredentials()
         {
             Env.Load();
-            string password = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+            string password = "AdminRights";
             Console.WriteLine(password);
             Console.WriteLine("Enter access key:");
             string accessKey = (Console.ReadLine()) ?? "";
@@ -221,6 +231,5 @@ namespace NotificationSystem.BLL
             }
             Console.WriteLine($"  User '{user?.Name}' deleted successfully.");
         }
-
     }
 }

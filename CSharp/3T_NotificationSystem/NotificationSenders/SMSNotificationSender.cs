@@ -21,7 +21,7 @@ namespace NotificationSenders
             Console.WriteLine("SMS sent successfully!");
             Console.WriteLine($"  Sender:  {sender.Phone}\n Receiver: {receiver.Phone}\n Message: {message}");
 
-            return new Notification(message, sender, receiver, Notification.NotificationType.SMS, sender.Phone, receiver.Phone);
+            return new Notification(message, sender.Id, receiver.Id, Notification.NotificationType.SMS, sender.Phone, receiver.Phone);
         }
     }
 }

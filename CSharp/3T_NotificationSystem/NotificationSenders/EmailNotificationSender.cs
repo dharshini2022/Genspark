@@ -21,7 +21,7 @@ namespace NotificationSenders
             Console.WriteLine("Email sent successfully!");
             Console.WriteLine($"  Sender:  {sender.Email}\n Receiver: {receiver.Email}\n Message: {message}");
 
-            return new Notification(message, sender, receiver, Notification.NotificationType.Email, sender.Email, receiver.Email);
+            return new Notification(message, sender.Id, receiver.Id, Notification.NotificationType.Email, sender.Email, receiver.Email);
         }
     }
 }
