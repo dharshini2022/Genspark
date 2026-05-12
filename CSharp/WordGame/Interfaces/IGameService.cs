@@ -2,7 +2,7 @@ using WordGame.Models;
 
 namespace WordGame.Interfaces
 {
-    internal interface IGame
+    internal interface IGameService
     {
         public Game CreateGame(string hiddenWord);
         public bool CheckGuess(Game game, string guess);

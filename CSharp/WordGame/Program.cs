@@ -16,6 +16,7 @@ namespace WordGame
             {
                 WordRepository repository = new WordRepository();
                 GameService gameService = new GameService();
+                PlayerService playerService = new PlayerService();
                 GuessValidator validator = new GuessValidator();
                 FeedbackGenerator feedbackGenerator = new FeedbackGenerator();
                 CommentGenerator commentGenerator = new CommentGenerator();
