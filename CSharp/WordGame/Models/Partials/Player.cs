@@ -4,7 +4,7 @@ namespace WordGame.Models
     {
         public override string ToString()
         {
-            return $"Name: {Name}\n Password: {Password}\n Total Score: {Score}";
+            return $"Name: {Name}\nPassword: {Password}\nTotal Score: {Score}";
         }
     }
 }

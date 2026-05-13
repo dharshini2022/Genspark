@@ -11,5 +11,7 @@ namespace WordGame.Interfaces
 
         public void PrintColoredFeedback(string feedback);
 
+        public Game? SaveGame(Game game);
+
     }
 }

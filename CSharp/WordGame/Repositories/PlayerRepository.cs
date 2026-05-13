@@ -28,7 +28,7 @@ namespace WordGame.Repositories
                 player.Id = generatedPlayerId;
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -50,7 +50,7 @@ namespace WordGame.Repositories
                 command.ExecuteNonQuery();
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -78,7 +78,7 @@ namespace WordGame.Repositories
                 }
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -108,7 +108,7 @@ namespace WordGame.Repositories
                 }
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -140,7 +140,7 @@ namespace WordGame.Repositories
                 }
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {
@@ -171,7 +171,7 @@ namespace WordGame.Repositories
                 }
             }catch(Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                throw new Exception(ex.Message);
             }
             finally
             {

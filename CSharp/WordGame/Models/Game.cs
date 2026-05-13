@@ -1,6 +1,6 @@
 namespace WordGame.Models
 {
-    public class Game
+    public partial class Game
     {
         public int Id {get; set; }
         public int PlayerId { get; set; }
@@ -10,20 +10,24 @@ namespace WordGame.Models
         public int CurrentAttempt { get; set; } = 0;
         public bool IsWon { get; set; } = false;
         public int GameScore { get; set; } = 0;
+        public DateTime GameDateTime {get; set;} = DateTime.Now;
         public List<string> PreviousGuesses { get; set; }
 
         public Game()
         {
-            MaxAttempts = 6;
-            CurrentAttempt = 0;
-            GameScore = 0;
-            PreviousGuesses = new List<string>();
+            // MaxAttempts = 6;
+            // CurrentAttempt = 0;
+            // GameScore = 0;
+            // PreviousGuesses = new List<string>();
         }
         public Game(string hiddenWord, int playerId, int wordId)
         {
             HiddenWord = hiddenWord;
             PlayerId = playerId;
             WordId = wordId;
+            MaxAttempts = 6;
+            CurrentAttempt = 0;
+            GameScore = 0;
             PreviousGuesses = new List<string>();
         }
     }

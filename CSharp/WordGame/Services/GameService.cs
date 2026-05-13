@@ -25,7 +25,6 @@ namespace WordGame.Services
             if (guess == game.HiddenWord)
             {
                 game.IsWon = true;
-                Game newGame = _repo.SaveGame(game);
                 return true;
             }
             return false;
@@ -72,6 +71,11 @@ namespace WordGame.Services
                 throw new EmptyResourceException("No Games Played!");
             }
             return games;
+        }
+
+        public Game? SaveGame(Game game)
+        {
+            return _repo.SaveGame(game) ?? throw new EmptyResourceException("Issues in saving game");
         }
     }
 }

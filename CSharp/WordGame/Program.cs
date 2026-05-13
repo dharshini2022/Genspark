@@ -1,4 +1,5 @@
-﻿using WordGame.Exceptions;
+﻿using System.Drawing;
+using WordGame.Exceptions;
 using WordGame.Models;
 using WordGame.Repositories;
 using WordGame.Services;
@@ -14,38 +15,57 @@ namespace WordGame
             WordRepository wordRepository = new WordRepository();
 
             bool running = true;
-            while (running)
+            try
             {
-                Console.WriteLine("\n===== WORD GAME =====");
-                Console.WriteLine("1. Register");
-                Console.WriteLine("2. Login");
-                Console.WriteLine("3. Exit");
-
-                Console.Write("Enter Choice: ");
-                int choice = Convert.ToInt32(Console.ReadLine());
-                switch (choice)
+                while (running)
                 {
-                    case 1:
-                        Register(playerService);
-                        break;
+                    SetConsoleForeGroundColor("\n===== WORD GAME =====");
+                    Console.WriteLine("1. Register");
+                    Console.WriteLine("2. Login");
+                    Console.WriteLine("3. Exit");
 
-                    case 2:
-                        Player? loggedInPlayer = Login(playerService);
-                        if (loggedInPlayer != null)
-                        {
-                            LoggedInMenu( loggedInPlayer, playerService, gameService, wordRepository);
-                        }
-                        break;
+                    Console.Write("Enter Choice: ");
+                    int choice = Convert.ToInt32(Console.ReadLine());
+                    switch (choice)
+                    {
+                        case 1:
+                            Register(playerService);
+                            break;
 
-                    case 3:
-                        running = false;
-                        Console.WriteLine("Exiting Game...");
-                        break;
+                        case 2:
+                            Player? loggedInPlayer = Login(playerService);
+                            if (loggedInPlayer != null)
+                            {
+                                LoggedInMenu( loggedInPlayer, playerService, gameService, wordRepository);
+                            }
+                            break;
 
-                    default:
-                        Console.WriteLine("Invalid Choice");
-                        break;
+                        case 3:
+                            running = false;
+                            SetConsoleForeGroundColor("Exiting Game...");
+                            break;
+
+                        default:
+                            SetConsoleForeGroundColor("Invalid Choice! Enter choice between 1 to 3","Red");
+                            break;
+                    }
                 }
+                
+            }catch(EmptyResourceException ex)
+            {
+                SetConsoleForeGroundColor($"{ex.Message}","Red");
+            }catch(InvalidGuessException ex)
+            {
+                SetConsoleForeGroundColor(ex.Message,"Red");
+            }catch(InvalidInputException ex)
+            {
+                SetConsoleForeGroundColor(ex.Message,"Red");
+            }catch(PlayerAlreadyExistsException ex)
+            {
+                SetConsoleForeGroundColor(ex.Message,"Red");
+            }catch(Exception ex)
+            {
+                SetConsoleForeGroundColor(ex.Message,"Red");
             }
         }
 
@@ -64,13 +84,12 @@ namespace WordGame
                 Player? player = playerService.Register(name, password);
                 if (player != null)
                 {
-                    Console.WriteLine("Registration Successful!");
-                    // Login(playerService);
+                    SetConsoleForeGroundColor("Registration Successful!");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                SetConsoleForeGroundColor(ex.Message,"Red");
             }
         }
 
@@ -84,11 +103,11 @@ namespace WordGame
 
             if (player == null)
             {
-                Console.WriteLine("Invalid Credentials");
+                SetConsoleForeGroundColor("Invalid Credentials","Red");
                 return null;
             }
 
-            Console.WriteLine($"Welcome {player.Name}");
+            SetConsoleForeGroundColor($"Welcome {player.Name}");
             return player;
         }
 
@@ -97,11 +116,12 @@ namespace WordGame
             bool loggedIn = true;
             while (loggedIn)
             {
-                Console.WriteLine("\n===== PLAYER MENU =====");
+                SetConsoleForeGroundColor("\n===== PLAYER MENU =====");
                 Console.WriteLine("1. Play New Game");
                 Console.WriteLine("2. View Profile");
                 Console.WriteLine("3. View Leaderboard");
-                Console.WriteLine("4. Logout");
+                Console.WriteLine("4. View Game History");
+                Console.WriteLine("5. Logout");
 
                 Console.Write("Enter Choice: ");
                 int choice = Convert.ToInt32(Console.ReadLine());
@@ -112,20 +132,26 @@ namespace WordGame
                         break;
 
                     case 2:
+                        SetConsoleForeGroundColor($"Profile of {player.Name}:");
                         ViewProfile(player, playerService);
                         break;
 
                     case 3:
+                        SetConsoleForeGroundColor("LeaderBoard:");
                         ViewLeaderBoard(playerService);
                         break;
 
                     case 4:
+                        SetConsoleForeGroundColor($"Game History of {player.Name}:");
+                        ViewGameHistory(player, gameService);
+                        break;
+                    case 5:
+                        SetConsoleForeGroundColor("Logging off");
                         loggedIn = false;
-                        Console.WriteLine("Logged Out Successfully");
                         break;
 
                     default:
-                        Console.WriteLine("Invalid Choice");
+                        SetConsoleForeGroundColor("Invalid Choice! Enter choice between 1 to 5!","Red");
                         break;
                 }
             }
@@ -137,10 +163,10 @@ namespace WordGame
             FeedbackGenerator feedbackGenerator = new FeedbackGenerator();
             CommentGenerator commentGenerator = new CommentGenerator();
 
-            string hiddenWord = wordRepository.GetRandomWord();
-            Game game = gameService.CreateGame(hiddenWord,player.Id,1);
+            Word hiddenWord = wordRepository.GetRandomWord();
+            Game game = gameService.CreateGame(hiddenWord.WordName,player.Id,hiddenWord.Id);
 
-            Console.WriteLine("\n===== GAME STARTED =====");
+            SetConsoleForeGroundColor("\n===== GAME STARTED =====");
             while (!gameService.IsGameOver(game))
             {
                 Console.WriteLine($"\nAttempt {game.CurrentAttempt + 1} out of {game.MaxAttempts}");
@@ -151,7 +177,7 @@ namespace WordGame
                     validator.Validate(guess);
                     if (game.PreviousGuesses.Contains(guess))
                     {
-                        Console.WriteLine("Duplicate Guess!");
+                        SetConsoleForeGroundColor("Duplicate Guess!","Red");
                         continue;
                     }
 
@@ -166,22 +192,22 @@ namespace WordGame
                         game.GameScore = score;
                         playerService.UpdateTotalScore( player.Id, score );
                         Console.WriteLine(commentGenerator.GetComment(game.CurrentAttempt));
-                        Console.WriteLine("You Won!");
+                        SetConsoleForeGroundColor("You Won!");
                         break;
                     }
                 }
                 catch (InvalidGuessException ex)
                 {
-                    Console.WriteLine(ex.Message);
+                    SetConsoleForeGroundColor(ex.Message,"Red");
                 }
             }
 
             if (!game.IsWon)
             {
-                Console.WriteLine("\nGame Over!");
-                Console.WriteLine(
-                    $"Correct Word: {game.HiddenWord}");
+                SetConsoleForeGroundColor("Game Over!","Red");
+                Console.WriteLine($"Correct Word: {game.HiddenWord}");
             }
+            Game savedGame = gameService.SaveGame(game);
         }
 
         static void ViewProfile(Player currentPlayer, PlayerService playerService)
@@ -189,11 +215,11 @@ namespace WordGame
             Player? player = playerService.ViewProfile(currentPlayer.Id);
             if (player != null)
             {
-                Console.WriteLine("\n===== PROFILE =====");
-                Console.WriteLine($"Name: {player.Name}");
-                Console.WriteLine($"Password: {player.Password}");
-                Console.WriteLine($"Score: {player.Score}");
-                // Console.WriteLine(player);
+                SetConsoleForeGroundColor("\n===== PROFILE =====");
+                // Console.WriteLine($"Name: {player.Name}");
+                // Console.WriteLine($"Password: {player.Password}");
+                // Console.WriteLine($"Score: {player.Score}");
+                Console.WriteLine(player);
             }
         }
 
@@ -201,12 +227,30 @@ namespace WordGame
         {
             List<Player> players = playerService.ViewLeaderBoard();
 
-            Console.WriteLine("\n===== LEADERBOARD =====");
+            SetConsoleForeGroundColor("\n===== LEADERBOARD =====");
             Console.WriteLine("Name - Score");
             foreach (Player player in players)
             {
                 Console.WriteLine( $"{player.Name} - {player.Score}");
             }
+        }
+
+        static void ViewGameHistory(Player player, GameService gameService)
+        {
+            List<Game> gameHistory = gameService.DisplayGamesByPlayerId(player.Id);
+            foreach(Game game in gameHistory)
+            {
+                Console.WriteLine("========================");
+                Console.WriteLine(game);
+                Console.WriteLine("========================");
+            }
+        }
+
+        static void SetConsoleForeGroundColor(string text, string color = "Green")
+        {
+            Console.ForegroundColor = color == "Green" ? ConsoleColor.Green : ConsoleColor.Red;
+            Console.WriteLine(text);
+            Console.ResetColor();
         }
     }
 }

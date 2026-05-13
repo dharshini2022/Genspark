@@ -4,7 +4,7 @@ using Npgsql;
 
 namespace WordGame.Repositories
 {
-    public class GameRepository
+    public partial class GameRepository
     {
         DbContext dBContext;
         public GameRepository()
@@ -14,8 +14,8 @@ namespace WordGame.Repositories
 
         public Game? SaveGame(Game game)
         {
-            string insertQuery = @"INSERT INTO games (player_id, word_id, game_score, is_won)
-                VALUES (@playerId, @wordId, @gameScore, @isWon)
+            string insertQuery = @"INSERT INTO games (player_id, word_id, game_score, is_won, gamedatetime)
+                VALUES (@playerId, @wordId, @gameScore, @isWon, @gameDateTime)
                 RETURNING id;";
             using NpgsqlConnection connection = dBContext.GetConnection();
             try
@@ -26,6 +26,7 @@ namespace WordGame.Repositories
                 insertCommand.Parameters.AddWithValue("@wordId", game.WordId);
                 insertCommand.Parameters.AddWithValue("@gameScore", game.GameScore);
                 insertCommand.Parameters.AddWithValue("@isWon", game.IsWon);
+                insertCommand.Parameters.AddWithValue("@gameDateTime", DateTime.Now);
                 int generatedGameId = Convert.ToInt32(insertCommand.ExecuteScalar());
                 game.Id = generatedGameId;
             }
@@ -41,10 +42,13 @@ namespace WordGame.Repositories
             return game ?? null;
         }
 
-        public List<Game>? GetGamesByPlayerId(int player_id)
+        public List<Game>? GetGamesByPlayerId(int player_id) 
         {
             List<Game> games = new List<Game>();
-            string selectQuery = @"SELECT * FROM games WHERE player_id = @player_id";
+            string selectQuery = @"SELECT w.word, g.game_score, g.gamedatetime, g.is_won 
+                                    FROM games g JOIN words w ON g.word_id = w.id
+                                    WHERE g.player_id = @player_id
+                                    ORDER BY g.gamedatetime DESC";
             using NpgsqlConnection connection = dBContext.GetConnection();
             try
             {
@@ -56,9 +60,10 @@ namespace WordGame.Repositories
                 {
                     games.Add( new Game()
                     {
-                        Id = Convert.ToInt32(reader["id"]),
+                        HiddenWord = reader["word"].ToString(),
+                        GameScore = Convert.ToInt32(reader["game_score"]),
                         IsWon = Convert.ToBoolean(reader["is_won"]),
-                        GameScore = Convert.ToInt32(reader["game_score"])
+                        GameDateTime = Convert.ToDateTime(reader["gamedatetime"])
                     });
                 }
             }catch(Exception ex)

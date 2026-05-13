@@ -12,10 +12,9 @@ namespace WordGame.Repositories
             dBContext = new DbContext();
         }
 
-        public string GetRandomWord()
+        public Word? GetRandomWord()
         {
-            List<string> words = new List<string>();
-            string selectQuery = "SELECT * FROM words";
+            string selectQuery = "SELECT * FROM words ORDER BY RANDOM() LIMIT 1";
             using NpgsqlConnection connection = dBContext.GetConnection();
             try
             {
@@ -24,7 +23,10 @@ namespace WordGame.Repositories
                 using NpgsqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    words.Add(reader["word"].ToString());
+                    return new Word(Convert.ToInt32(
+                                        reader["id"]), 
+                                        reader["word"].ToString()
+                                    );
                 }
             }catch(Exception ex)
             {
@@ -34,10 +36,11 @@ namespace WordGame.Repositories
             {
                 connection.Close();
             }
+            return null;
 
-            Random random = new Random();
-            int index = random.Next(words.Count);
-            return words[index];
+            // Random random = new Random();
+            // int index = random.Next(words.Count);
+            // return words[index];
         }
     }
 }
