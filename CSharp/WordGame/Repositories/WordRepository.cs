@@ -1,12 +1,15 @@
+using Npgsql;
+using WordGame.Models;
+
 namespace WordGame.Repositories
 {
     internal class WordRepository
     {
-        DBContext dBContext;
+        DbContext dBContext;
 
         public WordRepository()
         {
-            dBContext = new DBContext();
+            dBContext = new DbContext();
         }
 
         public string GetRandomWord()
@@ -21,7 +24,7 @@ namespace WordGame.Repositories
                 using NpgsqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    words.Add(reader[1].ToString);
+                    words.Add(reader["word"].ToString());
                 }
             }catch(Exception ex)
             {

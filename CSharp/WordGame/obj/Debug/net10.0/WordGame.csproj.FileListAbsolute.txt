@@ -13,3 +13,8 @@
 /Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.pdb
 /Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.genruntimeconfig.cache
 /Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/ref/WordGame.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.csproj.AssemblyReference.cache
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/Microsoft.Extensions.Logging.Abstractions.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/bin/Debug/net10.0/Npgsql.dll
+/Users/dharshinik/Desktop/Presidio/Genspark/CSharp/WordGame/obj/Debug/net10.0/WordGame.csproj.Up2Date

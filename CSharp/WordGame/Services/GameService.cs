@@ -1,6 +1,7 @@
 using WordGame.Models;
 using WordGame.Interfaces;
 using WordGame.Repositories;
+using WordGame.Exceptions;
 
 namespace WordGame.Services
 {
@@ -24,7 +25,7 @@ namespace WordGame.Services
             if (guess == game.HiddenWord)
             {
                 game.IsWon = true;
-                Game game = _repo.SaveGame(game);
+                Game newGame = _repo.SaveGame(game);
                 return true;
             }
             return false;

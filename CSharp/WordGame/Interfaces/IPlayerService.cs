@@ -12,6 +12,6 @@ namespace WordGame.Interfaces
         public void UpdateTotalScore(int playerId, int newGameScore);
         public List<Player> ViewLeaderBoard();
         public bool PlayerExists(string name);
-        public bool ChangePassword(int playerId, string oldPassword, string newPassword);
+        //public bool ChangePassword(int playerId, string oldPassword, string newPassword);
     }
 }

@@ -1,15 +1,17 @@
 using System.Data.Common;
 using System.Reflection.Metadata;
 using System.Security;
+using WordGame.Models;
+using Npgsql;
 
 namespace WordGame.Repositories
 {
     public class PlayerRepository
     {
-        DBContext dBContext;
+        DbContext dBContext;
         public PlayerRepository()
         {
-            dBContext = new DBContext();
+            dBContext = new DbContext();
         }
 
         public Player? CreatePlayer(Player player)
@@ -23,7 +25,7 @@ namespace WordGame.Repositories
                 command.Parameters.AddWithValue("@name", player.Name);
                 command.Parameters.AddWithValue("@password", player.Password);
                 int generatedPlayerId = Convert.ToInt32(command.ExecuteScalar());
-                player.id = generatedPlayerId;
+                player.Id = generatedPlayerId;
             }catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
@@ -130,8 +132,10 @@ namespace WordGame.Repositories
                 {
                     return new Player()
                     {
+                        Id = Convert.ToInt32(reader["id"]),
                         Name = reader["name"].ToString(),
-                        Password = reader["password"].ToString()
+                        Password = reader["password"].ToString(),
+                        Score = Convert.ToInt32(reader["score"])
                     };
                 }
             }catch(Exception ex)
@@ -153,7 +157,7 @@ namespace WordGame.Repositories
             {
                 connection.Open();
                 using NpgsqlCommand command = new NpgsqlCommand(selectQuery, connection);
-                command.Player.AddWithValue("@name",name);
+                command.Parameters.AddWithValue("@name",name);
                 using NpgsqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -165,7 +169,7 @@ namespace WordGame.Repositories
                         Score = Convert.ToInt32(reader["score"])
                     };
                 }
-            }catch(Expection ex)
+            }catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }

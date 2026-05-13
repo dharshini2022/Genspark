@@ -25,13 +25,12 @@ namespace WordGame.Services
 
         public string ValidatePassword(string password)
         {
-            while (True)
+            if(password.Length < 5)
             {
-                if(password.Length < 5)
-                {
-                    throw new InvalidInputException("Password must contain minimum 5 characters");
-                }
+                throw new InvalidInputException("Password must contain minimum 5 characters");
             }
+
+            return password;
         }
         public Player? Register(string name, string password)
         {
@@ -76,6 +75,6 @@ namespace WordGame.Services
             return player != null;
         }
 
-        public bool ChangePassword(int playerId, string oldPassword, string newPassword);
+        //public bool ChangePassword(int playerId, string oldPassword, string newPassword);
     }
 }
