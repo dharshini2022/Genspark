@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="NotificationSenders/NotificationSenders.csproj" />
+  <Project Path="NotificationSystem.BLL/NotificationSystem.BLL.csproj" />
+  <Project Path="NotificationSystem.DAL/NotificationSystem.DAL.csproj" />
+  <Project Path="NotificationSystem.Exceptions/NotificationSystem.Exceptions.csproj" />
+  <Project Path="NotificationSystem.Models/NotificationSystem.Models.csproj" />
+  <Project Path="NotificationSystemFE.UI/NotificationSystemFE.UI.csproj" />
+</Solution>
