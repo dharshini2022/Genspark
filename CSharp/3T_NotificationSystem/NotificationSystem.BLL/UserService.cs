@@ -83,7 +83,7 @@ namespace NotificationSystem.BLL
             string whatsappInput = Console.ReadLine()?.ToLower() ?? "n";
             bool HasWhatsapp = whatsappInput == "y" || whatsappInput == "yes";
 
-            return new User(name, email, phone, HasWhatsapp);
+            return new User(0,name, email, phone, HasWhatsapp);
         }
         public void PrintUserDetails(User user)
         {
@@ -130,7 +130,7 @@ namespace NotificationSystem.BLL
         {
             Env.Load();
             string password = "AdminRights";
-            Console.WriteLine(password);
+            // Console.WriteLine(password);
             Console.WriteLine("Enter access key:");
             string accessKey = (Console.ReadLine()) ?? "";
             if(accessKey == password)

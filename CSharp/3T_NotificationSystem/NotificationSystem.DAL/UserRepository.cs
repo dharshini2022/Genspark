@@ -36,6 +36,7 @@ namespace NotificationSystem.DAL
                 command.Parameters.AddWithValue("@Phone",(object?)item.Phone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Whatsapp",item.HasWhatsapp);
                 int generatedId = Convert.ToInt32(command.ExecuteScalar());
+                Console.WriteLine(generatedId);
                 item.Id = generatedId;
                 // int rowsAffected = command.ExecuteNonQuery();
             }catch(Exception ex)
@@ -62,6 +63,7 @@ namespace NotificationSystem.DAL
                 while (reader.Read())
                 {
                     return new User(
+                        Convert.ToInt32(reader["Id"]),
                         reader["Name"].ToString()!,
                         reader["Email"].ToString()!,
                         reader["Phone"].ToString()!,
@@ -93,6 +95,7 @@ namespace NotificationSystem.DAL
                 foreach(DataRow dr in table.Rows)
                 {
                     users.Add(new User(
+                        Convert.ToInt32(dr["Id"]),
                         dr["Name"].ToString()!,
                         dr["Email"].ToString()!,
                         dr["Phone"].ToString()!,
@@ -116,7 +119,7 @@ namespace NotificationSystem.DAL
             {
                 return null;
             }
-            string updateQuery = @"UPDATE users SET Name = @Name, Email = @Email, Phone = @Phone, HasWhatsapp = @Whatsapp WHERE Name = @key";
+            string updateQuery = @"UPDATE users SET Email = @Email, Phone = @Phone, HasWhatsapp = @Whatsapp WHERE Name = @key";
             try
             {
                 _connection.Open();        

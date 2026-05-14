@@ -50,7 +50,7 @@ namespace NotificationSystemFE.UI
         {
             Console.Write($"Enter {role} Name: ");
             string name = Console.ReadLine() ?? "";
-            return userService.GetUser(name);
+            return userService.GetUser(name) ?? throw new ContactNotFoundException($"No Contact Found with username: {name}");
         }
 
         string GetMessageInput()
@@ -150,7 +150,7 @@ namespace NotificationSystemFE.UI
 
                         case 9:
                             User notifUser = GetUserByNameInput("user");
-                            notificationService.PrintByUsername( notifUser);
+                            notificationService.PrintByUsername(notifUser);
                             break;
 
                         case 10:

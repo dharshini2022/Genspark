@@ -15,12 +15,9 @@ namespace NotificationSenders
             if (!CanSend(sender, receiver))
             {
                 Console.WriteLine("Failed — missing email on sender or receiver.");
-                return null;
             }
 
-            Console.WriteLine("Email sent successfully!");
             Console.WriteLine($"  Sender:  {sender.Email}\n Receiver: {receiver.Email}\n Message: {message}");
-
             return new Notification(message, sender.Id, receiver.Id, Notification.NotificationType.Email, sender.Email, receiver.Email);
         }
     }

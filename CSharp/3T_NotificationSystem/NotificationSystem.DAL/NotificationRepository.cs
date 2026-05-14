@@ -61,7 +61,7 @@ namespace NotificationSystem.DAL
                 NpgsqlDataReader reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    string output = $"{reader["sent_date"]}\n From : {reader["sender_name"]}\n To   : {reader["receiver_name"]}\n Msg  : {reader["message"]}";
+                    string output = $"{reader["sentdate"]}\n From : {reader["sender_name"]}\n To   : {reader["receiver_name"]}\n Msg  : {reader["message"]}";
                     notifications.Add(output);
                 }
                 return notifications;

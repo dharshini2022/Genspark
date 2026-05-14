@@ -33,7 +33,6 @@ namespace NotificationSystem.BLL
             {
                 throw new Exception("Failed to Send Notification");
             }
-            Console.WriteLine(sender.Id + " " + receiver.Id);
             _repo.SaveNotification(notification);
         }
 

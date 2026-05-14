@@ -9,8 +9,9 @@ namespace NotificationSystem.Models
         public string Phone { get; set; } = string.Empty;
         public bool HasWhatsapp { get; set; } = false;
 
-        public User(string Name, string Email, string Phone, bool HasWhatsapp = false)
+        public User(int Id,string Name, string Email, string Phone, bool HasWhatsapp = false)
         {
+            this.Id = Id;
             this.Name = Name;
             this.Email = Email;
             this.Phone = Phone;         
