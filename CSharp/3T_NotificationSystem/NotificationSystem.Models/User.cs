@@ -3,13 +3,15 @@ namespace NotificationSystem.Models
 
     public class User
     {
-        public string Name { get; set; } = string.Empty;
+        public int Id { get; set; }
+        public string Name { get; set; }
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public bool HasWhatsapp { get; set; } = false;
 
-        public User(string Name, string Email, string Phone, bool HasWhatsapp = false)
+        public User(int Id,string Name, string Email, string Phone, bool HasWhatsapp = false)
         {
+            this.Id = Id;
             this.Name = Name;
             this.Email = Email;
             this.Phone = Phone;         

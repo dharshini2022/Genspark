@@ -1,19 +1,33 @@
 namespace WordGame.Models
 {
-    internal class Game
+    public partial class Game
     {
-        public string HiddenWord {get; set; }
-        public int TotalAttempts = 6;
-        public int CurrentAttempt {get; set; } = 0;
-        public bool IsCorrect {get; set; } = false;
+        public int Id {get; set; }
+        public int PlayerId { get; set; }
+        public int WordId { get; set; }
+        public string HiddenWord { get; set; } = string.Empty;
+        public int MaxAttempts { get; set; } = 6;
+        public int CurrentAttempt { get; set; } = 0;
+        public bool IsWon { get; set; } = false;
+        public int GameScore { get; set; } = 0;
+        public DateTime GameDateTime {get; set;} = DateTime.Now;
+        public List<string> PreviousGuesses { get; set; }
 
-        public List<string> PreviousGuesses;
-
-        public Game(string HiddenWord)
+        public Game()
         {
-            this.HiddenWord = HiddenWord;
+            // MaxAttempts = 6;
+            // CurrentAttempt = 0;
+            // GameScore = 0;
+            // PreviousGuesses = new List<string>();
+        }
+        public Game(string hiddenWord, int playerId, int wordId)
+        {
+            HiddenWord = hiddenWord;
+            PlayerId = playerId;
+            WordId = wordId;
+            MaxAttempts = 6;
             CurrentAttempt = 0;
-            IsCorrect = false;
+            GameScore = 0;
             PreviousGuesses = new List<string>();
         }
     }

@@ -1,29 +1,46 @@
+using Npgsql;
+using WordGame.Models;
+
 namespace WordGame.Repositories
 {
     internal class WordRepository
     {
-        private List<string> _words;
+        DbContext dBContext;
 
         public WordRepository()
         {
-            _words = new List<string>
-            {
-                "APPLE",
-                "MANGO",
-                "GRAPE",
-                "TRAIN",
-                "PLANT",
-                "BRAIN"
-            };
+            dBContext = new DbContext();
         }
 
-        public string GetRandomWord()
+        public Word? GetRandomWord()
         {
-            Random random = new Random();
+            string selectQuery = "SELECT * FROM words ORDER BY RANDOM() LIMIT 1";
+            using NpgsqlConnection connection = dBContext.GetConnection();
+            try
+            {
+                connection.Open();
+                using NpgsqlCommand command = new NpgsqlCommand(selectQuery,connection);
+                using NpgsqlDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    return new Word(Convert.ToInt32(
+                                        reader["id"]), 
+                                        reader["word"].ToString()
+                                    );
+                }
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+            return null;
 
-            int index = random.Next(_words.Count);
-
-            return _words[index];
+            // Random random = new Random();
+            // int index = random.Next(words.Count);
+            // return words[index];
         }
     }
 }

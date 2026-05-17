@@ -1,13 +1,21 @@
 using WordGame.Models;
 using WordGame.Interfaces;
+using WordGame.Repositories;
+using WordGame.Exceptions;
 
 namespace WordGame.Services
 {
-    internal class GameService : IGame
+    internal class GameService : IGameService
     {
-        public Game CreateGame(string hiddenWord)
+        private GameRepository _repo;
+        public GameService()
         {
-            return new Game(hiddenWord);
+            _repo = new GameRepository();
+        }
+
+        public Game CreateGame(string hiddenWord, int playerId, int wordId)
+        {
+            return new Game(hiddenWord, playerId, wordId);
         }
 
         public bool CheckGuess(Game game, string guess)
@@ -16,17 +24,15 @@ namespace WordGame.Services
 
             if (guess == game.HiddenWord)
             {
-                game.IsCorrect = true;
-
+                game.IsWon = true;
                 return true;
             }
-
             return false;
         }
 
         public bool IsGameOver(Game game)
         {
-            if(game.CurrentAttempt >= game.TotalAttempts || game.IsCorrect)
+            if(game.CurrentAttempt >= game.MaxAttempts || game.IsWon)
             {
                 return true;
             }
@@ -55,6 +61,21 @@ namespace WordGame.Services
             }
             Console.ResetColor();
             Console.WriteLine();
+        }
+
+        public List<Game> DisplayGamesByPlayerId(int player_id)
+        {
+            List<Game> games = _repo.GetGamesByPlayerId(player_id);
+            if(games == null)
+            {
+                throw new EmptyResourceException("No Games Played!");
+            }
+            return games;
+        }
+
+        public Game? SaveGame(Game game)
+        {
+            return _repo.SaveGame(game) ?? throw new EmptyResourceException("Issues in saving game");
         }
     }
 }
