@@ -15,9 +15,9 @@ namespace LibrarySystem.UI.Modules.AdminModule
 
         public void Show()
         {
-            Console.Clear();
-
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== MEMBER MANAGEMENT ======");
+            Console.ResetColor();
 
             Console.WriteLine("1. View All Members");
             Console.WriteLine("2. Search Member By Id");
@@ -60,8 +60,6 @@ namespace LibrarySystem.UI.Modules.AdminModule
                     break;
             }
 
-            Console.WriteLine("\nPress any key...");
-            Console.ReadKey();
         }
 
         private void ViewAllMembers()

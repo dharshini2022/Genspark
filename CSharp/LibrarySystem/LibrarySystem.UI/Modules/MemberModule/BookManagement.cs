@@ -15,7 +15,9 @@ namespace LibrarySystem.UI.Modules.MemberModule
 
         public void Show()
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== BOOK MANAGEMENT ======");
+            Console.ResetColor();
             Console.WriteLine("1. View All Available Books");
             Console.WriteLine("2. Search Book By Title");
             Console.WriteLine("3. Search Book By Author");

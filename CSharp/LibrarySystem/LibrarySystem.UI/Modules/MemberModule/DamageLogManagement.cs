@@ -17,7 +17,9 @@ namespace LibrarySystem.UI.Modules.MemberModule
         {
             int memberId = SessionManager.SessionMember!.MemberId;
 
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== DAMAGE LOGS ======");
+            Console.ResetColor();
             Console.WriteLine("1. View Damage Log History");
             Console.WriteLine("0. Back");
 

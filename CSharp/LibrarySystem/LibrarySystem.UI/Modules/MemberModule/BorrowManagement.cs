@@ -18,7 +18,9 @@ namespace LibrarySystem.UI.Modules.MemberModule
         {
             int memberId = SessionManager.SessionMember!.MemberId;
 
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== BORROW / RETURN ======");
+            Console.ResetColor();
             Console.WriteLine("1. Borrow New Book");
             Console.WriteLine("2. Return Book");
             Console.WriteLine("3. View Borrow History");
@@ -55,13 +57,15 @@ namespace LibrarySystem.UI.Modules.MemberModule
         {
             try
             {
-                Console.Write("Enter Book Copy Id : ");
-                int copyId = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Book Title : ");
+                string title = Console.ReadLine()!;
 
-                Borrowing borrowing = _borrowingService.BorrowBook(memberId, copyId);
+                Borrowing borrowing =
+                    _borrowingService.BorrowBookByTitle(memberId, title);
 
                 Console.WriteLine("Book Borrowed Successfully");
                 Console.WriteLine($"Borrowing Id : {borrowing.BorrowingId}");
+                Console.WriteLine($"Copy Id      : {borrowing.CopyId}");
                 Console.WriteLine($"Due Date     : {borrowing.DueDate}");
             }
             catch (BorrowingLimitExceededException ex)
@@ -94,13 +98,13 @@ namespace LibrarySystem.UI.Modules.MemberModule
         {
             try
             {
-                Console.Write("Enter Borrowing Id : ");
-                int borrowingId = Convert.ToInt32(Console.ReadLine());
+                Console.Write("Enter Book Title : ");
+                string title = Console.ReadLine()!;
 
-                var borrowing = _borrowingService.ReturnBook(borrowingId);
+                var borrowing =_borrowingService.ReturnBookByTitle(memberId, title);
 
-                Console.WriteLine("Return Request Submitted Successfully");
-                Console.WriteLine($"Borrowing Id : {borrowing?.BorrowingId}");
+                Console.WriteLine("Book Returned Successfully");
+                Console.WriteLine($"Borrowing Id : {borrowing.BorrowingId}");
                 Console.WriteLine($"Returned Date: {DateTime.Now}");
             }
             catch (Exception ex)

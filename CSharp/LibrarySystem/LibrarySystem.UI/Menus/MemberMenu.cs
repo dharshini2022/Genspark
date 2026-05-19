@@ -37,7 +37,9 @@ namespace LibrarySystem.UI.Menus
                 Console.WriteLine();
                 Console.WriteLine($"Welcome {SessionManager.SessionMember?.Name}");
 
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("====== MEMBER MENU ======");
+                Console.ResetColor();
                 Console.WriteLine("1. Dashboard Reports");
                 Console.WriteLine("2. Profile Management");
                 Console.WriteLine("3. Books Management");

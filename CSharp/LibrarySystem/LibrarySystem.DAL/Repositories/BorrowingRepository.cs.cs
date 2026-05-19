@@ -3,6 +3,7 @@ using System.Linq;
 using LibrarySystem.DAL.Interfaces;
 using LibrarySystem.DAL.Context;
 using LibrarySystem.Models;
+using LibrarySystem.Exceptions;
 
 namespace LibrarySystem.DAL.Repositories
 {
@@ -37,8 +38,5 @@ namespace LibrarySystem.DAL.Repositories
             borrow.Status = status;
             return new Borrowing();
         }
-
-
-
     }
 }

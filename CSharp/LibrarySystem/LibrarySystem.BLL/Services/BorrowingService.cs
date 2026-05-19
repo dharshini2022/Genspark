@@ -26,8 +26,8 @@ namespace LibrarySystem.BLL.Services
             _damageRepository = damageLogRepository;
             _dbContext = dbContext;
         }
-        
-        public Borrowing BorrowBook(int memberId, int copyId)
+                  
+        public Borrowing BorrowBookByTitle(int memberId, string title)
         {
             using var transaction = _dbContext.Database.BeginTransaction();
 
@@ -39,13 +39,32 @@ namespace LibrarySystem.BLL.Services
 
                 ValidateBorrowLimit(member);
 
-                var copy = ValidateBookCopy(copyId);
+                var book = _dbContext.Books
+                    .Include(b => b.Copies)
+                    .FirstOrDefault(b => b.Title.ToLower() == title.ToLower());
 
-                ValidateDuplicateBorrow(memberId, copy.BookId);
+                if (book == null)
+                {
+                    throw new Exception("Book not found");
+                }
 
-                var borrowing = CreateBorrowing(member, copyId);
+                ValidateDuplicateBorrow(memberId, book.BookId);
 
-                _bookCopyRepository.UpdateCopyStatus(copy.CopyId,BookCopy.BookCopyStatus.Borrowed);
+                var availableCopy = book.Copies
+                    .FirstOrDefault(c =>
+                        c.Status == BookCopy.BookCopyStatus.Available);
+
+                if (availableCopy == null)
+                {
+                    throw new Exception("No available copies available");
+                }
+
+                var borrowing = CreateBorrowing(member, availableCopy.CopyId);
+
+                _bookCopyRepository.UpdateCopyStatus(
+                    availableCopy.CopyId,
+                    BookCopy.BookCopyStatus.Borrowed
+                );
 
                 _dbContext.SaveChanges();
 
@@ -81,6 +100,54 @@ namespace LibrarySystem.BLL.Services
 
                 transaction.Commit();
 
+                return borrowing;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public Borrowing ReturnBookByTitle(int memberId, string title)
+        {
+            using var transaction = _dbContext.Database.BeginTransaction();
+
+            try
+            {
+                var book = _dbContext.Books
+                    .FirstOrDefault(b =>
+                        b.Title.ToLower() == title.ToLower());
+
+                if (book == null)
+                {
+                    throw new Exception("Book not found");
+                }
+
+                var borrowing = _dbContext.Borrowings
+                    .Include(b => b.Copy)
+                    .FirstOrDefault(b =>
+                        b.MemberId == memberId &&
+                        b.Copy.BookId == book.BookId &&
+                        b.Status == Borrowing.BorrowingStatus.Active);
+
+                if (borrowing == null)
+                {
+                    throw new Exception("No active borrowing found for this book");
+                }
+
+                int delayedDays = CalculateDelayedDays(borrowing);
+
+                if (delayedDays > 0)
+                {
+                    CreateFine(borrowing, delayedDays);
+                }
+
+                UpdateBorrowStatus(borrowing.BorrowingId,Borrowing.BorrowingStatus.Returned);
+                _bookCopyRepository.UpdateCopyStatus(borrowing.CopyId, BookCopy.BookCopyStatus.Available);
+                borrowing.ReturnedAt = DateTime.Now;
+                _dbContext.SaveChanges();
+                transaction.Commit();
                 return borrowing;
             }
             catch
@@ -125,7 +192,7 @@ namespace LibrarySystem.BLL.Services
 
             if(status == Borrowing.BorrowingStatus.Returned)
             {
-                copy.Status = BookCopy.BookCopyStatus.Damaged;
+                copy.Status = BookCopy.BookCopyStatus.Available;
             }
             else if(status == Borrowing.BorrowingStatus.Damaged)
             {

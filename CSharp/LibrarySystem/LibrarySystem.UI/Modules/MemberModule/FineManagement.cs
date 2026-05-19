@@ -18,7 +18,9 @@ namespace LibrarySystem.UI.Modules.MemberModule
         {
             int memberId = SessionManager.SessionMember!.MemberId;
 
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== FINE MANAGEMENT ======");
+            Console.ResetColor();
             Console.WriteLine("1. View Fine History");
             Console.WriteLine("2. Pay Fine");
             Console.WriteLine("0. Back");

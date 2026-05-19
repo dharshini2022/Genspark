@@ -36,7 +36,9 @@ namespace LibrarySystem.Presentation.Menus
             {
                 Console.WriteLine();
                 Console.WriteLine("Welcome Admin");
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("====== ADMIN MENU ======");
+                Console.ResetColor();
                 Console.WriteLine("1. Dashboard Reports");
                 Console.WriteLine("2. Member Management");
                 Console.WriteLine("3. Book Management");

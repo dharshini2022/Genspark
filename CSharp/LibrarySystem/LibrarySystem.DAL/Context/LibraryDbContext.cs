@@ -1,5 +1,7 @@
 using LibrarySystem.Models;
+using LibrarySystem.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace LibrarySystem.DAL.Context;
 
@@ -31,6 +33,11 @@ public class LibraryDbContext : DbContext
     public DbSet<Fine> Fines {get; set;}
     public DbSet<DamageLog> DamageLogs {get; set;}
 
+    //DTO
+    public DbSet<MostBorrowedBookDTO> MostBorrowedBooks { get; set; }
+    public DbSet<OverdueBookDTO> OverdueBooks { get; set; }
+    public DbSet<OverallBorrowedBookDTO> OverallBorrowedBooks { get; set; }
+    public DbSet<MemberPendingFineDTO> MemberPendingFines { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -164,5 +171,11 @@ public class LibraryDbContext : DbContext
             .HasOne(d => d.BookCopy)
             .WithMany(b => b.DamageLogs)
             .HasForeignKey(d => d.CopyId);
+
+        //DTOs
+        modelBuilder.Entity<MostBorrowedBookDTO>().HasNoKey();
+        modelBuilder.Entity<OverdueBookDTO>().HasNoKey();
+        modelBuilder.Entity<OverallBorrowedBookDTO>().HasNoKey();
+        modelBuilder.Entity<MemberPendingFineDTO>().HasNoKey();
     }
 }

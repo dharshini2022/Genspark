@@ -17,7 +17,9 @@ namespace LibrarySystem.UI.Modules.AdminModule
 
         public void Show()
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== BOOK MANAGEMENT ======");
+            Console.ResetColor();
 
             Console.WriteLine("1. Add Book");
             Console.WriteLine("2. Update Book");

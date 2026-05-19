@@ -14,15 +14,15 @@ namespace LibrarySystem.UI.Modules.AdminModule
 
         public void Show()
         {
-            Console.Clear();
 
             int choice;
 
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("======= DAMAGE LOG MANAGEMENT =======");
-            Console.WriteLine("1. Create Damage Log");
-            Console.WriteLine("2. View All Damage Logs");
-            Console.WriteLine("3. Filter Damage Log By Member");
-            Console.WriteLine("4. Filter Damage Log By Book Copy");
+            Console.ResetColor();
+            Console.WriteLine("1. View All Damage Logs");
+            Console.WriteLine("2. Filter Damage Log By Member");
+            Console.WriteLine("3. Filter Damage Log By Book Copy");
             Console.WriteLine("0. Back");
 
             Console.Write("Enter Choice : ");
@@ -32,18 +32,14 @@ namespace LibrarySystem.UI.Modules.AdminModule
             switch (choice)
             {
                 case 1:
-                    CreateDamageLog();
-                    break;
-
-                case 2:
                     ViewDamageLog();
                     break;
 
-                case 3:
+                case 2:
                     FilterByMember();
                     break;
 
-                case 4:
+                case 3:
                     FilterByBook();
                     break;
 
@@ -53,61 +49,6 @@ namespace LibrarySystem.UI.Modules.AdminModule
                 default:
                     Console.WriteLine("Invalid Choice");
                     break;
-            }
-
-            Console.WriteLine("\nPress any key...");
-            Console.ReadKey();
-        }
-
-        private void CreateDamageLog()
-        {
-            try
-            {
-                Console.Write("Enter Borrowing Id : ");
-                int borrowingId = Convert.ToInt32(Console.ReadLine());
-
-                Console.WriteLine("Select Damage Type");
-                Console.WriteLine("1. Damaged");
-                Console.WriteLine("2. Lost");
-
-                int choice = Convert.ToInt32(Console.ReadLine());
-
-                Borrowing.BorrowingStatus status;
-
-                switch (choice)
-                {
-                    case 1:
-                        status = Borrowing.BorrowingStatus.Damaged;
-                        break;
-
-                    case 2:
-                        status = Borrowing.BorrowingStatus.Lost;
-                        break;
-
-                    default:
-                        Console.WriteLine("Invalid Choice");
-                        return;
-                }
-
-                Console.Write("Enter Remarks : ");
-                string remarks = Console.ReadLine()!;
-
-                DamageLog? damage =
-                    _damageLogService.ReportDamage(
-                        borrowingId,
-                        status,
-                        remarks);
-
-                Console.WriteLine("Damage Log Created Successfully");
-
-                if (damage != null)
-                {
-                    DisplayDamageLog(damage);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
             }
         }
 

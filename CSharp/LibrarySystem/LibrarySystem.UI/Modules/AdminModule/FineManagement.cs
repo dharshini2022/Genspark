@@ -14,11 +14,12 @@ namespace LibrarySystem.UI.Modules.AdminModule
 
         public void Show()
         {
-            Console.Clear();
 
             int choice;
 
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("======= FINE MANAGEMENT =======");
+            Console.ResetColor();
             Console.WriteLine("1. Overall Active Fines");
             Console.WriteLine("2. Fine History Of Member");
             Console.WriteLine("0. Back");
@@ -44,9 +45,6 @@ namespace LibrarySystem.UI.Modules.AdminModule
                     Console.WriteLine("Invalid Choice");
                     break;
             }
-
-            Console.WriteLine("\nPress any key...");
-            Console.ReadKey();
         }
 
         private void OverallActiveFines()

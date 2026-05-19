@@ -6,7 +6,6 @@ namespace LibrarySystem.DAL.Interfaces
     {
         public Member? GetByEmail(string email);
         public List<Member> GetByName(string name);
-        public bool MemberExists(int memberId);
         public bool DeactivateMember(int memberId);
         public Member? UpdateMember(int memberID, Member.membershipType type);
         public Member? ValidateLoginCredentials(string email, string password);

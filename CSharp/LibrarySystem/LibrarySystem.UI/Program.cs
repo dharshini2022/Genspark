@@ -57,6 +57,9 @@ namespace LibrarySystem
             services.AddScoped<AdminModules.FineManagement>();
             services.AddScoped<AdminModules.DamageLogManagement>();
 
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IDashboardService, DashboardService>();
+
             var serviceProvider = services.BuildServiceProvider();
             using (var scope = serviceProvider.CreateScope())
             {
