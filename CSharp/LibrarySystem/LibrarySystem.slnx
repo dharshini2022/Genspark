@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LibrarySystem.BLL/LibrarySystem.BLL.csproj" />
+  <Project Path="LibrarySystem.DAL/LibrarySystem.DAL.csproj" />
+  <Project Path="LibrarySystem.Exceptions/LibrarySystem.Exceptions.csproj" />
+  <Project Path="LibrarySystem.Models/LibrarySystem.Models.csproj" />
+  <Project Path="LibrarySystem.UI/LibrarySystem.UI.csproj" />
+</Solution>
