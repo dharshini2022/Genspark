@@ -20,15 +20,6 @@ namespace LibrarySystem.DAL.Repositories
         {
             return _dbContext.Fines.Where(f => f.MemberId == memberId).ToList();
         }
-        public Fine? PayFine(int fineId)
-        {
-            var fine = _dbContext.Fines.Find(fineId);
-            if(fine == null)    return null;
-            fine.IsPaid = true;
-            fine.PaidAt = DateTime.Now;
-            _dbContext.SaveChanges();
-            return fine;
-        }
         public List<Fine> GetAllActiveFines()
         {
             return _dbContext.Fines.OrderByDescending(f => f.FineId).ToList();

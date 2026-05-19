@@ -7,6 +7,6 @@ namespace LibrarySystem.DAL.Interfaces
         public Borrowing? ReturnBook(Borrowing borrow);
         public Borrowing? ApproveReturnBook(Borrowing borrow,Borrowing.BorrowingStatus status);
         public bool HasActiveBorrowedSameBook(int memberId, int bookId);
-
+        
     }    
 }

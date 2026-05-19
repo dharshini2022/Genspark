@@ -22,11 +22,6 @@ namespace LibrarySystem.DAL.Repositories
             return _dbContext.Members.Where(m => m.Name.Contains(name)).ToList();
         }
 
-        public bool MemberExists(int memberId)
-        {
-            return _dbContext.Members.Any(m => m.MemberId == memberId);
-        }
-
         public bool DeactivateMember(int memberID)
         {
             var member = _dbContext.Members.Find(memberID);
@@ -50,9 +45,6 @@ namespace LibrarySystem.DAL.Repositories
             var member = _dbContext.Members.FirstOrDefault(m => m.Email == email && m.IsActive && m.Password == password);
             if (member == null) return null;
             return member;
-
-            // bool valid = BCrypt.Net.BCrypt.Verify(password, member.Password);
-            // return valid ? member : null;
         }
 
         public Member? GetMemberWithBorrowings(int memberId)

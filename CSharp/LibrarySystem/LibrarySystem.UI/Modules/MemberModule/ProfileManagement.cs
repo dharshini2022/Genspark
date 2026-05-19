@@ -16,7 +16,9 @@ namespace LibrarySystem.UI.Modules.MemberModule
 
         public void Show()
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== PROFILE MANAGEMENT ======");
+            Console.ResetColor();
             Console.WriteLine("1. View Profile");
             Console.WriteLine("2. Update Profile");
             Console.WriteLine("3. Deactivate Account");
@@ -94,7 +96,8 @@ namespace LibrarySystem.UI.Modules.MemberModule
                     switch (typeOption)
                     {
                         case 2:
-                            Console.Write("Enter your Student Id:");
+                            Console.WriteLine("Enter your Student Id:");
+                            string tempRead = Console.ReadLine() ?? "";
                             newType = Member.membershipType.Student;
                             break;
                         case 3:

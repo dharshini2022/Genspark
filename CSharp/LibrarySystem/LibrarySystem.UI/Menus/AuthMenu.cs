@@ -22,7 +22,9 @@ namespace LibrarySystem.UI.Menus
 
         public void Register()
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== REGISTER ======");
+            Console.ResetColor();
             Member member = new Member();
             Console.Write("Name : ");
             member.Name = (Console.ReadLine() ?? "").Trim().ToLower();
@@ -41,7 +43,9 @@ namespace LibrarySystem.UI.Menus
 
         public void Login()
         {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("====== LOGIN ======");
+            Console.ResetColor();
             Console.Write("Email : ");
             string email = (Console.ReadLine() ?? "").Trim().ToLower();
 

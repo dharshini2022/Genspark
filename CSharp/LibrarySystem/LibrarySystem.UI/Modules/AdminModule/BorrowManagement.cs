@@ -14,11 +14,11 @@ namespace LibrarySystem.UI.Modules.AdminModule
 
         public void Show()
         {
-            Console.Clear();
 
             int choice;
-
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("======= BORROW MANAGEMENT =======");
+            Console.ResetColor();
             Console.WriteLine("1. View Active Borrows");
             Console.WriteLine("2. Approve Returns");
             Console.WriteLine("3. View Borrow History Of Member");
@@ -49,9 +49,6 @@ namespace LibrarySystem.UI.Modules.AdminModule
                     Console.WriteLine("Invalid Choice");
                     break;
             }
-
-            Console.WriteLine("\nPress any key...");
-            Console.ReadKey();
         }
 
         private void ActiveBorrows()
@@ -115,11 +112,7 @@ namespace LibrarySystem.UI.Modules.AdminModule
                 Console.Write("Enter Remarks : ");
                 string remarks = Console.ReadLine()!;
 
-                Borrowing borrowing =
-                    _borrowingService.ApproveReturn(
-                        borrowingId,
-                        status,
-                        remarks);
+                Borrowing borrowing =_borrowingService.ApproveReturn(borrowingId,status,remarks);
 
                 Console.WriteLine("Return Approved Successfully");
 
