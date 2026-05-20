@@ -40,7 +40,7 @@ namespace LibraryManagementSystem.Controller
             try
             {
                 var result = await _bookService.AddBook(bookRequest);
-                return CreatedAtAction(nameof(GetBook), new { id = result?.BookId }, result);
+                return CreatedAtAction(nameof(GetBook), new { bookId = result?.BookId }, result);
             }catch(Exception ex)
             {
                 return BadRequest(ex.Message);

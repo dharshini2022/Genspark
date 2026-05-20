@@ -41,7 +41,7 @@ namespace LibraryManagementSystem.Controller
             try
             {
                 var result = await _MemberService.AddMember(MemberRequest);
-                return CreatedAtAction(nameof(GetMember),result);
+                return CreatedAtAction(nameof(GetMember),new { memberId = result?.MemberId },result);
             }catch(Exception ex)
             {
                 return BadRequest(ex.Message);
