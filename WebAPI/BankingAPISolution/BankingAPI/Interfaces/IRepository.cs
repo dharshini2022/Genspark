@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace BankingAPI.Interfaces
 {
     public interface IRepository<K,T> where T : class
     {
-        public T Create(T item);
-        public T? Get(K key);
-        public List<T>? GetAll();
+        public Task<T> Create(T item);
+        public Task<T?> Get(K key);
+        public Task<List<T>> GetAll();
 
-        public T? Update(K key,T item);
-        public T? Delete(K key);
+        public Task<T?> Update(K key,T item);
+        public Task<T?> Delete(K key);
 
     }
 }

@@ -20,11 +20,11 @@ namespace BankingAPI.Controllers
 
         [Authorize]
         [HttpPost("deposit")]
-        public ActionResult<TransactionResponse> Deposit(DepositRequest request)
+        public async Task<ActionResult<TransactionResponse>> Deposit(DepositRequest request)
         {
             try
             {
-                var result = _transact.Deposit(request);
+                var result = await _transact.Deposit(request);
                 return CreatedAtAction(nameof(GetTransactionByReference), new { referenceNumber = result.TransactionReferenceNumber }, result);
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }
@@ -34,11 +34,11 @@ namespace BankingAPI.Controllers
 
         [Authorize]
         [HttpPost("withdraw")]
-        public ActionResult<TransactionResponse> Withdraw(WithdrawRequest request)
+        public async Task<ActionResult<TransactionResponse>> Withdraw(WithdrawRequest request)
         {
             try
             {
-                var result = _transact.Withdraw(request);
+                var result = await _transact.Withdraw(request);
                 return CreatedAtAction(nameof(GetTransactionByReference), new { referenceNumber = result.TransactionReferenceNumber }, result);
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }
@@ -48,11 +48,11 @@ namespace BankingAPI.Controllers
 
         [Authorize]
         [HttpPost("transfer")]
-        public ActionResult<TransactionResponse> Transfer(TransferRequest request)
+        public async Task<ActionResult<TransactionResponse>> Transfer(TransferRequest request)
         {
             try
             {
-                var result = _transact.Transfer(request);
+                var result = await _transact.Transfer(request);
                 return CreatedAtAction(nameof(GetTransactionByReference), new { referenceNumber = result.TransactionReferenceNumber }, result);
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }
@@ -62,11 +62,11 @@ namespace BankingAPI.Controllers
 
         [Authorize]
         [HttpPost("transactions")]
-        public ActionResult<IEnumerable<TransactionResponse>> GetFilteredTransactions([FromBody] FilterRequest filterRequest)
+        public async Task<ActionResult<IEnumerable<TransactionResponse>>> GetFilteredTransactions([FromBody] FilterRequest filterRequest)
         {
             try
             {
-                var result = _transact.GetTransactionsForAccount(filterRequest);
+                var result = await _transact.GetTransactionsForAccount(filterRequest);
                 return Ok(result);
             }
             catch (ArgumentException ex) { return NotFound(ex.Message); }
@@ -75,11 +75,11 @@ namespace BankingAPI.Controllers
 
         [Authorize]
         [HttpGet("transactions/{referenceNumber:int}")]
-        public ActionResult<TransactionResponse> GetTransactionByReference(int referenceNumber)
+        public async Task<ActionResult<TransactionResponse>> GetTransactionByReference(int referenceNumber)
         {
             try
             {
-                var result = _transact.GetTransactionByReference(referenceNumber);
+                var result = await _transact.GetTransactionByReference(referenceNumber);
                 if (result == null) return NotFound($"Transaction {referenceNumber} not found");
                 return Ok(result);
             }
