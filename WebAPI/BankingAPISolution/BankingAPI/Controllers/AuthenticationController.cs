@@ -1,3 +1,4 @@
+using BankingAPI.Filters;
 using BankingAPI.Interfaces;
 using BankingAPI.Misc;
 using BankingAPI.Models.DTOs;
@@ -12,10 +13,12 @@ namespace BankingAPI.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly IAuthenticationService _authenticationService;
+        private readonly ILogger<AuthenticationController> _logger;
 
-        public AuthenticationController(IAuthenticationService authenticationService)
+        public AuthenticationController(IAuthenticationService authenticationService,ILogger<AuthenticationController> logger)
         {
             _authenticationService = authenticationService;
+            _logger = logger;
         }
 
         [HttpPost("Register")]
@@ -39,19 +42,24 @@ namespace BankingAPI.Controllers
         [HttpPost("Login")]
         public async Task<ActionResult<LoginResponse>> CustomerLogin(LoginRequest request)
         {
-            try
-            {
-                var result = await _authenticationService.Login(request);
-                return Ok(result);
-            }
-            catch (InvalidCredentialException ex)
-            {
-                return Unauthorized(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            //try
+            //{
+            //    var result = await _authenticationService.Login(request);
+            //    return Ok(result);
+            //}
+            //catch (InvalidCredentialException ex)
+            //{
+            //    _logger.LogWarning("Failed login attempt for username: {Username}. Reason: {Message}", request.Username, ex.Message);
+            //    return Unauthorized(ex.Message);
+            //}
+            //catch (Exception ex)
+            //{
+            //    return BadRequest(ex.Message);
+            //}
+       
+            var result = await _authenticationService.Login(request);
+            return Ok(result);
+           
         }
     }
 }

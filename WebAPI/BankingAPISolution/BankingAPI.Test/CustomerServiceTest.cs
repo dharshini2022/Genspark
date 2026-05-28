@@ -69,7 +69,7 @@ namespace BankingApiTest
                 DateOfBirth = new DateTime(2004,1,1) 
             };
 
-            customer =await customerRepository.Create(customer);
+            await customerRepository.Create(customer);
             CreateAccountRequest request = new CreateAccountRequest
             {
                 Balance = 100,
