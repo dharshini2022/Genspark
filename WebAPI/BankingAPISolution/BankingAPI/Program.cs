@@ -1,5 +1,7 @@
+using BankingAPI;
 using BankingAPI.Contexts;
 using BankingAPI.Interfaces;
+using BankingAPI.Middlewares;
 using BankingAPI.Models;
 using BankingAPI.Repositories;
 using BankingAPI.Services;
@@ -7,15 +9,23 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Security.AccessControl;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+#region Logging
+Log.Logger = new LoggerConfiguration()
+.ReadFrom.Configuration(builder.Configuration)
+.Enrich.FromLogContext()
+.WriteTo.Console()
+.WriteTo.File("logs/MyAppLog.txt")
+.CreateLogger();
+builder.Host.UseSerilog();
+#endregion
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -44,6 +54,21 @@ builder.Services.AddSwaggerGen(opt =>
         }
     });
 });
+
+#region SignalR
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.WithOrigins("http://localhost:5091")
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials();// Allow credentials for SignalR (verification of clients)
+    });
+});
+#endregion
 
 #region Contexts
 builder.Services.AddDbContext<BankingContext>(options =>
@@ -105,6 +130,14 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.UseCors();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseStaticFiles();
+
 app.MapControllers();
+
+app.MapHub<ChatHub>("/chathub");
 
 app.Run();
