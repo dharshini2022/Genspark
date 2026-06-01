@@ -1,0 +1,10 @@
+<div class="card" style="width: 18rem;">
+  <img class="card-img-top" src="{{product.thumbnailImage}}" alt="Card image cap">
+  <div class="card-body">
+    <h5 class="card-title">{{product.title}}</h5>
+    <p class="card-text">{{product.description}}</p>
+    <h6 class="card-title">Price : {{product.price}}</h6>
+    <p class="card-text">Stock: {{product.stock}}</p>
+    <a href="#" class="btn btn-primary" (click)="ReduceStock()">Buy Now</a>
+  </div>
+</div>
