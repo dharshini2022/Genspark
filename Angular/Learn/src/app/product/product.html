@@ -1,14 +1,8 @@
-<section class="product-container">
-   @for (product of products(); track product.id) 
-   {
-        <div class="card" style="width: 18rem;">
-        <img class="card-img-top" [src]="product.thumbnail" alt="Card image cap">
-        <div class="card-body">
-            <h5 class="card-title">{{product.title}}</h5>
-            <p class="card-text">{{product.description}}</p>
-            <p class="card-text">Stock Remaining: {{product.stock}}</p>
-            <a href="#" (click)="ReduceStock(product.id)" class="btn btn-primary">Buy Now</a>
-        </div>
-        </div>
-   }
-</section>
+<div class="card" style="width: 18rem;">
+    <img class="card-img-top" [src]="product()?.thumbnail" alt="Card image cap">
+    <div class="card-body">
+        <h5 class="card-title">{{product()?.title}}</h5>
+        <p class="card-text">{{product()?.description}}</p>
+        <a (click)="handleClick()" class="btn btn-primary">Buy for ${{product()?.price}}</a>
+    </div>
+</div>
