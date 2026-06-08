@@ -1,4 +1,4 @@
-import { Component, EventEmitter, input, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, input, Input, output, Output, signal } from '@angular/core';
 import { ProductApiService } from '../services/product.api.service';
 import { ProductModel } from './models/product.model';
 
@@ -54,7 +54,9 @@ export class Product {
   product = input<ProductModel>();
   
   /*Child To Parent Communication*/
-  @Output() buy = new EventEmitter<ProductModel>();
+  //option 1: Using @Output decorator (older way)
+  //@Output() buy = new EventEmitter<ProductModel>();
+  buy = output<ProductModel|undefined>();
   handleClick(){
     
     this.buy.emit(this.product());

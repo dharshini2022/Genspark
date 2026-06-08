@@ -2,7 +2,15 @@ import { Subject } from "rxjs";
 
 export const usernameSubject = new Subject<string>();
 
-export const changeUsername = (username : string ) => {
-    console.log("Changing user name to ", username);
-    usernameSubject.next(username);
+export const changeUsername = () => {
+    //console.log("Changing user name to ", username);
+    //usernameSubject.next(username);
+    const token = sessionStorage.getItem("token");
+    if (token) {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+         const name = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
+         if (name) {
+            usernameSubject.next(name);
+         }
+    }
 }
