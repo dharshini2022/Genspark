@@ -5,10 +5,11 @@ import { Login } from './login/login';
 import { Register } from './register/register';
 import { Account } from './account/account';
 import { usernameSubject } from './rxjs/auth.operator';
+import { Products } from './products/products';
 
 @Component({
   selector: 'app-root',
-  imports: [Customer, Product,Login,Register,Account],
+  imports: [Customer, Products,Login,Register,Account],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
