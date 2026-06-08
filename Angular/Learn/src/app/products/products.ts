@@ -32,8 +32,8 @@ export class Products {
     
   }
 
-  handleBuy(product: ProductModel){
-    alert(`You bought ${product.title} for $${product.price}`);
-    this.cart().push(product);
+  handleBuy(product: ProductModel | undefined){
+    alert(`You bought ${product?.title} for $${product?.price}`);
+    this.cart().push(product!);
   }
 }
