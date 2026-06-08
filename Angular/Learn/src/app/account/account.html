@@ -1,0 +1,7 @@
+<div>
+    <!-- <input type="text" placeholder="Enter account number" #accNumber>
+    <button (click)="getAccountDetails(accNumber.value)">Get Account Details</button> -->
+    <input type="text" placeholder="Enter account number" [(ngModel)]="searchAccountNumber">
+    <button (click)="getAccountDetails()">Get Account Details</button>
+    <button (click)="onDestroy()">UnSubscribe</button>
+</div>
