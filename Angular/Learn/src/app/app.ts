@@ -6,10 +6,12 @@ import { Register } from './register/register';
 import { Account } from './account/account';
 import { usernameSubject } from './rxjs/auth.operator';
 import { Products } from './products/products';
+import { RouterOutlet } from '@angular/router';
+import { Navigation } from './navigation/navigation';
 
 @Component({
   selector: 'app-root',
-  imports: [Customer, Products,Login,Register,Account],
+  imports: [RouterOutlet,Navigation],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -18,7 +20,7 @@ export class App {
   constructor(){
     usernameSubject.subscribe({
       next: (un) => {
-        this.username.set(un);
+        this.username.set(un ? un:'Guest');
       }
     })
   }
