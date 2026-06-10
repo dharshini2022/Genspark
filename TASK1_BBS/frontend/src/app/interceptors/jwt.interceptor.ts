@@ -7,6 +7,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const token = auth.token;
 
   if (token) {
+    // Adds the token to the Authorization header of the http request
     req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
   }
   return next(req);
