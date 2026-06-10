@@ -1,0 +1,21 @@
+.loginSection{
+    display: flex;
+    width: 100vw;
+    height: 90vh;
+    justify-content: center;
+    align-items: center;
+    background-color:#0f172a;
+    box-sizing: border-box;
+}   
+
+.loginSection .btn-primary {
+    background-color: #0f172a;
+    border-color: #0f172a;
+}
+
+.loginSection .btn-primary:hover,
+.loginSection .btn-primary:focus,
+.loginSection .btn-primary:active {
+    background-color: #1e293b;
+    border-color: #1e293b;
+}

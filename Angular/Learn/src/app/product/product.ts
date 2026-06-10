@@ -58,7 +58,7 @@ export class Product {
   //@Output() buy = new EventEmitter<ProductModel>();
   buy = output<ProductModel|undefined>();
   handleClick(){
-    
+  
     this.buy.emit(this.product());
   }
 
