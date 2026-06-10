@@ -9,6 +9,7 @@ using BankingAPI.Misc;
 using BankingAPI.Models.DTOs;
 using System.Security.Cryptography;
 using System.Security.Authentication;
+using AutoMapper;
 
 
 
@@ -20,16 +21,18 @@ namespace BankingAPI.Services
         private readonly IRepository<string, User> _userRepository;
         private readonly IRepository<int, Customer> _customerRepository;
         private readonly ITokenService _tokenService;
+        private readonly IMapper _mapper;
 
         public CustomerService(IRepository<string,Account> accountRepository,
                                 IRepository<string, User> userRepository,
                                 IRepository<int, Customer> customerRepository,
-                                ITokenService tokenService)
+                                ITokenService tokenService, IMapper mapper)
         {
             _accountRespository = accountRepository;
             _userRepository = userRepository;
             _customerRepository = customerRepository;
             _tokenService = tokenService;
+            _mapper = mapper;
         }
 
         public async Task<LoginResponse> Login(LoginRequest request)
@@ -77,8 +80,12 @@ namespace BankingAPI.Services
 
         public async Task<RegisterUserResponse> Register(RegisterUserRequest request)
         {
-            User user = MapUserObjectFromRequest(request);
-            Customer customer = MapCustomerObjectFromRequest(request);
+            //User user = MapUserObjectFromRequest(request);
+            //AutoMapper (Request to User)
+            User user = _mapper.Map<User>(request);
+            //Customer customer = MapCustomerObjectFromRequest(request);
+            //AutoMapper (Request to Customer)
+            Customer customer = _mapper.Map<Customer>(request);
             user =  await _userRepository.Create(user);
             customer.Username = user.Username;
             customer = await _customerRepository.Create(customer);

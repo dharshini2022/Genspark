@@ -1,4 +1,4 @@
-namespace Learn;
+namespace TodoApi;
 
 public class WeatherForecast
 {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using NotificationSystem.Models;
-using NotificationSystem.DAL.Contexts;
+using NotificationSystem.DAL.Context;
 
 namespace NotificationSystem.DAL
 {

@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Learn.Controllers;
+namespace TodoApi.Controllers;
 
-// type of controller = API (prep the controller to receive api related methods and status codes)
-//enables API specific behaviour
 [ApiController]
-// on execution [controller] (route token) is replaced with the name of the controller [WeatherForecast] and rounting happens
-//defines URL Endpoint for routing
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
 {
