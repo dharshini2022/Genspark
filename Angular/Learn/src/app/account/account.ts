@@ -2,10 +2,11 @@ import { Component } from '@angular/core';
 import { BankingApiService } from '../services/bankingapi.service';
 import { debounceTime, distinctUntilChanged, of, Subject, Subscription, switchMap } from 'rxjs';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-account',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterOutlet],
   templateUrl: './account.html',
   styleUrl: './account.css',
 })
@@ -15,8 +16,9 @@ export class Account {
   //Subject Creation
   subscription:Subscription;
   searchSubject = new Subject<string>();
+  accountDetails: any = null;
   
-  constructor(private bankingApiService: BankingApiService) {
+  constructor(private bankingApiService: BankingApiService, private router: Router) {
     //Subscribtion waits for events from searchSubject
     //.subscribe() reacts to the emission
     this.subscription = this.searchSubject.pipe(
@@ -29,9 +31,10 @@ export class Account {
           return this.bankingApiService.getAccountDetails(accNumber);
         })
     ).subscribe({
-      next:(accNumber) => {
-        alert('Details fetched Successfully');
-        console.log("Fetching account details for account number:", accNumber);
+      next: (response:any) => {
+        console.log("Account details", response);
+        this.accountDetails = response;
+        
       },
       error: (error) => {
         console.error("Failed to fetch account details", error);
@@ -57,6 +60,12 @@ export class Account {
   //   });
   // }
 
+
+   handleSendMoneyClick(){
+    //this.router.navigate(['/account/transaction/'+this.accountDetails.accountNumber]);
+    //state makes the accountNumber invisible on the routes
+    this.router.navigate(['/account/transaction'],{state:{accNum:this.accountDetails.accountNumber}});
+  }
 
   //Input for the Subscriber (publisher)
   getAccountDetails(){

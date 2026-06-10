@@ -1,0 +1,32 @@
+.custom-navbar {
+    background-color: #0f172a;
+    padding: 1rem 2rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.navbar-brand {
+    color: #f8fafc !important; /* Light slate */
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.nav-link {
+    color: #cbd5e1 !important; /* Muted slate */
+    font-weight: 500;
+    transition: color 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.nav-link:hover, .nav-link:focus {
+    color: #ffffff !important;
+}
+
+.nav-link.active {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.user-salutation {
+    color: #38bdf8; /* Light blue/cyan accent */
+    font-weight: 600;
+}
