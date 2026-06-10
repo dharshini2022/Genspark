@@ -1,3 +1,10 @@
+using Learn.Contexts;
+using Learn.Models; 
+using Learn.Repositories;
+using Learn.Services;
+using Microsoft.EntityFrameworkCore;
+
+
 //Creational Pattern : Builder
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +18,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //organizes all the objects in the Builder to build the final product
+#region Contexts
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"));
+});
+#endregion
+
+#region Repositories
+builder.Services.AddScoped<IRepository<int, User>, AbstractRepository<int, User>>();
+#endregion
+
+#region Services
+builder.Services.AddScoped<IUserService, UserService>();
+#endregion
 
 var app = builder.Build();
 

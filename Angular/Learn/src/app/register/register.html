@@ -1,0 +1,28 @@
+<section class="container">
+    <div class="card">
+        <h1 class="title">Register</h1>
+        <form (submit)="handleRegisterClick()" class="form">
+            <div class="group">
+                <label for="username">Username</label>
+                <input type="text" id="username" [(ngModel)]="registerModel().username" name="username" required placeholder="Enter username">
+            </div>
+            <div class="group">
+                <label for="email">Email</label>
+                <input type="email" id="email" [(ngModel)]="registerModel().email" name="email" required placeholder="name@example.com">
+            </div>
+            <div class="group">
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" [(ngModel)]="registerModel().phone" name="phone" required placeholder="Enter phone number">
+            </div>
+            <div class="group">
+                <label for="status">Status</label>
+                <input type="text" id="status" [(ngModel)]="registerModel().status" name="status" required placeholder="Active">
+            </div>
+            <div class="group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" [(ngModel)]="registerModel().dateOfBirth" name="dateOfBirth" required>
+            </div>
+            <button type="submit" class="btn-register">Register</button>
+        </form>
+    </div>
+</section>

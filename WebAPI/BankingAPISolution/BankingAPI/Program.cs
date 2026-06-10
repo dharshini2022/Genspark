@@ -1,17 +1,20 @@
 using BankingAPI;
 using BankingAPI.Contexts;
 using BankingAPI.Interfaces;
+using BankingAPI.Mappers;
 using BankingAPI.Middlewares;
 using BankingAPI.Models;
 using BankingAPI.Repositories;
 using BankingAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Security.AccessControl;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +65,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.WithOrigins("http://localhost:5091")
+        builder.WithOrigins("http://localhost:5091","http://localhost:4200")
                .AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials();// Allow credentials for SignalR (verification of clients)
@@ -70,6 +73,9 @@ builder.Services.AddCors(options =>
 });
 #endregion
 
+#region AutoMapper
+builder.Services.AddAutoMapper(m => m.AddProfile<MappingProfile>());
+#endregion
 #region Contexts
 builder.Services.AddDbContext<BankingContext>(options =>
 {
@@ -99,6 +105,20 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 #endregion
 
+#region RateLimiter
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("Fixed", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+});
+#endregion
 
 #region Repositories
 builder.Services.AddScoped<IRepository<string, Account>, Repository<string,Account>>();
