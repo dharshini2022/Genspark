@@ -10,7 +10,9 @@ import { ActivatedRoute } from '@angular/router';
 export class Transaction {
   fromaccountNumber: string = '';
   constructor(private activeRoute:ActivatedRoute){
+    //takes the route parameter from url. (this is when we pass parameter in url)
    //this.fromaccountNumber = this.activeRoute.snapshot.params['accNum'];
+   //takes the route parameter from navigation state. (this is when we pass parameter in state)
    this.fromaccountNumber = history.state.accNum || '';
   }
 }

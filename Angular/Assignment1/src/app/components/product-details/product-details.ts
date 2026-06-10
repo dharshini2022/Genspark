@@ -1,11 +1,11 @@
 import { Component, signal, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ProductApiService } from '../../services/product.service';
 import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-product-detail',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
@@ -14,21 +14,15 @@ export class ProductDetails implements OnInit {
   product = signal<any>(undefined);
 
   constructor(
-    private route: ActivatedRoute,
     private productApiService: ProductApiService
   ) {}
 
   ngOnInit() {
-    let idFromState = history.state?.id;
-    if(!idFromState){
-      idFromState = this.route.snapshot.paramMap.get('id');
-    }
+    const idFromState = history.state?.id;
     if (idFromState) {
       this.id = +idFromState;
       this.fetchProductDetails(this.id);
-      return;
     }
-
   }
 
   fetchProductDetails(id: number) {

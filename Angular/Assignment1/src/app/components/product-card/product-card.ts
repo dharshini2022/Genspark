@@ -21,8 +21,9 @@ export class ProductCard {
   viewProductDetail() {
     const id = this.product()?.id;
     if (id === undefined) {
-      alert("Unable to navigate to product details")
+      alert("Unable to navigate to product details");
+      return;
     }
-    this.router.navigate(['/dashboard/products',id],{state: {id:this.product()?.id}})
+    this.router.navigate(['/dashboard/product-details'], { state: { id: id } });
   }
 }

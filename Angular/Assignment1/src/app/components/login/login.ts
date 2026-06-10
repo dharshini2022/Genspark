@@ -34,7 +34,6 @@ export class Login {
     this.progress.set(true);
     this.authService.loginApiCall(this.loginModel()).subscribe({
       next: (res: any) => {
-        //sessionStorage.setItem("token", res.token);
         console.log("Login successful",res);
         sessionStorage.setItem('token',res.accessToken);
         alert("Login successful!");

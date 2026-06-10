@@ -38,7 +38,6 @@ export class Products {
 
     alert(`You have purchased ${product.title} for $${product.price}`);
 
-    // Update stock locally
     this.products.update(allProducts =>
       allProducts.map(p => {
         if (p.id === product.id) {

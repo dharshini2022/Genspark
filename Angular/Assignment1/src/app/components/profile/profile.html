@@ -1,1 +1,43 @@
-<p>profile works!</p>
+<div class="container my-5 d-flex justify-content-center">
+  @if (user()) {
+    <div class="card profile-card shadow-lg border-0" style="max-width: 500px; width: 100%;">
+      <div class="card-header-gradient p-4 text-center text-white position-relative">
+        <div class="avatar-container shadow">
+          <img [src]="user().image" alt="{{ user().firstName }}" class="profile-avatar">
+        </div>
+        <h3 class="fw-bold mt-3 mb-0">{{ user().firstName }} {{ user().lastName }}</h3>
+        <p class="text-white-50 mb-0">@{{ user().username }}</p>
+      </div>
+      <div class="card-body p-4 bg-white">
+        <div class="row g-3">
+          <div class="col-12 border-bottom pb-2">
+            <span class="text-muted d-block small text-uppercase fw-semibold">Email Address</span>
+            <span class="text-dark fw-medium">{{ user().email }}</span>
+          </div>
+          <div class="col-6 border-bottom pb-2">
+            <span class="text-muted d-block small text-uppercase fw-semibold">First Name</span>
+            <span class="text-dark fw-medium">{{ user().firstName }}</span>
+          </div>
+          <div class="col-6 border-bottom pb-2">
+            <span class="text-muted d-block small text-uppercase fw-semibold">Last Name</span>
+            <span class="text-dark fw-medium">{{ user().lastName }}</span>
+          </div>
+          <div class="col-6 pb-2">
+            <span class="text-muted d-block small text-uppercase fw-semibold">Gender</span>
+            <span class="badge text-capitalize" [class.bg-success]="user().gender === 'female'" [class.bg-primary]="user().gender === 'male'" [class.bg-secondary]="user().gender !== 'male' && user().gender !== 'female'">
+              {{ user().gender }}
+            </span>
+          </div>
+          <div class="col-6 pb-2">
+            <span class="text-muted d-block small text-uppercase fw-semibold">Role</span>
+            <span class="badge bg-dark">Customer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="spinner-border text-success" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  }
+</div>
