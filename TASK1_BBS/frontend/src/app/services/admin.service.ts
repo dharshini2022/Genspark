@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   OperatorProfile, BusPendingDto, RouteDto, CreateRouteDto,
@@ -12,14 +12,14 @@ export class AdminService {
   constructor(private http: HttpClient) {}
 
   getOperators(status?: string): Observable<OperatorProfile[]> {
-    const params = status ? { status } : {};
+    const params = status ? new HttpParams().set('status', status) : undefined;
     return this.http.get<OperatorProfile[]>(`${this.BASE}/operators`, { params });
   }
   approveOperator(id: number): Observable<MessageResponse>  { return this.http.put<MessageResponse>(`${this.BASE}/operators/${id}/approve`, {}); }
   disableOperator(id: number): Observable<MessageResponse>  { return this.http.put<MessageResponse>(`${this.BASE}/operators/${id}/disable`, {}); }
 
   getBuses(status?: string): Observable<BusPendingDto[]> {
-    const params = status ? { status } : {};
+    const params = status ? new HttpParams().set('status', status) : undefined;
     return this.http.get<BusPendingDto[]>(`${this.BASE}/buses`, { params });
   }
   approveBus(id: number): Observable<MessageResponse>  { return this.http.put<MessageResponse>(`${this.BASE}/buses/${id}/approve`, {}); }

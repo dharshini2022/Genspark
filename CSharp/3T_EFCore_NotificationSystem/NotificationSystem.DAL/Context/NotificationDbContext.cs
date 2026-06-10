@@ -6,13 +6,16 @@ using System.Text;
 using System.Threading.Tasks;
 using NotificationSystem.Models;
 
-namespace NotificationSystem.DAL.Contexts
+namespace NotificationSystem.DAL.Context
 {
     public class NotificationDbContext : DbContext
     {
+        // public NotificationDbContext(DbContextOptions<NotificationDbContext> options) : base(options)
+        // {
+        // }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=NotificationSystem;Username=postgres;Password=12345");
+            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=notification_system2;Username=postgres;Password=12345");
         }
 
         public DbSet<Notification>  notifications { get; set; }

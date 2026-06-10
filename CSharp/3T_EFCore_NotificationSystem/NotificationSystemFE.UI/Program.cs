@@ -35,7 +35,7 @@ namespace NotificationSystemFE.UI
         {
             Console.Write($"Enter {role} email id:");
             string email = Console.ReadLine() ?? "";
-            return userService.GetUserByEmail(email);
+            return userService.GetUserByEmail(email)?? throw new ContactNotFoundException($"No Contact Found with username: {email}");
 
         }
 
@@ -43,7 +43,7 @@ namespace NotificationSystemFE.UI
         {
             Console.Write($"Enter {role} phone number: ");
             string phone = Console.ReadLine() ?? "";
-            return userService.GetUserByPhone(phone);  
+            return userService.GetUserByPhone(phone)?? throw new ContactNotFoundException($"No Contact Found with username: {phone}"); 
         }
 
         User GetUserByNameInput(string role)
