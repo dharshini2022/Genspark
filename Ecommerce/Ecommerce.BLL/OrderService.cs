@@ -37,6 +37,7 @@ namespace Ecommerce.BLL
         private readonly IShipmentService _shipmentService;
         private readonly IProductVariantService _productVariantService;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IBackgroundJobScheduler _backgroundJobScheduler;
 
         public const decimal PlatformCommissionRate = 0.05m;  
         public const decimal VendorShippingRate = 0.02m;     
@@ -58,7 +59,8 @@ namespace Ecommerce.BLL
             IMapper mapper,
             IShipmentService shipmentService,
             IProductVariantService productVariantService,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IBackgroundJobScheduler backgroundJobScheduler)
         {
             _dbContext = dbContext;
             _orderRepository = orderRepository;
@@ -77,6 +79,7 @@ namespace Ecommerce.BLL
             _serviceProvider = serviceProvider;            
             _currentUser = currentUser;
             _mapper = mapper;
+            _backgroundJobScheduler = backgroundJobScheduler;
         }
 
         public async Task<OrderResponse> CreateOrder(CreateOrderRequest request)
@@ -226,44 +229,7 @@ namespace Ecommerce.BLL
 
         private void ScheduleStockRelease(int orderId)
         {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(StockReleaseDelay);
-                try
-                {
-                    using (var scope = _serviceProvider.CreateScope())
-                    {
-                        var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
-                        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                        using var transaction = await dbContext.Database.BeginTransactionAsync();
-
-                        var order = await orderRepository.GetOrderWithDetailsById(orderId);
-                        if (order != null && order.Status == OrderStatus.PendingPayment)
-                        {
-                            var variantService = scope.ServiceProvider.GetRequiredService<IProductVariantService>();
-                            var paymentService = scope.ServiceProvider.GetRequiredService<IPaymentService>();
-
-                            await variantService.ReleaseStockReservation(orderId);
-
-                            order.Status = OrderStatus.PaymentFailed;
-                            order.OrderPaymentStatus = PaymentStatus.Failed;
-                            await orderRepository.Update(orderId, order);
-
-                            if (order.Payment != null)
-                            {
-                                await paymentService.UpdatePaymentToFailed(order.Payment);
-                            }
-
-                            await transaction.CommitAsync();
-                        }
-                    }
-                }
-                catch(Exception ex)
-                {
-                    throw new InvalidOperationException("Unable to release stock reservation: ", ex);
-                }
-            });
+            _backgroundJobScheduler.ScheduleStockRelease(orderId, StockReleaseDelay);
         }
 
 

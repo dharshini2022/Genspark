@@ -356,6 +356,8 @@ namespace Ecommerce.DAL.Context
                 entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
                 entity.Property(x => x.EstimatedFullfillement).HasColumnType("date");
                 entity.Property(x => x.ShippedAt).HasColumnType("timestamp without time zone");
+                entity.Property(x => x.FulfilledAt).HasColumnType("timestamp without time zone");
+
                 
                 //Relation(UserAdress to shipment => One to Many)
                 entity.HasOne(x => x.UserAddress)

@@ -15,10 +15,7 @@ namespace Ecommerce.API.Controllers
         private readonly IVendorRepository _vendorRepository;
         private readonly ICurrentUserService _currentUser;
 
-        public VendorSettlementController(
-            IVendorSettlementService vendorSettlementService,
-            IVendorRepository vendorRepository,
-            ICurrentUserService currentUser)
+        public VendorSettlementController(IVendorSettlementService vendorSettlementService,IVendorRepository vendorRepository,ICurrentUserService currentUser)
         {
             _vendorSettlementService = vendorSettlementService;
             _vendorRepository = vendorRepository;

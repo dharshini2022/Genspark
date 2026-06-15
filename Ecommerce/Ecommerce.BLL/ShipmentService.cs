@@ -66,6 +66,7 @@ namespace Ecommerce.BLL
             if (status == ShipmentStatus.Initiated)
             {
                 shipment.ShippedAt = DateTime.Now;
+                shipment.EstimatedFullfillement = DateTime.Now.AddDays(2);
             }
             else if (status == ShipmentStatus.Delivered)
             {

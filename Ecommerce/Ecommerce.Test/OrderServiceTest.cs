@@ -40,6 +40,7 @@ namespace Ecommerce.Test
         private Mock<IShipmentService> _mockShipmentService;
         private Mock<IProductVariantService> _mockVariantService;
         private Mock<IServiceProvider> _mockServiceProvider;
+        private Mock<IBackgroundJobScheduler> _mockBackgroundJobScheduler;
         private OrderService _orderService;
 
         [SetUp]
@@ -70,6 +71,7 @@ namespace Ecommerce.Test
             _mockMapper = new Mock<IMapper>();
             _mockShipmentService = new Mock<IShipmentService>();
             _mockVariantService = new Mock<IProductVariantService>();
+            _mockBackgroundJobScheduler = new Mock<IBackgroundJobScheduler>();
 
             var mockScope = new Mock<IServiceScope>();
             var mockScopeProvider = new Mock<IServiceProvider>();
@@ -101,7 +103,8 @@ namespace Ecommerce.Test
                 _mockMapper.Object,
                 _mockShipmentService.Object,
                 _mockVariantService.Object,
-                _mockServiceProvider.Object
+                _mockServiceProvider.Object,
+                _mockBackgroundJobScheduler.Object
             );
 
             _orderService.StockReleaseDelay = TimeSpan.Zero;
@@ -216,13 +219,7 @@ namespace Ecommerce.Test
             
             await _orderService.CreateOrder(new CreateOrderRequest { UserAddressId = 10 });
 
-            // Let background task complete (delay zero)
-            await Task.Delay(50);
-
-            
-            _mockVariantService.Verify(s => s.ReleaseStockReservation(60), Times.Once);
-            _mockPaymentService.Verify(s => s.UpdatePaymentToFailed(payment), Times.Once);
-            _mockOrderRepo.Verify(r => r.Update(60, order), Times.Once);
+            _mockBackgroundJobScheduler.Verify(s => s.ScheduleStockRelease(60, It.IsAny<TimeSpan>()), Times.Once);
         }
 
         [Test]
@@ -334,7 +331,6 @@ namespace Ecommerce.Test
             var order = new Order { Id = 60, Status = OrderStatus.PendingPayment, Payment = payment };
             _mockOrderRepo.Setup(r => r.Create(It.IsAny<Order>())).ReturnsAsync(order);
             
-            // Force GetOrderWithDetailsById to throw in background task
             _mockOrderRepo.Setup(r => r.GetOrderWithDetailsById(60)).ThrowsAsync(new Exception("DB Error"));
 
             _mockShipmentService.Setup(s => s.ScheduleShipment(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<decimal>())).ReturnsAsync(new Shipment());
@@ -342,11 +338,7 @@ namespace Ecommerce.Test
             
             await _orderService.CreateOrder(new CreateOrderRequest { UserAddressId = 10 });
 
-            // Let background task run
-            await Task.Delay(50);
-
-            
-            _mockOrderRepo.Verify(r => r.GetOrderWithDetailsById(60), Times.Once);
+            _mockBackgroundJobScheduler.Verify(s => s.ScheduleStockRelease(60, It.IsAny<TimeSpan>()), Times.Once);
         }
 
         [Test]

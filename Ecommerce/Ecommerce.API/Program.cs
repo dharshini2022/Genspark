@@ -14,9 +14,14 @@ using Ecommerce.Contracts.Services;
 using Ecommerce.BLL;
 using Serilog;
 using Ecommerce.API.Middlewares;
+using Hangfire;
+using Hangfire.PostgreSql;
 
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 #region Logging
 Log.Logger = new LoggerConfiguration()
@@ -86,6 +91,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 #endregion
 
+#region Hangfire
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => 
+        options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("Default"))));
+builder.Services.AddHangfireServer();
+#endregion
+
 #region HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -138,6 +153,8 @@ builder.Services.AddScoped<IShipmentService, ShipmentService>();
 builder.Services.AddScoped<IVendorSettlementService, VendorSettlementService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
+builder.Services.AddScoped<IJobExecutor, JobExecutor>();
 #endregion
 
 #region Authentication & Authorization
@@ -199,6 +216,8 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard();
 
 app.MapControllers();
 

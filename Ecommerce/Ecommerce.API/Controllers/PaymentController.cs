@@ -16,15 +16,6 @@ namespace Ecommerce.API.Controllers
             _paymentService = paymentService;
         }
 
-        // ─── Customer: Make Payment ───────────────────────────────────────────
-
-        /// <summary>
-        /// Step 2 — Pay for a placed order.
-        /// Provide a Stripe test PaymentMethod ID (e.g. "pm_card_visa" for success,
-        /// "pm_card_chargeDeclined" for failure).
-        /// On success: order confirmed, shipments initiated, vendor settlements created.
-        /// Shipments are automatically marked Delivered after 2 hours.
-        /// </summary>
         [HttpPost("pay/{orderId}")]
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> MakePayment([FromRoute] int orderId, [FromBody] MakePaymentRequest request)

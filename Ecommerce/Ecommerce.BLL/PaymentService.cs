@@ -24,7 +24,8 @@ namespace Ecommerce.BLL
         private readonly IServiceProvider _serviceProvider;
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
-        public TimeSpan DeliveryScheduleDelay { get; set; } = TimeSpan.FromMinutes(5);
+        private readonly IBackgroundJobScheduler _backgroundJobScheduler;
+        public TimeSpan DeliveryScheduleDelay { get; set; } = TimeSpan.FromMinutes(2);
 
         public PaymentService(
             IPaymentRepository paymentRepository,
@@ -38,7 +39,8 @@ namespace Ecommerce.BLL
             ICartRepository cartRepository,
             IServiceProvider serviceProvider,
             IMapper mapper,
-            IEmailService emailService)
+            IEmailService emailService,
+            IBackgroundJobScheduler backgroundJobScheduler)
         {
             _paymentRepository = paymentRepository;
             _dbContext = dbContext;
@@ -52,6 +54,7 @@ namespace Ecommerce.BLL
             _serviceProvider = serviceProvider;
             _mapper = mapper;
             _emailService = emailService;
+            _backgroundJobScheduler = backgroundJobScheduler;
         }
 
         public async Task<Payment> CreatePendingPayment(decimal total)
@@ -226,42 +229,7 @@ namespace Ecommerce.BLL
 
         private void ScheduleDelivery(int orderId)
         {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(DeliveryScheduleDelay);
-                try
-                {
-                    using (var scope = _serviceProvider.CreateScope())
-                    {
-                        var shipmentService = scope.ServiceProvider.GetRequiredService<IShipmentService>();
-                        var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
-                        var orderItemRepository = scope.ServiceProvider.GetRequiredService<IOrderItemRepository>();
-
-                        var orderItems = await orderItemRepository.GetOrderItemsByOrderId(orderId);
-                        var shipmentIds = orderItems
-                            .Where(oi => oi.ShipmentId.HasValue)
-                            .Select(oi => oi.ShipmentId!.Value)
-                            .Distinct()
-                            .ToList();
-
-                        foreach (var shipmentId in shipmentIds)
-                        {
-                            await shipmentService.UpdateShipmentStatus(shipmentId, ShipmentStatus.Delivered);
-                        }
-
-                        var order = await orderRepository.GetById(orderId);
-                        if (order != null)
-                        {
-                            order.Status = OrderStatus.Delivered;
-                            await orderRepository.Update(orderId, order);
-                        }
-                    }
-                }
-                catch(Exception ex)
-                {
-                    throw new InvalidOperationException("Unable to deliver order: ", ex);
-                }
-            });
+            _backgroundJobScheduler.ScheduleDelivery(orderId, DeliveryScheduleDelay);
         }
 
         public async Task<ICollection<PaymentResponseDTO>> GetMyPaymentHistory()

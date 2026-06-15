@@ -37,6 +37,7 @@ namespace Ecommerce.Test
         private Mock<IMapper> _mockMapper;
         private Mock<IOrderItemRepository> _mockOrderItemRepo;
         private Mock<IEmailService> _mockEmailService;
+        private Mock<IBackgroundJobScheduler> _mockBackgroundJobScheduler;
         private PaymentService _paymentService;
 
         [SetUp]
@@ -64,6 +65,7 @@ namespace Ecommerce.Test
             _mockCartRepo = new Mock<ICartRepository>();
             _mockMapper = new Mock<IMapper>();
             _mockEmailService = new Mock<IEmailService>();
+            _mockBackgroundJobScheduler = new Mock<IBackgroundJobScheduler>();
 
             // Setup ServiceProvider and ServiceScope
             var mockScope = new Mock<IServiceScope>();
@@ -93,7 +95,8 @@ namespace Ecommerce.Test
                 _mockCartRepo.Object,
                 _mockServiceProvider.Object,
                 _mockMapper.Object,
-                _mockEmailService.Object
+                _mockEmailService.Object,
+                _mockBackgroundJobScheduler.Object
             );
 
             _paymentService.DeliveryScheduleDelay = TimeSpan.Zero;
@@ -211,6 +214,7 @@ namespace Ecommerce.Test
             Assert.That(order.Status, Is.EqualTo(OrderStatus.Confirmed));
             _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockEmailService.Verify(e => e.SendOrderConfirmationEmail(order), Times.Once);
+            _mockBackgroundJobScheduler.Verify(s => s.ScheduleDelivery(10, It.IsAny<TimeSpan>()), Times.Once);
         }
 
         [Test]
@@ -252,7 +256,6 @@ namespace Ecommerce.Test
 
             var result = await _paymentService.MakePayment(10, request);
 
-            // Wait a brief moment for background Task.Run to execute and catch exception
             await Task.Delay(100);
             
             Assert.That(result.Success, Is.True);
@@ -260,6 +263,7 @@ namespace Ecommerce.Test
             Assert.That(order.Status, Is.EqualTo(OrderStatus.Confirmed));
             _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
             _mockEmailService.Verify(e => e.SendOrderConfirmationEmail(order), Times.Once);
+            _mockBackgroundJobScheduler.Verify(s => s.ScheduleDelivery(10, It.IsAny<TimeSpan>()), Times.Once);
         }
 
         [Test]
