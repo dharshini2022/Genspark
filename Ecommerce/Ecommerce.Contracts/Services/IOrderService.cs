@@ -1,29 +1,29 @@
-// using Ecommerce.Models.DTOs;
-// using Ecommerce.Models;
+using Ecommerce.Models;
+using Ecommerce.Models.DTOs;
 
-// namespace Ecommerce.Contracts.Services
-// {
-//     public interface IOrderService
-//     {
-//         // Customer
-//         Task<OrderSummaryDTO> PlaceOrder(int userId, PlaceOrderRequest request);
-//         Task<OrderSummaryDTO> GetOrderDetails(int orderId, int userId);
-//         Task<ICollection<OrderSummaryDTO>> GetUserOrderHistory(int userId);
-//         Task<OrderSummaryDTO> CancelOrder(int userId, int orderId);
-//         Task<OrderSummaryDTO> UpdateOrderAddress(int userId, int orderId, int newAddressId); // allowed if status is Confirmed
+namespace Ecommerce.Contracts.Services
+{
+    public interface IOrderService
+    {
+        // ─── Customer ─────────────────────────────────────────────────────────────
 
-//         // Vendor
-//         Task<ICollection<OrderSummaryDTO>> GetVendorOrderHistory(int vendorId);
-//         Task<ICollection<OrderSummaryDTO>> GetVendorOrdersByProduct(int vendorId, int productId);
-//         Task<ICollection<OrderSummaryDTO>> GetVendorActiveOrders(int vendorId);
+        /// <summary>
+        /// Phase 1 — Place Order.
+        /// Validates cart items (only in-stock + active items are converted to OrderItems),
+        /// applies optional discount, creates one Shipment per vendor, clears the cart.
+        /// Returns orderId + total so the client can proceed to payment.
+        /// </summary>
+        Task<OrderResponse> CreateOrder(CreateOrderRequest request);
 
-//         // Admin
-//         Task<ICollection<OrderSummaryDTO>> GetAllOrders();
-//         Task<ICollection<OrderSummaryDTO>> GetOrdersByVendor(int vendorId);
-//         Task<ICollection<OrderSummaryDTO>> GetOrdersByProduct(int productId);
-        
-//         // Financials & Settlements
-//         Task<AdminRevenueDTO> GetAdminRevenue();
-//         Task<ICollection<VendorSettlement>> GetVendorSettlements(int vendorId, string? statusFilter);
-//     }
-// }
+        Task<OrderSummaryResponse> GetOrderDetails(int orderId);
+        Task<ICollection<OrderSummaryResponse>> GetMyOrders();
+
+        // ─── Vendor ───────────────────────────────────────────────────────────────
+
+        Task<ICollection<OrderSummaryResponse>> GetVendorOrders();
+
+        // ─── Admin ────────────────────────────────────────────────────────────────
+
+        Task<PageResponse<OrderSummaryResponse>> GetAllOrders(OrderFilterRequest query);
+    }
+}

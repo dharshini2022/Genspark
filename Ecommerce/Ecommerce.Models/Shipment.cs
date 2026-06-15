@@ -17,6 +17,7 @@ namespace Ecommerce.Models
         public DateTime? ShippedAt { get; set; }
         public DateTime? FulfilledAt { get; set; }
         public ShipmentStatus Status { get; set; }
+        public decimal ShippingFee { get; set; }
 
         // Relation
         public ICollection<OrderItem> OrderItems { get; set; } = [];

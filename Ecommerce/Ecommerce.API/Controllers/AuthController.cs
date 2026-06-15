@@ -49,7 +49,6 @@ namespace Ecommerce.API.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            Console.WriteLine("Controller hit");
             try
             {
                 Console.WriteLine($"Received refresh token request: {request.RefreshToken}");

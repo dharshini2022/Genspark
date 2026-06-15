@@ -84,6 +84,39 @@ Multi - Vendor Ecommerce Application
 
 //Order Table
 12. **Place Order**
+
+Phase 1: Order Creation (Optimistic)
+POST /orders
+    └── Validate cart items + stock (read-only check)
+    └── Create ORDER (status = PendingPayment)
+    └── Create ORDER_ITEMS (unit prices frozen)
+    └── Reserve stock (not decrement — soft lock)
+    └── Create Razorpay order via SDK
+    └── Return { orderId, razorpayOrderId, amount }
+    
+Phase 2: Payment (Client-Side)
+    └── Angular opens Razorpay checkout modal
+    └── Customer pays
+    └── Razorpay returns { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+
+Phase 3: Payment Verification (Server-Side)
+POST /orders/{id}/verify-payment
+    └── HMAC-SHA256 signature verification
+    └── On success:
+        └── Decrement actual stock
+        └── Release stock reservation
+        └── Clear cart
+        └── Order status → Confirmed
+        └── Fire notification
+    └── On failure:
+        └── Release stock reservation
+        └── Order status → PaymentFailed
+
+Phase 4: Razorpay Webhook (Safety Net)
+POST /webhooks/razorpay
+    └── Independent of client — handles client crashes/drops
+    └── Idempotent: checks if already processed
+    └── Same success/failure logic as above
 1. Create Order
 2. Move CartItem (isInCart = true) to OrderItem
 3. Get address and store in temp

@@ -62,11 +62,11 @@ namespace Ecommerce.API.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllDiscounts()
+        public async Task<IActionResult> GetAllDiscounts([FromQuery]PageRequest request)
         {
             try
             {
-                var result = await _discountService.GetAllDiscounts();
+                var result = await _discountService.GetAllDiscounts(request);
                 return Ok(result);
             }
             catch(Exception ex)

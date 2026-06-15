@@ -20,7 +20,7 @@ namespace  Ecommerce.DAL.Repositories
         {
             return await _dbContext.Set<T>().FindAsync(key);
         }
-        public async Task<ICollection<T>> GetAll()
+        public virtual async Task<ICollection<T>> GetAll()
         {
             return await _dbContext.Set<T>().ToListAsync();
         }

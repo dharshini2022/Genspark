@@ -26,8 +26,8 @@ namespace Ecommerce.BLL
         {
             if (!string.IsNullOrEmpty(query.SortOrder) && !(query.SortOrder == "asc" || query.SortOrder == "desc"))
                 throw new ValidationException("Sort Order must be 'asc' or 'desc'");
-            if (!string.IsNullOrEmpty(query.SortBy) && !(query.SortBy == "price" || query.SortBy == "newest"))
-                throw new ValidationException("Sort By must be 'price' or 'newest'");
+            if (!string.IsNullOrEmpty(query.SortBy) && !(query.SortBy == "price" || query.SortBy == "newest" || query.SortBy == "review" || query.SortBy == "rating"))
+                throw new ValidationException("Sort By must be 'price', 'newest', 'review', or 'rating'");
 
             var products = await _productRepository.GetProductsPaged(query.PageNumber, query.PageSize, query.SortBy, query.SortOrder, query.CategoryId);
             var totalCount = await _productRepository.GetProductsCount(query.CategoryId);

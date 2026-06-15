@@ -60,6 +60,14 @@ namespace Ecommerce.DAL.Repositories
                     ? query.OrderByDescending(p => p.CreatedAt)
                     : query.OrderBy(p => p.CreatedAt),
 
+                "review" => isDesc
+                    ? query.OrderByDescending(p => p.Reviews.Select(r => (double?)r.Rating).Average() ?? 0)
+                    : query.OrderBy(p => p.Reviews.Select(r => (double?)r.Rating).Average() ?? 0),
+
+                "rating" => isDesc
+                    ? query.OrderByDescending(p => p.Reviews.Select(r => (double?)r.Rating).Average() ?? 0)
+                    : query.OrderBy(p => p.Reviews.Select(r => (double?)r.Rating).Average() ?? 0),
+
                 _ => query.OrderByDescending(p => p.CreatedAt)   
             };
             return await query

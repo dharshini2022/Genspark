@@ -27,7 +27,7 @@ namespace Ecommerce.API.Controllers
         {
             try
             {
-                var cart = await _cartService.GetCartByUserId(_currentUser.UserId);
+                var cart = await _cartService.GetOrCreateCart();
 
                 var response = new CartResponse
                 {

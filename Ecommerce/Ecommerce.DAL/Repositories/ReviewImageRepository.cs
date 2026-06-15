@@ -22,7 +22,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> HardDeleteImagesByReviewIdAsync(int reviewId)
+        public async Task<bool> HardDeleteImagesByReviewId(int reviewId)
         {
             var images = await GetImagesByReviewIdAsync(reviewId);
             if (!images.Any()) return true;

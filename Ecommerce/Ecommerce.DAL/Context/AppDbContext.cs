@@ -26,11 +26,11 @@ namespace Ecommerce.DAL.Context
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<Return> Returns => Set<Return>();
         public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
-
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Wishlist> Wishlists => Set<Wishlist>();
         public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<StockReservation> StockReservations => Set<StockReservation>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -276,8 +276,10 @@ namespace Ecommerce.DAL.Context
                 entity.ToTable("orders");
                 entity.HasKey(x => x.Id);
                 entity.Property(x => x.UserId).IsRequired();
-                entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+                entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
                 entity.Property(x => x.OrderPaymentStatus).HasConversion<string>().HasMaxLength(20);
+                entity.Property(x => x.StripePaymentIntentId).HasMaxLength(100);
+                entity.HasIndex(x => x.StripePaymentIntentId).IsUnique().HasFilter("\"StripePaymentIntentId\" IS NOT NULL");
                 entity.Property(x => x.Subtotal);
                 entity.Property(x => x.DiscountAmount);
                 entity.Property(x => x.TaxAmount);
@@ -539,11 +541,55 @@ namespace Ecommerce.DAL.Context
                entity.Property(x => x.VendorId).IsRequired();
                entity.Property(x => x.OrderId).IsRequired();
                entity.Property(x => x.GrossAmount).IsRequired();
+               entity.Property(x => x.ShippingAmount);
                entity.Property(x => x.VendorDiscountAmount);
                entity.Property(x => x.PlatformCommissionAmount).IsRequired();
                entity.Property(x => x.NetPayoutAmount);
+               entity.Property(x => x.TransactionReference).HasMaxLength(100);
                entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
                entity.Property(x => x.SettledAt).HasColumnType("timestamp without time zone");
+
+               // Relation(Vendor to VendorSettlement => One to Many)
+               entity.HasOne(x => x.Vendor)
+               .WithMany(v => v.VendorSettlement)
+               .HasForeignKey(x => x.VendorId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               // Relation(Order to VendorSettlement => One to Many)
+               entity.HasOne(x => x.Order)
+               .WithMany(o => o.VendorSettlement)
+               .HasForeignKey(x => x.OrderId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               entity.HasIndex(x => new { x.VendorId, x.OrderId });
+            });
+
+            // StockReservation: soft-lock table for PendingPayment orders
+            modelBuilder.Entity<StockReservation>(entity =>
+            {
+               entity.ToTable("stock_reservations");
+               entity.HasKey(x => x.Id);
+               entity.Property(x => x.OrderId).IsRequired();
+               entity.Property(x => x.VariantId).IsRequired();
+               entity.Property(x => x.Quantity).IsRequired();
+               entity.Property(x => x.IsReleased).HasDefaultValueSql("false");
+               entity.Property(x => x.ReservedAt).HasColumnType("timestamp without time zone");
+               entity.Property(x => x.ReleasedAt).HasColumnType("timestamp without time zone");
+
+               // Relation(Order to StockReservation => One to Many)
+               entity.HasOne(x => x.Order)
+               .WithMany()
+               .HasForeignKey(x => x.OrderId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               // Relation(ProductVariant to StockReservation => One to Many)
+               entity.HasOne(x => x.Variant)
+               .WithMany()
+               .HasForeignKey(x => x.VariantId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               entity.HasIndex(x => new { x.OrderId, x.VariantId });
+               entity.HasIndex(x => x.IsReleased);
             });
             
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

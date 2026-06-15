@@ -30,6 +30,7 @@ public class ProductVariant
     public int Id { get; set; }
     public int ProductId { get; set; }
     public int StockQty { get; set; }
+    public int ReservedStockQty { get; set; }
     public decimal Price { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = false;
