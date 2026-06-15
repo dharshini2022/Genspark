@@ -1,0 +1,26 @@
+Hi Team,
+
+I want to build a mobile app for my boutique coffee shop chain so customers
+can order ahead and skip the line.
+
+Basically, the user needs to open the app, view our menu, customize their
+drink (like adding oat milk or an extra espresso shot), and pay right
+there. It has to support Apple Pay and credit cards. Once they order, the
+kitchen needs to get the order instantly on a tablet so they can start
+brewing.
+
+A few important things: It needs to be super fast. If it takes more than 2
+seconds to load the menu, people will just walk away. Also, we have a huge
+rush at 8:00 AM, so the system cannot crash when hundreds of people order
+at the exact same time.
+
+My main worry is security—we are handling credit cards, so I'm terrified of
+data leaks or getting hacked. Also, we really want to launch this by the
+first week of next month for our summer promotion, but I'm not sure if
+that's enough time for you to build it.
+
+Let me know what you think and what else you need from my end!
+
+Best,
+Sarah Jenkins
+Owner, Grind & Glow Coffee
