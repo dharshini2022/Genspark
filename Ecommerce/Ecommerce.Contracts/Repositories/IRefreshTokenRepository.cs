@@ -6,5 +6,7 @@ namespace Ecommerce.Contracts.Repositories
     {
         Task<RefreshToken?> GetByTokenAsync(string token);
         Task<ICollection<RefreshToken>> GetActiveTokensByUserIdAsync(int userId);
+        Task<ICollection<RefreshToken>> GetTokensByUserIdWithUser(int userId);
+        Task<RefreshToken?> GetByTokenAndUserId(string token, int userId);
     }
 }

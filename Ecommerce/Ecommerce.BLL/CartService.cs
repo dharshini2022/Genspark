@@ -26,9 +26,10 @@ namespace Ecommerce.BLL
             _currentUser = currentUser;
             _mapper = mapper;
         }
-
-        private async Task<Cart> GetOrCreateCartAsync(int userId)
+        
+        public async Task<Cart> GetOrCreateCart()
         {
+            int userId = _currentUser.UserId;
             var cart = await _cartRepository.GetCartByUserId(userId);
             if (cart == null)
             {
@@ -37,10 +38,17 @@ namespace Ecommerce.BLL
             return cart;
         }
 
-      
-        public async Task<Cart> GetCartByUserId(int userId)
+        public async Task<List<CartItem>> GetEligibleItems(int userId)
         {
-            return await GetOrCreateCartAsync(userId);
+            var cart = await _cartRepository.GetCartByUserId(userId)    ?? throw new KeyNotFoundException("Cart not found.");
+
+            if (!cart.Items.Any())  throw new ValidationException("Cart is empty.");
+
+            var eligibleItems = cart.Items.Where(ci => ci.Variant.IsActive && (ci.Variant.StockQty - ci.Variant.ReservedStockQty) >= ci.Quantity).ToList();
+
+            if (!eligibleItems.Any())   throw new ValidationException("None of the cart items are available.");
+
+            return eligibleItems;
         }
 
         public async Task<CartItemResponse> AddToCart(AddToCartRequest request)
@@ -52,9 +60,10 @@ namespace Ecommerce.BLL
 
             if (!variant.IsActive) throw new InvalidOperationException($"Variant {request.VariantId} is no longer available.");
 
-            if (variant.StockQty < request.Quantity) throw new InsufficientStockException($"Insufficient stock. Available: {variant.StockQty}, Requested: {request.Quantity}.");
+            int availableStock = variant.StockQty - variant.ReservedStockQty;
+            if (availableStock < request.Quantity) throw new InsufficientStockException($"Insufficient stock. Available: {availableStock}, Requested: {request.Quantity}.");
 
-            var cart = await GetOrCreateCartAsync(userId);
+            var cart = await GetOrCreateCart();
 
             var existingItem = await _cartItemRepository.GetCartItemByVariant(cart.Id, variant.Id);
             if (existingItem != null)
@@ -69,8 +78,6 @@ namespace Ecommerce.BLL
 
                 cart.UpdatedAt = DateTime.Now;
                 await _cartRepository.Update(cart.Id, cart);
-                await _variantRepository.DecreaseStock(variant.Id,request.Quantity);
-
                 var result =  await _cartItemRepository.Create(cartItem);
                 await transaction.CommitAsync();
 
@@ -91,6 +98,7 @@ namespace Ecommerce.BLL
             {
                 var item = await _cartItemRepository.GetById(cartItemId) ?? throw new KeyNotFoundException($"Cart item with ID {cartItemId} not found.");
                 await HandleCartItemDeletion(item);
+                await transaction.CommitAsync();
                 return _mapper.Map<CartItemDeletionResponse>(item);
                 
             }catch(Exception ex)
@@ -100,6 +108,14 @@ namespace Ecommerce.BLL
             }
         }
 
+        public async Task ClearCart()
+        {
+            int userId = _currentUser.UserId;
+            var cart = await GetOrCreateCart();
+            await _cartRepository.ClearCart(cart.Id);
+        }
+
+
     
        public async Task<CartItemResponse> UpdateCartItemQuantity(int cartItemId, UpdateCartItemRequest request)
         {
@@ -108,7 +124,7 @@ namespace Ecommerce.BLL
 
             try
             {
-                var cart = await GetOrCreateCartAsync(userId);
+                var cart = await GetOrCreateCart();
                 var item = await _cartItemRepository.GetById(cartItemId) ?? throw new KeyNotFoundException($"Cart item with ID {cartItemId} not found.");
 
                 ValidateCartOwnership(item, cart.Id);
@@ -145,7 +161,6 @@ namespace Ecommerce.BLL
 
         private async Task HandleCartItemDeletion(CartItem item)
         {
-            await _variantRepository.IncreaseStock(item.VariantId, item.Quantity);
             await _cartItemRepository.HardDelete(item.Id);
             item.Quantity = 0; 
         }
@@ -157,17 +172,13 @@ namespace Ecommerce.BLL
 
             if (difference > 0)
             {
-                if (variant!.StockQty < difference)
+                int availableStock = variant!.StockQty - variant.ReservedStockQty;
+                if (availableStock < difference)
                 {
-                    throw new InsufficientStockException($"Insufficient stock. Available: {variant.StockQty}, Additional requested: {difference}.");
+                    throw new InsufficientStockException($"Insufficient stock. Available: {availableStock}, Additional requested: {difference}.");
                 }
-                await _variantRepository.DecreaseStock(variant.Id, difference);
             }
-            else if (difference < 0)
-            {
-                await _variantRepository.IncreaseStock(variant!.Id, Math.Abs(difference));
-            }
-
+        
             item.Quantity = newQuantity;
             await _cartItemRepository.Update(item.Id, item);
         }

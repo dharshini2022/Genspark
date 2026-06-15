@@ -21,15 +21,15 @@ namespace Ecommerce.BLL
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
-        private readonly AppDbContext _dbContext;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
         private ICurrentUserService _currentUserService;
 
-        public AuthService(IUserRepository userRepository, AppDbContext dbContext, IMapper mapper,  IConfiguration configuration, ICurrentUserService currentUserService)
+        public AuthService(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IMapper mapper,  IConfiguration configuration, ICurrentUserService currentUserService)
         {
             _userRepository = userRepository;
-            _dbContext = dbContext;
+            _refreshTokenRepository = refreshTokenRepository;
             _mapper = mapper;
             _configuration = configuration;
             _currentUserService = currentUserService;
@@ -84,8 +84,7 @@ namespace Ecommerce.BLL
                 IsRevoked = false
             };
 
-            await _dbContext.RefreshTokens.AddAsync(refreshTokenEntity);
-            await _dbContext.SaveChangesAsync();
+            await _refreshTokenRepository.Create(refreshTokenEntity);
 
             _currentUserService = new CurrentUserService(new HttpContextAccessor());
             return new TokenResponse
@@ -99,7 +98,7 @@ namespace Ecommerce.BLL
         public async Task<TokenResponse> RefreshToken(string refreshToken)
         {
             var userId = _currentUserService.UserId;
-            var tokenEntities = await _dbContext.RefreshTokens.Include(rt => rt.User).Where(rt => rt.UserId == userId).ToListAsync();
+            var tokenEntities = await _refreshTokenRepository.GetTokensByUserIdWithUser(userId);
             var tokenEntity = tokenEntities.FirstOrDefault(rt => BCrypt.Net.BCrypt.Verify(refreshToken, rt.Token));
             
             if (tokenEntity == null || tokenEntity.IsRevoked || tokenEntity.ExpiresAt < DateTime.Now)
@@ -108,7 +107,7 @@ namespace Ecommerce.BLL
             }
 
             tokenEntity.IsRevoked = true;
-            _dbContext.RefreshTokens.Update(tokenEntity);
+            await _refreshTokenRepository.Update(tokenEntity.Id, tokenEntity);
 
             var newRefreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             var newRefreshTokenEntity = new RefreshToken
@@ -119,8 +118,7 @@ namespace Ecommerce.BLL
                 IsRevoked = false
             };
 
-            await _dbContext.RefreshTokens.AddAsync(newRefreshTokenEntity);
-            await _dbContext.SaveChangesAsync();
+            await _refreshTokenRepository.Create(newRefreshTokenEntity);
 
             var newAccessToken = GenerateJwtToken(tokenEntity.User);
 
@@ -134,14 +132,12 @@ namespace Ecommerce.BLL
 
         public async Task<bool> Logout(string refreshToken, int userId)
         {
-            var tokenEntity = await _dbContext.RefreshTokens
-                .FirstOrDefaultAsync(rt => rt.Token == refreshToken && rt.UserId == userId);
+            var tokenEntity = await _refreshTokenRepository.GetByTokenAndUserId(refreshToken, userId);
 
             if (tokenEntity != null)
             {
                 tokenEntity.IsRevoked = true;
-                _dbContext.RefreshTokens.Update(tokenEntity);
-                await _dbContext.SaveChangesAsync();
+                await _refreshTokenRepository.Update(tokenEntity.Id, tokenEntity);
                 return true;
             }
 
@@ -151,17 +147,14 @@ namespace Ecommerce.BLL
 
         public async Task<bool> RevokeAllTokens(int userId)
         {
-            var tokens = await _dbContext.RefreshTokens
-                .Where(rt => rt.UserId == userId && !rt.IsRevoked)
-                .ToListAsync();
+            var tokens = await _refreshTokenRepository.GetActiveTokensByUserIdAsync(userId);
 
             foreach (var token in tokens)
             {
                 token.IsRevoked = true;
             }
 
-            _dbContext.RefreshTokens.UpdateRange(tokens);
-            await _dbContext.SaveChangesAsync();
+            await _refreshTokenRepository.SaveChangesAsync();
             return true;
         }
 

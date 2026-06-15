@@ -7,5 +7,6 @@ namespace Ecommerce.Contracts.Repositories
         Task<ICollection<Shipment>> GetShipmentsByVendorIdAsync(int vendorId);
         Task<Shipment?> GetShipmentByTrackingNumberAsync(string trackingNumber);
         Task<ICollection<Shipment>> GetActiveShipmentsAsync();
+        Task<ICollection<Shipment>> GetShipmentsByUserIdAsync(int userId);
     }
 }

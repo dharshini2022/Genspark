@@ -521,7 +521,7 @@ sequenceDiagram
 
     Customer->>Cart: Click "Place Order" (CartItems)
     activate Cart
-    Cart->>OS: PlaceOrderRequest(UserId, CartId, AddressId, PromoCode)
+    Cart->>OS: PlaceOrderRequest(UserId, CartId, AddressId, DiscountCode)
     activate OS
     
     OS->>DB: Fetch Active CartItems & Address

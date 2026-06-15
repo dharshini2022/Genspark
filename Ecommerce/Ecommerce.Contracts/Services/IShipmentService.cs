@@ -8,10 +8,11 @@ namespace Ecommerce.Contracts.Services
         Task<Shipment> GetShipmentDetails(int shipmentId);
         Task<ICollection<Shipment>> GetVendorShipments(int vendorId);
         Task<ICollection<Shipment>> GetAllShipments(int? productId, int? vendorId);
+        Task<ICollection<Shipment>> GetCustomerShipments(int userId);
 
         // Core Shipment Status transitions
-        Task<Shipment> ScheduleShipment(int orderId, int userAddressId);
+        Task<Shipment> ScheduleShipment(int orderId, int userAddressId, decimal shippingFee);
         Task<Shipment> ScheduleReturnPickup(int returnId, int userAddressId);
-        Task<bool> TransitionShipmentStatus(int shipmentId, ShipmentStatus status);
+        Task<bool> UpdateShipmentStatus(int shipmentId, ShipmentStatus status);
     }
 }

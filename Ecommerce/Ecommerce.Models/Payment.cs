@@ -14,7 +14,10 @@ namespace Ecommerce.Models
 
         public decimal Amount { get; set; }
 
-        public string TransactionId { get; set; } = null!;
+        public string TransactionId { get; set; } = null!;  
+
+        public string? StripePaymentIntentId { get; set; }   
+        public string Provider { get; set; } = "Stripe";
 
         public PaymentStatus Status { get; set; }
 

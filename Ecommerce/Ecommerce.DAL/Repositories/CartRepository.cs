@@ -22,5 +22,26 @@ namespace Ecommerce.DAL.Repositories
                         .ThenInclude(v => v.Product)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
         }
+
+        public async Task<Cart?> GetCartForCheckout(int userId)
+        {
+            return await _dbContext.Carts.Include(c => c.Items)
+                                        .ThenInclude(ci => ci.Variant)
+                                        .ThenInclude(v => v.Product)
+                                        .ThenInclude(p => p.Vendor)
+                                        .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
+
+        public async Task ClearCart(int cartId)
+        {
+            await _dbContext.CartItems.Where(ci => ci.CartId == cartId).ExecuteDeleteAsync();
+
+            var cart = await _dbContext.Carts.FindAsync(cartId);
+            if (cart != null)
+            {
+                cart.UpdatedAt = DateTime.Now;
+                await _dbContext.SaveChangesAsync();
+            }
+        }
     }
 }

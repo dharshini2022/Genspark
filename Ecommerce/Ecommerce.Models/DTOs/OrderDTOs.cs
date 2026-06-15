@@ -1,37 +1,17 @@
 using Ecommerce.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Ecommerce.Models.DTOs
 {
-    public class PlaceOrderRequest
-    {
-        public int CartId { get; set; }
-        public int UserAddressId { get; set; }
-        public string? PromoCode { get; set; }
-        public string CardNumber { get; set; } = null!;
-        public string ExpiryDate { get; set; } = null!;
-        public string CVV { get; set; } = null!;
-    }
 
-    public class OrderSummaryDTO
-    {
-        public int OrderId { get; set; }
-        public int UserId { get; set; }
-        public string FullName { get; set; } = null!;
-        public decimal Subtotal { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal TaxAmount { get; set; }
-        public decimal ShippingAmount { get; set; }
-        public decimal Total { get; set; }
-        public OrderStatus Status { get; set; }
-        public PaymentStatus PaymentStatus { get; set; }
-        public DateTime PlacedAt { get; set; }
-        public ICollection<OrderItemDTO> Items { get; set; } = new List<OrderItemDTO>();
-    }
+
+    
 
     public class OrderItemDTO
     {
         public int Id { get; set; }
         public int VariantId { get; set; }
+        public int ProductId { get; set; }
         public string ProductName { get; set; } = null!;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
@@ -39,17 +19,34 @@ namespace Ecommerce.Models.DTOs
         public string VendorStoreName { get; set; } = null!;
     }
 
+
     public class ReturnRequest
     {
+        [Required(ErrorMessage = "OrderId is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "OrderId must be a positive integer.")]
         public int OrderId { get; set; }
+
+        [Required(ErrorMessage = "Reason is required.")]
+        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
         public string Reason { get; set; } = null!;
+
+        [Required(ErrorMessage = "Items are required.")]
+        [MinLength(1, ErrorMessage = "At least one return item must be requested.")]
         public ICollection<ReturnItemRequest> Items { get; set; } = new List<ReturnItemRequest>();
     }
 
     public class ReturnItemRequest
     {
+        [Required(ErrorMessage = "OrderItemId is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "OrderItemId must be a positive integer.")]
         public int OrderItemId { get; set; }
+
+        [Required(ErrorMessage = "Quantity is required.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1.")]
         public int Quantity { get; set; }
+
+        [Required(ErrorMessage = "Reason is required.")]
+        [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters.")]
         public string Reason { get; set; } = null!;
     }
 
@@ -79,10 +76,26 @@ namespace Ecommerce.Models.DTOs
         public ReturnItemRefundStatus? RefundStatus { get; set; }
     }
 
+    // ─── Admin / Vendor DTOs ──────────────────────────────────────────────────────
+
     public class AdminRevenueDTO
     {
         public decimal TotalRevenue { get; set; }
         public decimal PlatformCommissionsFromOrders { get; set; }
         public decimal PlatformCommissionsFromSettlements { get; set; }
+    }
+
+    public class VendorSettlementDTO
+    {
+        public int Id { get; set; }
+        public int VendorId { get; set; }
+        public string VendorStoreName { get; set; } = null!;
+        public int OrderId { get; set; }
+        public decimal GrossAmount { get; set; }
+        public decimal ShippingAmount { get; set; }
+        public decimal PlatformCommissionAmount { get; set; }
+        public decimal NetPayoutAmount { get; set; }
+        public string Status { get; set; } = null!;
+        public DateTime? SettledAt { get; set; }
     }
 }

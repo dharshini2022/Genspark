@@ -250,7 +250,7 @@ namespace Ecommerce.DAL.Migrations
                     b.Property<DateTime>("PlacedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<decimal>("PlatormCommission")
+                    b.Property<decimal>("PlatformCommission")
                         .HasColumnType("numeric");
 
                     b.Property<decimal>("ShippingAmount")
@@ -258,8 +258,12 @@ namespace Ecommerce.DAL.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("StripePaymentIntentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("numeric");
@@ -282,6 +286,10 @@ namespace Ecommerce.DAL.Migrations
 
                     b.HasIndex("PaymentId")
                         .IsUnique();
+
+                    b.HasIndex("StripePaymentIntentId")
+                        .IsUnique()
+                        .HasFilter("\"StripePaymentIntentId\" IS NOT NULL");
 
                     b.HasIndex("UserAddressId");
 
@@ -343,10 +351,17 @@ namespace Ecommerce.DAL.Migrations
                     b.Property<DateTime>("PaidAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StripePaymentIntentId")
+                        .HasColumnType("text");
 
                     b.Property<string>("TransactionId")
                         .IsRequired()
@@ -445,6 +460,9 @@ namespace Ecommerce.DAL.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReservedStockQty")
                         .HasColumnType("integer");
 
                     b.Property<int>("StockQty")
@@ -608,8 +626,8 @@ namespace Ecommerce.DAL.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("Rating")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -673,6 +691,9 @@ namespace Ecommerce.DAL.Migrations
                     b.Property<DateTime?>("ShippedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -690,6 +711,45 @@ namespace Ecommerce.DAL.Migrations
                     b.HasIndex("UserAddressId");
 
                     b.ToTable("shipments", (string)null);
+                });
+
+            modelBuilder.Entity("Ecommerce.Models.StockReservation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsReleased")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValueSql("false");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("ReservedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("VariantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsReleased");
+
+                    b.HasIndex("VariantId");
+
+                    b.HasIndex("OrderId", "VariantId");
+
+                    b.ToTable("stock_reservations", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Models.User", b =>
@@ -877,10 +937,17 @@ namespace Ecommerce.DAL.Migrations
                     b.Property<DateTime?>("SettledAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<decimal>("ShippingAmount")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TransactionReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<decimal>("VendorDiscountAmount")
                         .HasColumnType("numeric");
@@ -892,7 +959,7 @@ namespace Ecommerce.DAL.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("VendorId");
+                    b.HasIndex("VendorId", "OrderId");
 
                     b.ToTable("vendor_settlements", (string)null);
                 });
@@ -1029,7 +1096,7 @@ namespace Ecommerce.DAL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Ecommerce.Models.UserAddress", null)
+                    b.HasOne("Ecommerce.Models.UserAddress", "UserAddress")
                         .WithMany("Orders")
                         .HasForeignKey("UserAddressId");
 
@@ -1044,6 +1111,8 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("Payment");
 
                     b.Navigation("User");
+
+                    b.Navigation("UserAddress");
                 });
 
             modelBuilder.Entity("Ecommerce.Models.OrderItem", b =>
@@ -1226,6 +1295,25 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("UserAddress");
                 });
 
+            modelBuilder.Entity("Ecommerce.Models.StockReservation", b =>
+                {
+                    b.HasOne("Ecommerce.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ecommerce.Models.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("Ecommerce.Models.UserAddress", b =>
                 {
                     b.HasOne("Ecommerce.Models.User", "User")
@@ -1253,13 +1341,13 @@ namespace Ecommerce.DAL.Migrations
                     b.HasOne("Ecommerce.Models.Order", "Order")
                         .WithMany("VendorSettlement")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Ecommerce.Models.Vendor", "Vendor")
                         .WithMany("VendorSettlement")
                         .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");

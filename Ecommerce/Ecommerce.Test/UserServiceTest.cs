@@ -13,7 +13,7 @@ namespace Ecommerce.Test
     {
         private Mock<IUserRepository>     _mockUserRepo;
         private Mock<ICurrentUserService> _mockCurrentUser;
-        private IMapper                   _mapper;
+        private Mock<IMapper>             _mockMapper;
         private UserService               _userService;
 
         [SetUp]
@@ -21,26 +21,56 @@ namespace Ecommerce.Test
         {
             _mockUserRepo    = new Mock<IUserRepository>();
             _mockCurrentUser = new Mock<ICurrentUserService>();
+            _mockMapper      = new Mock<IMapper>();
 
-            // var config = new MapperConfiguration(cfg => cfg.AddProfile(new MappingProfile()));
-            // _mapper = config.CreateMapper();
-            _mapper = new Mock<IMapper>().Object;
+            _mockMapper.Setup(m => m.Map<UserProfileResponse>(It.IsAny<User>()))
+                .Returns((User u) => new UserProfileResponse { FullName = u.FullName, Email = u.Email, Role = u.Role.ToString(), IsActive = u.IsActive });
 
-            _userService = new UserService(_mockUserRepo.Object, _mapper, _mockCurrentUser.Object);
+            _mockMapper.Setup(m => m.Map(It.IsAny<UserProfileRequest>(), It.IsAny<User>()))
+                .Callback<UserProfileRequest, User>((req, u) => { u.FullName = req.FullName; u.Email = req.Email; });
+
+            _mockMapper.Setup(m => m.Map<UserAddress>(It.IsAny<AddAddressRequest>()))
+                .Returns((AddAddressRequest req) => new UserAddress
+                {
+                    RecipientName = req.RecipientName, Phone = req.Phone,
+                    Line1 = req.Line1, Line2 = req.Line2, City = req.City,
+                    State = req.State, PostalCode = req.PostalCode, Country = req.Country, Label = req.Label
+                });
+
+            _mockMapper.Setup(m => m.Map<AddAddressRequest>(It.IsAny<UserAddress>()))
+                .Returns((UserAddress a) => new AddAddressRequest
+                {
+                    RecipientName = a.RecipientName, Phone = a.Phone,
+                    Line1 = a.Line1, Line2 = a.Line2, City = a.City,
+                    State = a.State, PostalCode = a.PostalCode, Country = a.Country, Label = a.Label
+                });
+
+            _mockMapper.Setup(m => m.Map<ICollection<AddAddressRequest>>(It.IsAny<ICollection<UserAddress>>()))
+                .Returns((ICollection<UserAddress> list) => list.Select(a => new AddAddressRequest
+                {
+                    RecipientName = a.RecipientName, Phone = a.Phone,
+                    Line1 = a.Line1, Line2 = a.Line2, City = a.City,
+                    State = a.State, PostalCode = a.PostalCode, Country = a.Country, Label = a.Label
+                }).ToList());
+
+            _mockMapper.Setup(m => m.Map<List<UserProfileResponse>>(It.IsAny<List<User>>()))
+                .Returns((List<User> list) => list.Select(u => new UserProfileResponse { FullName = u.FullName, Email = u.Email, Role = u.Role.ToString(), IsActive = u.IsActive }).ToList());
+
+            _userService = new UserService(_mockUserRepo.Object, _mockMapper.Object, _mockCurrentUser.Object);
         }
 
 
         [Test]
         public async Task GetUserDetails_PassTest_ReturnsProfile()
         {
-            // Arrange
+           
             var user = new User { Id = 1, FullName = "Alice", Email = "alice@test.com", Role = UserRole.Customer, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(1)).ReturnsAsync(user);
 
-            // Act
+            
             var result = await _userService.GetUserDetails(1);
 
-            // Assert
+            
             Assert.That(result.FullName, Is.EqualTo("Alice"));
             Assert.That(result.Email,    Is.EqualTo("alice@test.com"));
         }
@@ -48,10 +78,9 @@ namespace Ecommerce.Test
         [Test]
         public async Task GetUserDetails_FailTest_UserNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockUserRepo.Setup(r => r.GetById(99)).ReturnsAsync((User?)null);
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.GetUserDetails(99));
         }
@@ -59,21 +88,21 @@ namespace Ecommerce.Test
         [Test]
         public async Task GetUserDetails_PassTest_AdminRole_ReturnsCorrectRole()
         {
-            // Arrange
+           
             var admin = new User { Id = 2, FullName = "Bob Admin", Email = "bob@test.com", Role = UserRole.Admin, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(2)).ReturnsAsync(admin);
 
-            // Act
+            
             var result = await _userService.GetUserDetails(2);
 
-            // Assert
+            
             Assert.That(result.Role, Is.EqualTo("Admin"));
         }
 
         [Test]
         public async Task UpdateProfile_PassTest_UpdatesFullName()
         {
-            // Arrange
+           
             var user = new User { Id = 3, FullName = "Carol Old", Email = "carol@test.com", Role = UserRole.Customer, IsActive = true };
             _mockCurrentUser.Setup(c => c.UserId).Returns(3);
             _mockUserRepo.Setup(r => r.GetById(3)).ReturnsAsync(user);
@@ -81,23 +110,22 @@ namespace Ecommerce.Test
 
             var request = new UserProfileRequest { FullName = "Carol New", Email = "carol@test.com" };
 
-            // Act
+            
             var result = await _userService.UpdateProfile(request);
 
-            // Assert
+            
             Assert.That(result.FullName, Is.EqualTo("Carol New"));
         }
 
         [Test]
         public async Task UpdateProfile_FailTest_UserNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(999);
             _mockUserRepo.Setup(r => r.GetById(999)).ReturnsAsync((User?)null);
 
             var request = new UserProfileRequest { FullName = "Ghost", Email = "ghost@test.com" };
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.UpdateProfile(request));
         }
@@ -105,7 +133,7 @@ namespace Ecommerce.Test
         [Test]
         public async Task UpdateProfile_FailTest_UpdateReturnsNull_ThrowsInvalidOperationException()
         {
-            // Arrange
+           
             var user = new User { Id = 4, FullName = "Dave", Email = "dave@test.com", Role = UserRole.Customer, IsActive = true };
             _mockCurrentUser.Setup(c => c.UserId).Returns(4);
             _mockUserRepo.Setup(r => r.GetById(4)).ReturnsAsync(user);
@@ -113,19 +141,15 @@ namespace Ecommerce.Test
 
             var request = new UserProfileRequest { FullName = "Dave New", Email = "dave@test.com" };
 
-            // Act & Assert
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await _userService.UpdateProfile(request));
         }
 
-        // ─────────────────────────────────────────────────
-        //  ListUsers
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task ListUsers_PassTest_ReturnsPaged()
         {
-            // Arrange
+           
             var users = new List<User>
             {
                 new User { Id = 5, FullName = "Eve", Email = "eve@test.com", Role = UserRole.Customer, IsActive = true },
@@ -135,10 +159,10 @@ namespace Ecommerce.Test
 
             var query = new PageRequest { PageNumber = 1, PageSize = 10 };
 
-            // Act
+            
             var result = await _userService.ListUsers(query);
 
-            // Assert
+            
             Assert.That(result.TotalCount, Is.EqualTo(2));
             Assert.That(result.Items.Count, Is.EqualTo(2));
         }
@@ -146,7 +170,7 @@ namespace Ecommerce.Test
         [Test]
         public async Task ListUsers_PassTest_WithSearchTerm_FiltersResults()
         {
-            // Arrange
+           
             var users = new List<User>
             {
                 new User { Id = 7, FullName = "Grace Match", Email = "grace@test.com", Role = UserRole.Customer, IsActive = true }
@@ -155,10 +179,10 @@ namespace Ecommerce.Test
 
             var query = new PageRequest { PageNumber = 1, PageSize = 5, SearchTerm = "grace" };
 
-            // Act
+            
             var result = await _userService.ListUsers(query);
 
-            // Assert
+            
             Assert.That(result.TotalCount, Is.EqualTo(1));
             Assert.That(result.Items.First().FullName, Is.EqualTo("Grace Match"));
         }
@@ -166,50 +190,46 @@ namespace Ecommerce.Test
         [Test]
         public async Task ListUsers_PassTest_EmptyResult_ReturnZeroCount()
         {
-            // Arrange
+           
             _mockUserRepo.Setup(r => r.GetPagedUsers("nobody", 1, 10))
                          .ReturnsAsync((new List<User>(), 0));
 
             var query = new PageRequest { PageNumber = 1, PageSize = 10, SearchTerm = "nobody" };
 
-            // Act
+            
             var result = await _userService.ListUsers(query);
 
-            // Assert
+            
             Assert.That(result.TotalCount, Is.EqualTo(0));
             Assert.That(result.Items, Is.Empty);
         }
 
-        // ─────────────────────────────────────────────────
-        //  ChangeRole
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task ChangeRole_PassTest_ChangesRoleToVendor()
         {
-            // Arrange
+           
             var user = new User { Id = 8, FullName = "Hank", Email = "hank@test.com", Role = UserRole.Customer, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(8)).ReturnsAsync(user);
             _mockUserRepo.Setup(r => r.Update(8, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
             var request = new ChangeRoleRequest { UserId = 8, NewRole = UserRole.Vendor };
 
-            // Act
+            
             var result = await _userService.ChangeRole(request);
 
-            // Assert
+            
             Assert.That(result.Role, Is.EqualTo("Vendor"));
         }
 
         [Test]
         public async Task ChangeRole_FailTest_UserNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockUserRepo.Setup(r => r.GetById(999)).ReturnsAsync((User?)null);
 
             var request = new ChangeRoleRequest { UserId = 999, NewRole = UserRole.Admin };
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.ChangeRole(request));
         }
@@ -217,28 +237,24 @@ namespace Ecommerce.Test
         [Test]
         public async Task ChangeRole_PassTest_ChangesRoleToAdmin()
         {
-            // Arrange
+           
             var user = new User { Id = 9, FullName = "Ivy", Email = "ivy@test.com", Role = UserRole.Customer, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(9)).ReturnsAsync(user);
             _mockUserRepo.Setup(r => r.Update(9, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
             var request = new ChangeRoleRequest { UserId = 9, NewRole = UserRole.Admin };
 
-            // Act
+            
             var result = await _userService.ChangeRole(request);
 
-            // Assert
+            
             Assert.That(result.Role, Is.EqualTo("Admin"));
         }
-
-        // ─────────────────────────────────────────────────
-        //  ChangePassword
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task ChangePassword_PassTest_ValidOldPassword_ReturnsTrue()
         {
-            // Arrange
+           
             string oldPassword = "OldPass@1";
             var user = new User
             {
@@ -252,17 +268,17 @@ namespace Ecommerce.Test
 
             var request = new ChangePasswordRequest { OldPassword = oldPassword, NewPassword = "NewPass@1" };
 
-            // Act
+            
             var result = await _userService.ChangePassword(request);
 
-            // Assert
+            
             Assert.That(result, Is.True);
         }
 
         [Test]
         public async Task ChangePassword_FailTest_WrongOldPassword_ThrowsUnauthorized()
         {
-            // Arrange
+           
             var user = new User
             {
                 Id = 11, FullName = "Karen", Email = "karen@test.com",
@@ -274,7 +290,6 @@ namespace Ecommerce.Test
 
             var request = new ChangePasswordRequest { OldPassword = "WrongPass@1", NewPassword = "NewPass@1" };
 
-            // Act & Assert
             Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
                 await _userService.ChangePassword(request));
         }
@@ -282,45 +297,40 @@ namespace Ecommerce.Test
         [Test]
         public async Task ChangePassword_FailTest_UserNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(999);
             _mockUserRepo.Setup(r => r.GetById(999)).ReturnsAsync((User?)null);
 
             var request = new ChangePasswordRequest { OldPassword = "any", NewPassword = "new" };
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.ChangePassword(request));
         }
 
-        // ─────────────────────────────────────────────────
-        //  ToggleAccountStatus
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task ToggleAccountStatus_PassTest_ActiveToInactive_ReturnsTrue()
         {
-            // Arrange
+           
             var user = new User { Id = 12, FullName = "Leo", Email = "leo@test.com", Role = UserRole.Customer, IsActive = true };
             _mockCurrentUser.Setup(c => c.UserId).Returns(12);
             _mockUserRepo.Setup(r => r.GetById(12)).ReturnsAsync(user);
             _mockUserRepo.Setup(r => r.Update(12, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
-            // Act
+            
             var result = await _userService.ToggleAccountStatus();
 
-            // Assert
+            
             Assert.That(result, Is.True);
         }
 
         [Test]
         public async Task ToggleAccountStatus_FailTest_UserNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(999);
             _mockUserRepo.Setup(r => r.GetById(999)).ReturnsAsync((User?)null);
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.ToggleAccountStatus());
         }
@@ -328,45 +338,40 @@ namespace Ecommerce.Test
         [Test]
         public async Task ToggleAccountStatus_PassTest_InactiveToActive_ReturnsTrue()
         {
-            // Arrange – user starts inactive
             var user = new User { Id = 13, FullName = "Mia", Email = "mia@test.com", Role = UserRole.Customer, IsActive = false };
             _mockCurrentUser.Setup(c => c.UserId).Returns(13);
             _mockUserRepo.Setup(r => r.GetById(13)).ReturnsAsync(user);
             _mockUserRepo.Setup(r => r.Update(13, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
-            // Act
+            
             var result = await _userService.ToggleAccountStatus();
 
-            // Assert
+            
             Assert.That(result, Is.True);
         }
 
-        // ─────────────────────────────────────────────────
-        //  RevokeAdmin
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task RevokeAdmin_PassTest_DeactivatesAdmin()
         {
-            // Arrange
+           
             var admin = new User { Id = 14, FullName = "Ned Admin", Email = "ned@test.com", Role = UserRole.Admin, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(14)).ReturnsAsync(admin);
             _mockUserRepo.Setup(r => r.Update(14, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
-            // Act
+            
             var result = await _userService.RevokeAdmin(14);
 
-            // Assert
+            
             Assert.That(result.IsActive, Is.False);
         }
 
         [Test]
         public async Task RevokeAdmin_FailTest_AdminNotFound_ThrowsKeyNotFoundException()
         {
-            // Arrange
+           
             _mockUserRepo.Setup(r => r.GetById(999)).ReturnsAsync((User?)null);
 
-            // Act & Assert
             Assert.ThrowsAsync<KeyNotFoundException>(async () =>
                 await _userService.RevokeAdmin(999));
         }
@@ -374,26 +379,23 @@ namespace Ecommerce.Test
         [Test]
         public async Task RevokeAdmin_PassTest_ReturnsCorrectEmail()
         {
-            // Arrange
+           
             var admin = new User { Id = 15, FullName = "Olivia Admin", Email = "olivia@test.com", Role = UserRole.Admin, IsActive = true };
             _mockUserRepo.Setup(r => r.GetById(15)).ReturnsAsync(admin);
             _mockUserRepo.Setup(r => r.Update(15, It.IsAny<User>())).ReturnsAsync((int id, User u) => u);
 
-            // Act
+            
             var result = await _userService.RevokeAdmin(15);
 
-            // Assert
+            
             Assert.That(result.Email, Is.EqualTo("olivia@test.com"));
         }
 
-        // ─────────────────────────────────────────────────
-        //  AddUserAddress
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task AddUserAddress_PassTest_ReturnsAddedAddress()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(16);
             var addressReq = new AddAddressRequest
             {
@@ -406,17 +408,17 @@ namespace Ecommerce.Test
                 .Setup(r => r.AddUserAddress(It.IsAny<UserAddress>()))
                 .ReturnsAsync((UserAddress a) => a);
 
-            // Act
+            
             var result = await _userService.AddUserAddress(addressReq);
 
-            // Assert
+            
             Assert.That(result.City, Is.EqualTo("Chennai"));
         }
 
         [Test]
         public async Task AddUserAddress_PassTest_UsesCurrentUserId()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(17);
             int capturedUserId = 0;
 
@@ -432,17 +434,16 @@ namespace Ecommerce.Test
                 State = "Maharashtra", PostalCode = "400001", Country = "India"
             };
 
-            // Act
+            
             await _userService.AddUserAddress(addressReq);
 
-            // Assert – the UserId was injected from ICurrentUserService
             Assert.That(capturedUserId, Is.EqualTo(17));
         }
 
         [Test]
         public async Task AddUserAddress_PassTest_MapsAllFields()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(18);
             _mockUserRepo
                 .Setup(r => r.AddUserAddress(It.IsAny<UserAddress>()))
@@ -457,22 +458,19 @@ namespace Ecommerce.Test
                 Country = "India", Label = "Home"
             };
 
-            // Act
+            
             var result = await _userService.AddUserAddress(addressReq);
 
-            // Assert
+            
             Assert.That(result.Line1, Is.EqualTo("99 Park Ave"));
             Assert.That(result.Label, Is.EqualTo("Home"));
         }
 
-        // ─────────────────────────────────────────────────
-        //  GetAllUserAddress
-        // ─────────────────────────────────────────────────
 
         [Test]
         public async Task GetAllUserAddress_PassTest_ReturnsAddresses()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(19);
             var addresses = new List<UserAddress>
             {
@@ -481,31 +479,31 @@ namespace Ecommerce.Test
             };
             _mockUserRepo.Setup(r => r.GetAllAddressByUserId(19)).ReturnsAsync(addresses);
 
-            // Act
+            
             var result = await _userService.GetAllUserAddress();
 
-            // Assert
+            
             Assert.That(result.Count, Is.EqualTo(2));
         }
 
         [Test]
         public async Task GetAllUserAddress_PassTest_EmptyList_ReturnsEmpty()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(20);
             _mockUserRepo.Setup(r => r.GetAllAddressByUserId(20)).ReturnsAsync(new List<UserAddress>());
 
-            // Act
+            
             var result = await _userService.GetAllUserAddress();
 
-            // Assert
+            
             Assert.That(result, Is.Empty);
         }
 
         [Test]
         public async Task GetAllUserAddress_PassTest_ReturnsMappedCityNames()
         {
-            // Arrange
+           
             _mockCurrentUser.Setup(c => c.UserId).Returns(21);
             var addresses = new List<UserAddress>
             {
@@ -513,10 +511,10 @@ namespace Ecommerce.Test
             };
             _mockUserRepo.Setup(r => r.GetAllAddressByUserId(21)).ReturnsAsync(addresses);
 
-            // Act
+            
             var result = await _userService.GetAllUserAddress();
 
-            // Assert
+            
             Assert.That(result.First().City, Is.EqualTo("Bangalore"));
         }
     }

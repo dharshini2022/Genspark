@@ -95,13 +95,33 @@ namespace Ecommerce.BLL.Mapper
             CreateMap<Discount, CreateDiscountRequest>().ReverseMap();
             CreateMap<Discount, DiscountResponse>().ReverseMap();
             CreateMap<Discount, DiscountCartResponse>().ReverseMap();
+            CreateMap<Discount,ToggleDiscountStatusResponse>().ReverseMap();
             #endregion
 
             #region Order
-            CreateMap<Order, OrderSummaryDTO>().ReverseMap();
+            CreateMap<Order, OrderSummaryResponse>()
+                .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
+                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.OrderPaymentStatus))
+                .ReverseMap();
             CreateMap<OrderItem, OrderItemDTO>()
                 .ForMember(DTO => DTO.ProductName, opt => opt.MapFrom(Model => Model.Variant.Product.Name))
                 .ForMember(DTO => DTO.VendorStoreName, opt => opt.MapFrom(Model => Model.Vendor.StoreName))
+                .ForMember(DTO => DTO.ProductId, opt => opt.MapFrom(Model => Model.Variant.ProductId))
+                .ReverseMap();
+
+            CreateMap<Shipment, ShipmentResponseDTO>().ReverseMap();
+            #endregion
+
+            #region Payment & Settlements
+            CreateMap<Payment, PaymentResponseDTO>()
+                .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Order != null ? src.Order.Id : (int?)null))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ReverseMap();
+
+            CreateMap<VendorSettlement, VendorSettlementDTO>()
+                .ForMember(dest => dest.VendorStoreName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.StoreName : string.Empty))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
                 .ReverseMap();
             #endregion
 

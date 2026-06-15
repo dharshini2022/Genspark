@@ -117,7 +117,7 @@ Each extends `IRepository<int, T>` with domain-specific query methods:
 | `IProductRepository` | `GetProductsPagedAsync`, `SearchProductsByNameAsync`, `GetProductsByVendorIdAsync` |
 | `IProductVariantRepository` | `GetVariantsByProductIdAsync`, `GetDefaultVariantAsync`, `UpdateStockAsync` |
 | `IDiscountRepository` | `GetByCodeAsync`, `GetActiveDiscountsAsync`, `GetDiscountsByVendorIdAsync` |
-| `IOrderRepository` | `GetOrdersByUserIdAsync`, `GetOrdersByVendorIdAsync`, `GetOrdersByProductIdAsync`, `GetActiveVendorOrdersAsync` |
+| `IOrderRepository` | `GetOrdersByUserId`, `GetOrdersByVendorId`, `GetOrdersByProductIdAsync`, `GetActiveVendorOrdersAsync` |
 | `IShipmentRepository` | `GetShipmentsByVendorIdAsync`, `GetShipmentByTrackingNumberAsync` |
 | `IPaymentRepository` | `GetByTransactionIdAsync`, `GetPaymentHistoryByUserIdAsync` |
 | `IReturnRepository` | `GetReturnsByUserIdAsync`, `GetReturnsByVendorIdAsync`, `GetUnapprovedReturnsAsync` |
@@ -149,7 +149,7 @@ Shared Data Transfer Objects used across all layers:
 | `AuthDTOs.cs` | `RegisterRequest`, `RegisterResponse`, `LoginRequest`, `TokenResponse`, `UserProfileDto`, `UpdateProfileRequest`, `ChangePasswordRequest`, `ResetPasswordRequest`, `UserListQuery`, `UserListItemDto`, `Page<T>` |
 | `VendorDTOs.cs` | `VendorRegisterDTO`, `UpdateStoreDetailsDTO`, `VendorProfileDTO` |
 | `ProductDTOs.cs` | `ProductFilterRequest`, `CreateProductRequest`, `ProductResponse`, `ProductVariantResponse`, `ProductImageResponse`, `CategoryCreateRequest` |
-| `OrderDTOs.cs` | `PlaceOrderRequest`, `OrderSummaryDTO`, `OrderItemDTO`, `ReturnRequest`, `ReturnSummaryDTO`, `ReturnItemDTO`, `AdminRevenueDTO` |
+| `OrderDTOs.cs` | `PlaceOrderRequest`, `OrderSummaryResponse`, `OrderItemDTO`, `ReturnRequest`, `ReturnSummaryDTO`, `ReturnItemDTO`, `AdminRevenueDTO` |
 | `ReviewDTOs.cs` | `CreateReviewRequest`, `UpdateReviewRequest`, `ReviewDTO` |
 
 ---
@@ -191,7 +191,7 @@ Full mapping definitions using `CreateMap<Source, Destination>().ReverseMap()`:
 | Product | `Product ↔ CreateProductRequest`, `Product → ProductResponse` (with `ForMember` for `VendorStoreName`, `CategoryName`) |
 | ProductVariant | `ProductVariant ↔ AddProductVariantRequest`, `ProductVariant ↔ UpdateProductVariantRequest`, `ProductVariant ↔ ProductVariantResponse` |
 | ProductImage | `ProductImage ↔ CreateProductImageRequest`, `ProductImage ↔ ProductImageResponse` |
-| Order | `Order ↔ OrderSummaryDTO`, `OrderItem → OrderItemDTO` (with `ForMember` for `ProductName`, `VendorStoreName`) |
+| Order | `Order ↔ OrderSummaryResponse`, `OrderItem → OrderItemDTO` (with `ForMember` for `ProductName`, `VendorStoreName`) |
 | Return | `Return ↔ ReturnRequest`, `Return ↔ ReturnSummaryDTO`, `ReturnItem ↔ ReturnItemRequest`, `ReturnItem → ReturnItemDTO` (with deep join for `ProductName`) |
 | Review | `Review ↔ CreateReviewRequest`, `Review ↔ UpdateReviewRequest`, `Review → ReviewDTO` (with `ForMember` for `ProductName`, `UserFullName`, `ReviewImages`) |
 

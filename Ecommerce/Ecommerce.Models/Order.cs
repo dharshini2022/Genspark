@@ -4,15 +4,16 @@ namespace Ecommerce.Models
 {
     public enum OrderStatus
     {
-        Confirmed,        
+        PendingPayment,      
+        PaymentFailed,       
+        Confirmed,           
         Shipped,
         Delivered,
-        Cancelled,       
+        Cancelled,
         ReturnRequested,
         Returned,
         PartialReturnRequested,
         PartiallyReturned,
-
     }
 
     public enum OrderPaymentStatus
@@ -32,14 +33,17 @@ namespace Ecommerce.Models
         public decimal DiscountAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal ShippingAmount {get; set; }
-        public decimal PlatormCommission { get; set; } = 20; 
+        public decimal PlatformCommission { get; set; } = 20; 
         public decimal Total { get; set; }
-        public OrderStatus Status { get; set; }   
-        public PaymentStatus OrderPaymentStatus { get; set; }     
+        public OrderStatus Status { get; set; }
+        public PaymentStatus OrderPaymentStatus { get; set; }
+        public string? StripePaymentIntentId { get; set; } 
         public DateTime PlacedAt { get; set; } = DateTime.Now;
+        public int? UserAddressId { get; set; }
 
         // Relation
         public User User { get; set; } = null!;
+        public UserAddress? UserAddress { get; set; }
         public Discount? Discount { get; set; }
         public Payment Payment { get; set; } = null!;
         public ICollection<VendorSettlement> VendorSettlement {get; set; }= [];

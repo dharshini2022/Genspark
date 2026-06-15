@@ -11,5 +11,9 @@ namespace Ecommerce.Contracts.Services
         Task<bool> ArchiveVariant(int variantId);
         Task<ProductImageResponse> AddImage(int variantId, CreateProductImageRequest request);
         Task<bool> DeleteImage(int imageId);
+        Task DecrementStock(int variantId, int quantity);
+        Task ReserveStock(int orderId, int variantId, int quantity);
+        Task ConfirmStockReservation(int orderId);
+        Task ReleaseStockReservation(int orderId);
     }
 }
