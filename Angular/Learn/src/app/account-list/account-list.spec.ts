@@ -1,19 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 
-import { Navigation } from './navigation';
+import { AccountList } from './account-list';
 
-describe('Navigation', () => {
-  let component: Navigation;
-  let fixture: ComponentFixture<Navigation>;
+describe('AccountList', () => {
+  let component: AccountList;
+  let fixture: ComponentFixture<AccountList>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Navigation],
-      providers: [provideRouter([])],
+      imports: [AccountList],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Navigation);
+    fixture = TestBed.createComponent(AccountList);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

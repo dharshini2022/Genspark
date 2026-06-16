@@ -9,7 +9,7 @@ export const authGuard:CanActivateFn = () => {
     const userStatus = isLoggedIn();
     if (userStatus) 
         return true;
-    router.navigate(["/"]);     //Navigate to Login
+    router.navigate(["login"]);    
     alert("Please Login to continue");
     console.log("Redirecting to Login");
     return false;

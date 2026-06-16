@@ -4,9 +4,11 @@ import { Login } from './login/login';
 import { Account } from './account/account';
 import { Transaction } from './transaction/transaction';
 import { authGuard } from './guards/authGuard';
+import { AccountHome } from './account-home/account-home';
 
 export const routes: Routes = [
-    {path:'',component:Login},
+    {path:'',component:AccountHome},
+    {path:'login',component:Login},
     {path:'home',component:Customer},
     // {path:'account',component:Account,children:[
     //     {path:'transaction/:accNum',component:Transaction}

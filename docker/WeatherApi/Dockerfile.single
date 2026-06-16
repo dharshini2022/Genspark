@@ -1,0 +1,16 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+WORKDIR /app
+
+#copy dependencies first (to avoid re-downloading them on every build)
+COPY WeatherApi.csproj .
+RUN dotnet restore
+
+# copy source code
+COPY . .
+
+#build and publish the application
+RUN dotnet publish -c Release -o out
+
+#run the application (network port 8080 is exposed to the host)
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "out/WeatherApi.dll"]
