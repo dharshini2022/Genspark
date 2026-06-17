@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -61,13 +61,13 @@ namespace BankingAPI.Services
         {
             string newAccountNumber = await GenerateAccountNumber();
             Account newAccount = new Account()
-            {
-                AccountNumber = newAccountNumber,
-                CustomerId = account.CustomerId,
-                Balance = account.Balance,
+                {
+                    AccountNumber = newAccountNumber,
+                    CustomerId = account.CustomerId,
+                    Balance = account.Balance,
                 AccountType = account.AccountType,
-                Status = "Active"
-            };
+                    Status = "Active"
+                };
             var result = await _accountRespository.Create(newAccount);
             return new CreateAccountResponse
             {
@@ -80,23 +80,30 @@ namespace BankingAPI.Services
 
         public async Task<RegisterUserResponse> Register(RegisterUserRequest request)
         {
-            //User user = MapUserObjectFromRequest(request);
-            //AutoMapper (Request to User)
             User user = _mapper.Map<User>(request);
-            //Customer customer = MapCustomerObjectFromRequest(request);
-            //AutoMapper (Request to Customer)
+            using (var hmac = new HMACSHA256())
+            {
+                string saltBase = user.Username.Length >= 4 ? user.Username.Substring(0, 4) : user.Username;
+                user.Password = hmac.ComputeHash(Encoding.UTF8.GetBytes(saltBase + "1234"));
+                user.HashKey = hmac.Key;
+            }
+            
+            user.Role = "Customer";
+
             Customer customer = _mapper.Map<Customer>(request);
-            user =  await _userRepository.Create(user);
+            user = await _userRepository.Create(user);
             customer.Username = user.Username;
             customer = await _customerRepository.Create(customer);
+            
             if (user != null && customer != null)
                 return new RegisterUserResponse
                 {
                     CustomerId = customer.Id,
                 };
+                
             throw new UnableToCreateEntityException("User or customer object not created");
-
         }
+
 
         private Customer MapCustomerObjectFromRequest(RegisterUserRequest request)
         {

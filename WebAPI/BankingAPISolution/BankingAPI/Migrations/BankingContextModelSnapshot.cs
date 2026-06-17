@@ -46,7 +46,7 @@ namespace BankingAPI.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
 
                     b.HasDiscriminator<string>("AccountType").HasValue("Account");
 
@@ -89,7 +89,7 @@ namespace BankingAPI.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
 
                     b.HasData(
                         new
@@ -137,7 +137,7 @@ namespace BankingAPI.Migrations
 
                     b.HasIndex("ToAccountNumber");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("BankingAPI.Models.User", b =>
@@ -160,7 +160,7 @@ namespace BankingAPI.Migrations
                     b.HasKey("Username")
                         .HasName("PK_Username");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("BankingAPI.Models.CurrentAccount", b =>
