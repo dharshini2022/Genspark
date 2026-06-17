@@ -96,6 +96,13 @@ namespace Ecommerce.BLL
             int initialCartItemCount = (await _cartRepository.GetCartByUserId(userId))?.Items.Count ?? 0;
             var eligibleItems = await _cartService.GetEligibleItems(userId);
 
+            if (eligibleItems == null || eligibleItems.Count == 0)
+            {
+                throw new ValidationException("Cart is empty or has no eligible items.");
+            }
+
+            await ValidateDuplicateOrders(userId, eligibleItems);
+
             var summary = new OrderSummary();
             summary.Subtotal =eligibleItems.Sum(ci => ci.Variant.Price * ci.Quantity);
 
@@ -137,6 +144,20 @@ namespace Ecommerce.BLL
             }
         }
 
+        private async Task ValidateDuplicateOrders(int userId,ICollection<CartItem> eligibleItems){
+            var existingOrders = await _orderRepository.GetOrdersByUserId(userId);
+            if (existingOrders != null)
+            {
+                var pendingOrder = existingOrders.FirstOrDefault(o => o.Status == OrderStatus.PendingPayment &&
+                    o.Items.Count == eligibleItems.Count &&
+                    o.Items.All(oi => eligibleItems.Any(ci => ci.VariantId == oi.VariantId && ci.Quantity == oi.Quantity)));
+
+                if (pendingOrder != null)
+                {
+                    throw new ValidationException("A pending order with the same items already exists. Please complete the payment for the existing order.");
+                }
+            }
+        }
         private decimal CalculateShipping(ICollection<CartItem> items)
         {
             return items.GroupBy(ci => ci.Variant.Product.VendorId)

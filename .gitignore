@@ -46,7 +46,7 @@ logs/
 # 🔹 Secrets / Config (IMPORTANT)
 # -------------------------------
 appsettings.Development.json
-appsettings.*.local.json
+**/appsettings.json
 
 # -------------------------------
 # 🔹 Build outputs

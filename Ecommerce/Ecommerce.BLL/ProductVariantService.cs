@@ -34,10 +34,25 @@ namespace Ecommerce.BLL
             return _mapper.Map<ProductVariantResponse>(variant);
         }
 
+        private async Task ValidateProductVariant(int productId, AddProductVariantRequest request){
+            if(request.AvailableValues == null || request.AvailableValues.Count == 0)   throw new ValidationException("Product Variants must contain values ");
+            var existingVariants = await _variantRepository.GetVariantsByProductId(productId);
+            foreach (var existing in existingVariants)
+            {
+                if (existing.AvailableValues.Count == request.AvailableValues.Count && existing.AvailableValues.All(kvp => 
+                        request.AvailableValues.TryGetValue(kvp.Key, out var val) && val == kvp.Value))
+                {
+                    throw new UniquenessViolationException("A variant with the same values already exists for this product.");
+                }
+            }
+        }
+
         public async Task<ProductVariantResponse> AddVariant(int productId, AddProductVariantRequest request)
         {
             var product = await _productRepository.GetById(productId) ?? throw new InvalidProductException($"Product with ID {productId} not found.");
             await EnsureVendorOwns(product);
+
+            await ValidateProductVariant(productId, request);
 
             var variant = _mapper.Map<ProductVariant>(request);
             variant.ProductId = productId;

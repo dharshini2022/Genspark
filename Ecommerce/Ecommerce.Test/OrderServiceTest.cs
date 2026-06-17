@@ -421,5 +421,59 @@ namespace Ecommerce.Test
             Assert.That(result.Message, Contains.Substring("out-of-stock item(s) were skipped"));
             _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [Test]
+        public void CreateOrder_ShouldThrowValidationException_WhenPendingOrderWithSameItemsExists()
+        {
+            _mockCurrentUser.Setup(u => u.UserId).Returns(1);
+            var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
+            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+
+            var cart = new Cart { Id = 100, Items = new List<CartItem> { new CartItem() } };
+            _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
+
+            var product = new Product { Id = 20, VendorId = 2 };
+            var variant = new ProductVariant { Id = 30, Price = 100.00m, Product = product };
+            var eligibleItems = new List<CartItem>
+            {
+                new CartItem { VariantId = 30, Quantity = 2, Variant = variant }
+            };
+            _mockCartService.Setup(s => s.GetEligibleItems(1)).ReturnsAsync(eligibleItems);
+
+            var existingOrders = new List<Order>
+            {
+                new Order
+                {
+                    Id = 60,
+                    UserId = 1,
+                    Status = OrderStatus.PendingPayment,
+                    Items = new List<OrderItem>
+                    {
+                        new OrderItem { VariantId = 30, Quantity = 2 }
+                    }
+                }
+            };
+            _mockOrderRepo.Setup(r => r.GetOrdersByUserId(1)).ReturnsAsync(existingOrders);
+
+            var request = new CreateOrderRequest { UserAddressId = 10 };
+
+            var ex = Assert.ThrowsAsync<ValidationException>(async () => await _orderService.CreateOrder(request));
+            Assert.That(ex.Message, Is.EqualTo("A pending order with the same items already exists. Please complete the payment for the existing order."));
+        }
+
+        [Test]
+        public void CreateOrder_ShouldThrowValidationException_WhenCartIsEmpty()
+        {
+            _mockCurrentUser.Setup(u => u.UserId).Returns(1);
+            var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
+            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+
+            _mockCartService.Setup(s => s.GetEligibleItems(1)).ReturnsAsync(new List<CartItem>());
+
+            var request = new CreateOrderRequest { UserAddressId = 10 };
+
+            var ex = Assert.ThrowsAsync<ValidationException>(async () => await _orderService.CreateOrder(request));
+            Assert.That(ex.Message, Is.EqualTo("Cart is empty or has no eligible items."));
+        }
     }
 }

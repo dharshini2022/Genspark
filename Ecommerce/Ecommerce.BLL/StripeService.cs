@@ -32,7 +32,11 @@ namespace Ecommerce.BLL
             };
 
             var stripePaymentService = new PaymentIntentService();
-            var intent = await stripePaymentService.CreateAsync(options);
+            var requestOptions = new RequestOptions
+            {
+                IdempotencyKey = $"payment-order-{orderId}"
+            };
+            var intent = await stripePaymentService.CreateAsync(options, requestOptions);
 
             return new StripeChargeResponse
             {

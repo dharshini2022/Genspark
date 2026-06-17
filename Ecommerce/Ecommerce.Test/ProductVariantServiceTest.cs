@@ -94,12 +94,17 @@ namespace Ecommerce.Test
 
             _mockCurrentUser.Setup(u => u.UserId).Returns(2);
             _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
+            _mockVariantRepo.Setup(r => r.GetVariantsByProductId(1)).ReturnsAsync(new List<ProductVariant>());
 
-            var request = new AddProductVariantRequest { Price = 15 };
-            var variant = new ProductVariant { Price = 15 };
+            var request = new AddProductVariantRequest 
+            { 
+                Price = 15,
+                AvailableValues = new Dictionary<string, string> { { "Color", "Red" } }
+            };
+            var variant = new ProductVariant { Price = 15, AvailableValues = request.AvailableValues };
             _mockMapper.Setup(m => m.Map<ProductVariant>(request)).Returns(variant);
 
-            var created = new ProductVariant { Id = 100, Price = 15, ProductId = 1 };
+            var created = new ProductVariant { Id = 100, Price = 15, ProductId = 1, AvailableValues = request.AvailableValues };
             _mockVariantRepo.Setup(r => r.Create(variant)).ReturnsAsync(created);
             _mockMapper.Setup(m => m.Map<ProductVariantResponse>(created)).Returns(new ProductVariantResponse { Id = 100 });
 
@@ -110,6 +115,75 @@ namespace Ecommerce.Test
             Assert.That(result.Id, Is.EqualTo(100));
             Assert.That(variant.IsActive, Is.True);
             Assert.That(variant.ProductId, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void AddVariant_ShouldThrowUniquenessViolationException_WhenDuplicateVariantExists()
+        {
+            var product = new Product { Id = 1, VendorId = 10 };
+            _mockProductRepo.Setup(r => r.GetById(1)).ReturnsAsync(product);
+
+            _mockCurrentUser.Setup(u => u.UserId).Returns(2);
+            _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
+
+            var existingVariants = new List<ProductVariant>
+            {
+                new ProductVariant 
+                { 
+                    Id = 50, 
+                    ProductId = 1, 
+                    IsActive = true,
+                    AvailableValues = new Dictionary<string, string> { { "Color", "Red" }, { "Size", "M" } } 
+                }
+            };
+            _mockVariantRepo.Setup(r => r.GetVariantsByProductId(1)).ReturnsAsync(existingVariants);
+
+            var request = new AddProductVariantRequest 
+            { 
+                Price = 15, 
+                AvailableValues = new Dictionary<string, string> { { "Color", "Red" }, { "Size", "M" } } 
+            };
+
+            Assert.ThrowsAsync<UniquenessViolationException>(async () => await _variantService.AddVariant(1, request));
+        }
+
+        [Test]
+        public async Task AddVariant_ShouldCreate_WhenValuesAreDifferent()
+        {
+            var product = new Product { Id = 1, VendorId = 10 };
+            _mockProductRepo.Setup(r => r.GetById(1)).ReturnsAsync(product);
+
+            _mockCurrentUser.Setup(u => u.UserId).Returns(2);
+            _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
+
+            var existingVariants = new List<ProductVariant>
+            {
+                new ProductVariant 
+                { 
+                    Id = 50, 
+                    ProductId = 1, 
+                    IsActive = true,
+                    AvailableValues = new Dictionary<string, string> { { "Color", "Red" }, { "Size", "M" } } 
+                }
+            };
+            _mockVariantRepo.Setup(r => r.GetVariantsByProductId(1)).ReturnsAsync(existingVariants);
+
+            var request = new AddProductVariantRequest 
+            { 
+                Price = 15, 
+                AvailableValues = new Dictionary<string, string> { { "Color", "Blue" }, { "Size", "M" } } 
+            };
+
+            var variant = new ProductVariant { Price = 15, AvailableValues = request.AvailableValues };
+            _mockMapper.Setup(m => m.Map<ProductVariant>(request)).Returns(variant);
+
+            var created = new ProductVariant { Id = 100, Price = 15, ProductId = 1, AvailableValues = request.AvailableValues };
+            _mockVariantRepo.Setup(r => r.Create(variant)).ReturnsAsync(created);
+            _mockMapper.Setup(m => m.Map<ProductVariantResponse>(created)).Returns(new ProductVariantResponse { Id = 100 });
+
+            var result = await _variantService.AddVariant(1, request);
+
+            Assert.That(result.Id, Is.EqualTo(100));
         }
 
         [Test]
