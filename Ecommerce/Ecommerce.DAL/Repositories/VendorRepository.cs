@@ -14,6 +14,11 @@ namespace Ecommerce.DAL.Repositories
             _dbContext = dbContext;
         }
 
+        public override async Task<Vendor?> GetById(int key)
+        {
+            return await _dbContext.Vendors.Include(v => v.User).FirstOrDefaultAsync(v => v.Id == key);
+        }
+
         public async Task<Vendor?> GetByUserId(int userId)
         {
             return await _dbContext.Vendors.Include(v => v.User).FirstOrDefaultAsync(v => v.UserId == userId);

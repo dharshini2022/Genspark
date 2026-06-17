@@ -12,10 +12,10 @@ namespace Ecommerce.Models.DTOs
         public int? CategoryId { get; set; }
 
         [Required(ErrorMessage = "Discount scope is required.")]
-        public String Scope { get; set; }
+        public String Scope { get; set; } = String.Empty;
 
         [Required(ErrorMessage = "Discount type is required.")]
-        public String Type { get; set; }
+        public String Type { get; set; } = String.Empty;
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Discount value must be greater than 0.")]
         public decimal Value { get; set; }

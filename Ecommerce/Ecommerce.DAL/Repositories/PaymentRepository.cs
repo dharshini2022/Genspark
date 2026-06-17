@@ -47,5 +47,35 @@ namespace Ecommerce.DAL.Repositories
                 .Take(pageSize)
                 .ToListAsync();
         }
+
+        public async Task<Payment?> GetByStripeIntentIdAsync(string stripePaymentIntentId)
+        {
+            return await _dbContext.Set<Payment>()
+                .FirstOrDefaultAsync(p => p.StripePaymentIntentId == stripePaymentIntentId);
+        }
+
+        public async Task<(ICollection<Payment> Items, int TotalCount)> GetPagedPaymentsWithDetails(string? searchTerm, int pageNumber, int pageSize)
+        {
+            var query = _dbContext.Set<Payment>()
+                .Include(p => p.Order)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var search = searchTerm.ToLower();
+                query = query.Where(p => p.TransactionId.ToLower().Contains(search) || 
+                                         (p.StripePaymentIntentId != null && p.StripePaymentIntentId.ToLower().Contains(search)));
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(p => p.PaidAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
     }
 }

@@ -25,7 +25,16 @@ namespace Ecommerce.DAL.Repositories
                 .Include(o => o.Payment)
                 .Include(o => o.Discount);
 
-        public async Task<ICollection<Order>> GetOrdersByUserIdAsync(int userId)
+        public async Task<Order?> GetForPayment(int orderId)
+        {
+            return await _dbContext.Orders.Include(o => o.Id == orderId)
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.Variant)
+                .Include(o => o.Payment)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<ICollection<Order>> GetOrdersByUserId(int userId)
         {
             return await FullOrderQuery()
                 .Where(o => o.UserId == userId)
@@ -33,7 +42,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ICollection<Order>> GetOrdersByVendorIdAsync(int vendorId)
+        public async Task<ICollection<Order>> GetOrdersByVendorId(int vendorId)
         {
             return await FullOrderQuery()
                 .Where(o => o.Items.Any(oi => oi.VendorId == vendorId))
@@ -49,7 +58,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Order?> GetOrderWithDetailsByIdAsync(int orderId)
+        public async Task<Order?> GetOrderWithDetailsById(int orderId)
         {
             return await FullOrderQuery()
                 .FirstOrDefaultAsync(o => o.Id == orderId);
@@ -63,6 +72,46 @@ namespace Ecommerce.DAL.Repositories
                          && activeStatuses.Contains(o.Status))
                 .OrderByDescending(o => o.PlacedAt)
                 .ToListAsync();
+        }
+
+        public async Task<Order?> GetOrderByStripeIntentIdAsync(string stripePaymentIntentId)
+        {
+            return await FullOrderQuery()
+                .FirstOrDefaultAsync(o => o.StripePaymentIntentId == stripePaymentIntentId);
+        }
+
+        public async Task<ICollection<Order>> GetAllOrdersWithDetails()
+        {
+            return await FullOrderQuery()
+                .OrderByDescending(o => o.PlacedAt)
+                .ToListAsync();
+        }
+
+        public async Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrders(int pageNumber, int pageSize, string? searchTerm)
+        {
+            var query = FullOrderQuery();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                if (System.Enum.TryParse<OrderStatus>(searchTerm, true, out var status))
+                {
+                    query = query.Where(o => o.Status == status);
+                }
+                else
+                {
+                    return (new List<Order>(), 0);
+                }
+            }
+
+            query = query.OrderByDescending(o => o.PlacedAt);
+
+            int totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
         }
     }
 }

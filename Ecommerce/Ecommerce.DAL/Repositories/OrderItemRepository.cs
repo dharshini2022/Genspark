@@ -14,7 +14,7 @@ namespace Ecommerce.DAL.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<ICollection<OrderItem>> GetOrderItemsByOrderIdAsync(int orderId)
+        public async Task<ICollection<OrderItem>> GetOrderItemsByOrderId(int orderId)
         {
             return await _dbContext.OrderItems
                 .Include(oi => oi.Variant)
@@ -22,6 +22,11 @@ namespace Ecommerce.DAL.Repositories
                 .Include(oi => oi.Vendor)
                 .Where(oi => oi.OrderId == orderId)
                 .ToListAsync();
+        }
+        public async Task CreateRange(List<OrderItem> orderItems)
+        {
+            _dbContext.OrderItems.AddRange(orderItems);
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

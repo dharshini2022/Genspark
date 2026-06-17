@@ -53,5 +53,14 @@ namespace Ecommerce.DAL.Repositories
                 .Include(r => r.ReviewImages)
                 .FirstOrDefaultAsync(r => r.Id == reviewId);
         }
+
+        public async Task<ICollection<Review>> GetAllReviewsWithDetails()
+        {
+            return await _dbContext.Reviews
+                .Include(r => r.User)
+                .Include(r => r.Product)
+                .Include(r => r.ReviewImages)
+                .ToListAsync();
+        }
     }
 }

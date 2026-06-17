@@ -6,10 +6,9 @@ public class Review
     public int ProductId { get; set; }
     public int UserId { get; set; }
     public int OrderId { get; set; }              
-    public int Rating { get; set; }              
+    public decimal Rating { get; set; }              
     public string? Title { get; set; }
     public string? Body { get; set; }
-    // Future Scope : public int HelpfulVotes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Relation

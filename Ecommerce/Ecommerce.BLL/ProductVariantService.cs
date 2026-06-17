@@ -15,8 +15,9 @@ namespace Ecommerce.BLL
         private readonly IVendorRepository _vendorRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
+        private readonly IStockReservationRepository _stockReservationRepository;
 
-        public ProductVariantService(IProductVariantRepository variantRepository, IProductImageRepository imageRepository, IProductRepository productRepository, IVendorRepository vendorRepository, ICurrentUserService currentUser,  IMapper mapper)
+        public ProductVariantService(IProductVariantRepository variantRepository, IProductImageRepository imageRepository, IProductRepository productRepository, IVendorRepository vendorRepository, ICurrentUserService currentUser,  IMapper mapper, IStockReservationRepository stockReservationRepository)
         {
             _variantRepository = variantRepository;
             _imageRepository = imageRepository;
@@ -24,6 +25,7 @@ namespace Ecommerce.BLL
             _vendorRepository = vendorRepository;
             _currentUser = currentUser;
             _mapper = mapper;
+            _stockReservationRepository = stockReservationRepository;
         }
 
         public async Task<ProductVariantResponse> GetVariantById(int variantId)
@@ -32,10 +34,25 @@ namespace Ecommerce.BLL
             return _mapper.Map<ProductVariantResponse>(variant);
         }
 
+        private async Task ValidateProductVariant(int productId, AddProductVariantRequest request){
+            if(request.AvailableValues == null || request.AvailableValues.Count == 0)   throw new ValidationException("Product Variants must contain values ");
+            var existingVariants = await _variantRepository.GetVariantsByProductId(productId);
+            foreach (var existing in existingVariants)
+            {
+                if (existing.AvailableValues.Count == request.AvailableValues.Count && existing.AvailableValues.All(kvp => 
+                        request.AvailableValues.TryGetValue(kvp.Key, out var val) && val == kvp.Value))
+                {
+                    throw new UniquenessViolationException("A variant with the same values already exists for this product.");
+                }
+            }
+        }
+
         public async Task<ProductVariantResponse> AddVariant(int productId, AddProductVariantRequest request)
         {
             var product = await _productRepository.GetById(productId) ?? throw new InvalidProductException($"Product with ID {productId} not found.");
             await EnsureVendorOwns(product);
+
+            await ValidateProductVariant(productId, request);
 
             var variant = _mapper.Map<ProductVariant>(request);
             variant.ProductId = productId;
@@ -102,6 +119,65 @@ namespace Ecommerce.BLL
         {
             var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId) ?? throw new InvalidOwnershipException("Vendor account not found.");
             return vendor.Id;
+        }
+
+        public async Task DecrementStock(int variantId, int quantity)
+        {
+            var variant = await _variantRepository.GetById(variantId) 
+                ?? throw new KeyNotFoundException($"Variant with ID {variantId} not found.");
+            variant.StockQty -= quantity;
+            if (variant.StockQty < 0)
+                throw new InvalidOperationException($"Stock underflow for variant {variantId}.");
+            await _variantRepository.Update(variantId, variant);
+        }
+
+        public async Task ReserveStock(int orderId, int variantId, int quantity)
+        {
+            var variant = await _variantRepository.GetById(variantId) 
+                ?? throw new KeyNotFoundException($"Variant with ID {variantId} not found.");
+            
+            if (variant.StockQty - variant.ReservedStockQty < quantity)
+            {
+                throw new InsufficientStockException($"Insufficient stock for variant {variantId} to reserve. Requested: {quantity}, Available: {variant.StockQty - variant.ReservedStockQty}.");
+            }
+
+            variant.ReservedStockQty += quantity;
+            await _variantRepository.Update(variantId, variant);
+            await _stockReservationRepository.Reserve(orderId, variantId, quantity);
+        }
+
+        public async Task ConfirmStockReservation(int orderId)
+        {
+            var reservations = await _stockReservationRepository.GetActiveByOrderId(orderId);
+            foreach (var reservation in reservations)
+            {
+                await DecrementStock(reservation.VariantId, reservation.Quantity);
+
+                var variant = await _variantRepository.GetById(reservation.VariantId);
+                if (variant != null)
+                {
+                    variant.ReservedStockQty -= reservation.Quantity;
+                    if (variant.ReservedStockQty < 0) variant.ReservedStockQty = 0;
+                    await _variantRepository.Update(reservation.VariantId, variant);
+                }
+            }
+            await _stockReservationRepository.ReleaseByOrderId(orderId);
+        }
+
+        public async Task ReleaseStockReservation(int orderId)
+        {
+            var reservations = await _stockReservationRepository.GetActiveByOrderId(orderId);
+            foreach (var reservation in reservations)
+            {
+                var variant = await _variantRepository.GetById(reservation.VariantId);
+                if (variant != null)
+                {
+                    variant.ReservedStockQty -= reservation.Quantity;
+                    if (variant.ReservedStockQty < 0) variant.ReservedStockQty = 0;
+                    await _variantRepository.Update(reservation.VariantId, variant);
+                }
+            }
+            await _stockReservationRepository.ReleaseByOrderId(orderId);
         }
     }
 }

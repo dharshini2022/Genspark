@@ -39,6 +39,9 @@ namespace Ecommerce.BLL
             vendorModel.IsActive = true;
             vendorModel.Status = VendorStatus.Pending;
             var createdVendor = await _vendorRepository.Create(vendorModel);
+            
+            createdVendor.User = await _userRepository.GetById(createdVendor.UserId) ?? throw new KeyNotFoundException("User not found.");
+            
             return _mapper.Map<VendorProfileResponse>(createdVendor);
         }
 

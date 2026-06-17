@@ -59,6 +59,9 @@ namespace Ecommerce.API.Middlewares
                 case UniquenessViolationException:
                     statusCode = HttpStatusCode.Conflict;
                     break;
+                case InvalidEmailCredsException:
+                    statusCode = HttpStatusCode.InternalServerError;
+                    break;
                 default:
                     statusCode = HttpStatusCode.InternalServerError;
                     break;

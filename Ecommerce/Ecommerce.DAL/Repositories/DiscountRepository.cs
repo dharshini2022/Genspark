@@ -34,6 +34,16 @@ namespace Ecommerce.DAL.Repositories
             return await query.Skip((pageNumber - 1) * pageSize).Take(pageSize) .ToListAsync();
         }
 
+        public virtual async Task<ICollection<Discount>> GetDiscountHistory(int pageNumber, int pageSize,string searchTerm)
+        {
+            var query =  _dbContext.Discounts.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(d => d.Code.Contains(searchTerm));
+            }
+            return await query.Skip((pageNumber - 1) * pageSize).Take(pageSize) .ToListAsync();
+        }
+
         public async Task<ICollection<Discount>> GetDiscountsByVendorId(int vendorId)
         {
             return await _dbContext.Discounts.Where(d => d.VendorId == vendorId).ToListAsync();

@@ -8,5 +8,6 @@ namespace Ecommerce.Contracts.Repositories
         Task<ICollection<Review>> GetReviewsByUserIdAsync(int userId);
         Task<ICollection<Review>> GetReviewsByVendorIdAsync(int vendorId);
         Task<Review?> GetReviewWithDetailsByIdAsync(int reviewId);
+        Task<ICollection<Review>> GetAllReviewsWithDetails();
     }
 }

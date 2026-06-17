@@ -25,6 +25,7 @@ namespace Ecommerce.BLL
             _currentUserService = currentUserService;
             _mapper = mapper;
         }
+
         public async Task<DiscountResponse> CreateDiscount(CreateDiscountRequest request)
         {
             Console.WriteLine("Service start");
@@ -135,9 +136,9 @@ namespace Ecommerce.BLL
             var result =  await _discountRepository.GetDiscountsByVendorId(vendorId);
             return _mapper.Map<ICollection<DiscountResponse>>(result);
         }    
-        public async Task<ICollection<DiscountResponse>> GetAllDiscounts()
+        public async Task<ICollection<DiscountResponse>> GetAllDiscounts(PageRequest request)
         {
-            var result = await _discountRepository.GetAll();
+            var result = await _discountRepository.GetDiscountHistory(request.PageNumber, request.PageSize, request.SearchTerm?? String.Empty);
             return _mapper.Map<ICollection<DiscountResponse>>(result);
         }
         public async Task<ToggleDiscountStatusResponse> DeactivateDiscount(string Code)
@@ -167,6 +168,33 @@ namespace Ecommerce.BLL
             return _mapper.Map<ICollection<DiscountCartResponse>>(result);
             
         }
+
+        public async Task<Discount> ValidateDiscount(string discountCode, ICollection<CartItem> eligibleItems, decimal subtotal){
+            var discount = await _discountRepository.GetByCode(discountCode);
+            if (discount == null || !discount.IsActive || discount.ExpiresAt < DateTime.Now)
+                    throw new ValidationException( $"Discount code '{discountCode}' is invalid or expired.");
+
+            if (discount.Scope == DiscountScope.Product && !eligibleItems.Any(e => e?.Variant?.Product?.Id == discount.ProductId)) {
+                throw new ValidationException( $"Discount code '{discountCode}' is not applicable to the items in the cart.");
+            } else if (discount.Scope == DiscountScope.Category && !eligibleItems.Any(e => discount.Category?.Id == e.Variant.Product.Category.Id)) {
+                throw new ValidationException( $"Discount code '{discountCode}' is not applicable to the items in the cart.");
+            } else if (discount.Scope == DiscountScope.Vendor && !eligibleItems.Any(e => discount.Vendor?.Id == e.Variant.Product.Vendor.Id)) {
+                throw new ValidationException( $"Discount code '{discountCode}' is not applicable to the items in the cart.");
+            }
+
+            if(subtotal < discount.MinOrderValue){
+                throw new ValidationException( $"Add Products worth Rs. {discount.MinOrderValue - subtotal} more to avail this Discount code '{discountCode}'!");
+            }
+
+            return discount;
+        }
+
+        public async Task<decimal> CalculateDiscountAmount(Discount discount, decimal subtotal){
+            return discount.Type == DiscountType.Flat
+                    ? discount.Value
+                    : Math.Round(subtotal * discount.Value / 100, 2);
+        }
+
 
 
     }

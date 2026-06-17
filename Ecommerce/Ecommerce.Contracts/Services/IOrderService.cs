@@ -1,29 +1,15 @@
-// using Ecommerce.Models.DTOs;
-// using Ecommerce.Models;
+using Ecommerce.Models;
+using Ecommerce.Models.DTOs;
 
-// namespace Ecommerce.Contracts.Services
-// {
-//     public interface IOrderService
-//     {
-//         // Customer
-//         Task<OrderSummaryDTO> PlaceOrder(int userId, PlaceOrderRequest request);
-//         Task<OrderSummaryDTO> GetOrderDetails(int orderId, int userId);
-//         Task<ICollection<OrderSummaryDTO>> GetUserOrderHistory(int userId);
-//         Task<OrderSummaryDTO> CancelOrder(int userId, int orderId);
-//         Task<OrderSummaryDTO> UpdateOrderAddress(int userId, int orderId, int newAddressId); // allowed if status is Confirmed
+namespace Ecommerce.Contracts.Services
+{
+    public interface IOrderService
+    {
+        Task<OrderResponse> CreateOrder(CreateOrderRequest request);
 
-//         // Vendor
-//         Task<ICollection<OrderSummaryDTO>> GetVendorOrderHistory(int vendorId);
-//         Task<ICollection<OrderSummaryDTO>> GetVendorOrdersByProduct(int vendorId, int productId);
-//         Task<ICollection<OrderSummaryDTO>> GetVendorActiveOrders(int vendorId);
-
-//         // Admin
-//         Task<ICollection<OrderSummaryDTO>> GetAllOrders();
-//         Task<ICollection<OrderSummaryDTO>> GetOrdersByVendor(int vendorId);
-//         Task<ICollection<OrderSummaryDTO>> GetOrdersByProduct(int productId);
-        
-//         // Financials & Settlements
-//         Task<AdminRevenueDTO> GetAdminRevenue();
-//         Task<ICollection<VendorSettlement>> GetVendorSettlements(int vendorId, string? statusFilter);
-//     }
-// }
+        Task<OrderSummaryResponse> GetOrderDetails(int orderId);
+        Task<ICollection<OrderSummaryResponse>> GetMyOrders();
+        Task<ICollection<OrderSummaryResponse>> GetVendorOrders();
+        Task<PageResponse<OrderSummaryResponse>> GetAllOrders(OrderFilterRequest query);
+    }
+}
