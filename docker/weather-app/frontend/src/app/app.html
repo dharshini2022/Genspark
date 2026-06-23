@@ -1,0 +1,195 @@
+<div class="weather-dashboard">
+  <header class="search-header">
+    <div class="title-logo">
+      <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41">
+        </path>
+        <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
+      </svg>
+      <h1>WeatherAPI</h1>
+    </div>
+    <p class="subtitle">Enter a city to check the current weather</p>
+
+    <form (submit)="onSearch()" class="search-form">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Search for a city (e.g. Paris, New York, Tokyo)..." [(ngModel)]="searchQuery"
+          name="city" [disabled]="loading()" autocomplete="off" />
+      </div>
+      <button type="submit" class="btn-search" [disabled]="loading() || !searchQuery().trim()">
+        Search
+      </button>
+    </form>
+  </header>
+
+  @if (error()) {
+  <div class="error-card animate-fade-in">
+    <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+    <div class="error-content">
+      <h3>Search Error</h3>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+  }
+
+  @if (loading()) {
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <p>Querying .NET Weather Service...</p>
+  </div>
+  } @else if (weatherData(); as data) {
+  <div class="dashboard-card animate-fade-in">
+
+    <div class="card-header">
+      <div class="location-info">
+        <h2>{{ data.city }}</h2>
+        <p class="current-date">Today, {{ getFriendlyDate(data.forecast[0].date) }}</p>
+      </div>
+      <button class="unit-toggle" (click)="toggleUnit()">
+        Show in °{{ tempUnit() === 'C' ? 'F' : 'C' }}
+      </button>
+    </div>
+
+    <div class="card-main">
+      <div class="temp-display">
+        @if (tempUnit() === 'C') {
+        <span class="temp-val">{{ data.temperatureC }}</span><span class="temp-deg">°C</span>
+        } @else {
+        <span class="temp-val">{{ data.temperatureF }}</span><span class="temp-deg">°F</span>
+        }
+      </div>
+
+      <div class="weather-visual">
+        <div class="weather-icon-wrapper">
+          <!-- Dynamic SVG weather icon -->
+          <ng-container>
+            @switch (data.icon) {
+            @case ('sunny') {
+            <svg viewBox="0 0 24 24" class="weather-svg sunny" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="5" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"></circle>
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                stroke="#f59e0b" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+            }
+            @case ('mostly-sunny') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="15" cy="9" r="4" fill="#fbbf24" stroke="#d97706" stroke-width="1.5"></circle>
+              <path d="M12 17h.01M19 12h.01" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"></path>
+              <path d="M16 19a4 4 0 0 0-4-4h-1a5 5 0 0 0-5 5v1h10v-2z" fill="#94a3b8" stroke="#64748b"
+                stroke-width="1.5"></path>
+            </svg>
+            }
+            @case ('partly-cloudy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="10" r="4" fill="#fbbf24"></circle>
+              <path d="M18 19A4 4 0 0 0 14 15h-1a5 5 0 0 0-5 5v1h10z" fill="#cbd5e1" stroke="#94a3b8"
+                stroke-width="1.5"></path>
+            </svg>
+            }
+            @case ('cloudy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 19A4 4 0 0 0 14 15h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#94a3b8" stroke="#64748b"
+                stroke-width="1.5"></path>
+              <path d="M13 14A3 3 0 0 0 10 11H9a4 4 0 0 0-4 4v1h9z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"
+                opacity="0.8"></path>
+            </svg>
+            }
+            @case ('drizzle') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 15A4 4 0 0 0 14 11h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#94a3b8" stroke="#64748b"
+                stroke-width="1.5"></path>
+              <path d="M10 18v2M14 18v2M8 19v2" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+            }
+            @case ('rainy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 14A4 4 0 0 0 14 10h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#64748b" stroke="#475569"
+                stroke-width="1.5"></path>
+              <path d="M9 17l-1 3M12 17l-1 3M15 17l-1 3" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round">
+              </path>
+            </svg>
+            }
+            @case ('thunderstorm') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 14A4 4 0 0 0 14 10h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#475569" stroke="#334155"
+                stroke-width="1.5"></path>
+              <path d="M11 16l-2 3h3l-1 3 3-4h-3z" fill="#fbbf24" stroke="#d97706" stroke-width="1"></path>
+            </svg>
+            }
+            @case ('snowy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 15A4 4 0 0 0 14 11h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#cbd5e1" stroke="#94a3b8"
+                stroke-width="1.5"></path>
+              <path d="M10 18h.01M14 18h.01M8 19h.01M12 20h.01" stroke="#f1f5f9" stroke-width="2.5"
+                stroke-linecap="round"></path>
+            </svg>
+            }
+            @case ('windy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 7h15a3 3 0 0 1 0 6H15M2 12h18a2 2 0 0 0 0-4H18M2 17h10a2.5 2.5 0 0 1 0 5H10" stroke="#94a3b8"
+                stroke-width="2" stroke-linecap="round" fill="none"></path>
+            </svg>
+            }
+            @case ('foggy') {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 14A4 4 0 0 0 14 10h-1.5a5 5 0 0 0-5 5v1h11.5z" fill="#cbd5e1" stroke="#94a3b8"
+                stroke-width="1.5" opacity="0.6"></path>
+              <path d="M2 15h20M4 18h16M7 21h10" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"></path>
+            </svg>
+            }
+            @default {
+            <svg viewBox="0 0 24 24" class="weather-svg" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="#cbd5e1" stroke-width="2" fill="none"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" stroke="#cbd5e1" stroke-width="2"
+                stroke-linecap="round"></path>
+            </svg>
+            }
+            }
+          </ng-container>
+        </div>
+        <span class="condition-summary">{{ data.summary }}</span>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-item">
+        <div class="metric-icon-bg">
+          <svg class="metric-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div class="metric-details">
+          <span class="metric-value">{{ data.humidity }}%</span>
+          <span class="metric-label">Humidity</span>
+        </div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-icon-bg">
+          <svg class="metric-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+            </path>
+          </svg>
+        </div>
+        <div class="metric-details">
+          <span class="metric-value">{{ data.windSpeed }} km/h</span>
+          <span class="metric-label">Wind Speed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
