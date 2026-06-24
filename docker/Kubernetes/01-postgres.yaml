@@ -1,0 +1,62 @@
+# Kubernetes API version for deployment resources
+apiVersion: apps/v1
+# Defines the type of resource: Deployment (manages replicating pods)
+kind: Deployment
+metadata:
+  # Unique name of the Deployment
+  name: postgres
+  # Labels used for organizing and selecting this resource
+  labels:
+    app: postgres
+spec:
+  # Number of desired instances (Pods) to run
+  replicas: 1
+  # Selector that determines which Pods this Deployment will manage (must match the template labels)
+  selector:
+    matchLabels:
+      app: postgres
+  # Template used to create new Pods
+  template:
+    metadata:
+      # Labels applied to the created Pods
+      labels:
+        app: postgres
+    spec:
+      # Specification of the container(s) running inside the Pod
+      containers:
+        # Container configuration
+        - name: postgres
+          # Docker image for PostgreSQL version 16 from Docker Hub
+          image: postgres:16
+          # The port that the container listens on inside the Pod
+          ports:
+            - containerPort: 5432
+          # Environment variables to initialize the PostgreSQL database container
+          env:
+            # Name of the default database to create
+            - name: POSTGRES_DB
+              value: appdb
+            # Master username to access the database
+            - name: POSTGRES_USER
+              value: appuser
+            # Password for the master user
+            - name: POSTGRES_PASSWORD
+              value: apppassword
+---
+# Here service handles the port networking
+# Kubernetes API version for core resources like Service
+apiVersion: v1
+# Defines the type of resource: Service (provides a stable network IP/DNS name for Pods)
+kind: Service
+metadata:
+  # Unique name of this Service (also acts as the internal DNS hostname, e.g. 'postgres')
+  name: postgres
+spec:
+  # Selects the Pods to route traffic to (matches Pod labels)
+  selector:
+    app: postgres
+  ports:
+    # Port exposed by the Service within the cluster
+    - port: 5432
+      # Target port on the container where the traffic is forwarded
+      targetPort: 5432
