@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+# create deployment to manage pods
+kind: Deployment
+metadata:
+  #name of deployment
+  name: api
+  labels:
+    #label selector to identify the deployment
+    app: api
+# spec describes how the deployment should behave
+spec:
+  replicas: 1
+  selector:
+    #this selector identifies the pods that belong to this deployment
+    matchLabels:
+      app: api
+  #blueprint to create pods
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+    # pod container details
+      containers:
+        - name: api
+        # image created at added to kubectl through docker
+          image: myapi:latest
+        # do not pull image from DockerHub
+          imagePullPolicy: Never
+          ports:
+          # port of app within the container (container port)
+            - containerPort: 8080
+              name: http
+          # load all keys from app-congig (ConfigMap)
+          envFrom:
+            - configMapRef:
+                name: app-config
+          #load only one key from secret
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_PASSWORD
+          #health - check - 1 : is the application alive?
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            # for healt -chect wait 10s after start up
+            initialDelaySeconds: 10
+            # every 10s check the health
+            periodSeconds: 10
+            # if no response within 5s - consider it failed
+            timeoutSeconds: 5
+            # restart after 3 failures
+            failureThreshold: 3
+          # health - check 2 : readiness probe: is the pod ready to receive traffic?
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+          # resource request
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            # max allowed resource utilisation
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+# service for netwroking and communication
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+  # pod selector (label of pods)
+    app: api
+  # service port (client connects to)
+  ports:
+    - port: 8080
+      # port of app within the container (container port) (service forwards request to this port of the pod)
+      targetPort: 8080
+      name: http
+  # ClusterIP: accessible only within the cluster
+  type: ClusterIP
