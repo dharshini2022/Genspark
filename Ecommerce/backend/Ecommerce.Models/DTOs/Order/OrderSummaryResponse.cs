@@ -14,6 +14,8 @@ namespace Ecommerce.Models.DTOs
         public OrderStatus Status { get; set; }
         public PaymentStatus PaymentStatus { get; set; }
         public DateTime PlacedAt { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? TransactionId { get; set; }
         public ICollection<OrderItemDTO> Items { get; set; } = new List<OrderItemDTO>();
     }
 }

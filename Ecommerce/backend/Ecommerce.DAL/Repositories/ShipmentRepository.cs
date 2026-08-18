@@ -89,5 +89,18 @@ namespace Ecommerce.DAL.Repositories
                 .Where(s => s.UserAddress.UserId == userId)
                 .ToListAsync();
         }
+
+        public async Task<ICollection<Shipment>> GetShipmentsByOrderIdAsync(int orderId)
+        {
+            return await _dbContext.Set<Shipment>()
+                .Include(s => s.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
+                        .ThenInclude(v => v.Product)
+                .Include(s => s.OrderItems)
+                    .ThenInclude(oi => oi.Vendor)
+                .Include(s => s.UserAddress)
+                .Where(s => s.OrderItems.Any(oi => oi.OrderId == orderId))
+                .ToListAsync();
+        }
     }
 }

@@ -18,6 +18,7 @@ namespace Ecommerce.Test
     public class DiscountServiceTest
     {
         private Mock<IDiscountRepository> _mockDiscountRepo;
+        private Mock<IDiscountReservationRepository> _mockDiscountReservationRepo;
         private Mock<IVendorService> _mockVendorService;
         private Mock<ICategoryService> _mockCategoryService;
         private Mock<IProductService> _mockProductService;
@@ -29,6 +30,7 @@ namespace Ecommerce.Test
         public void Setup()
         {
             _mockDiscountRepo = new Mock<IDiscountRepository>();
+            _mockDiscountReservationRepo = new Mock<IDiscountReservationRepository>();
             _mockVendorService = new Mock<IVendorService>();
             _mockCategoryService = new Mock<ICategoryService>();
             _mockProductService = new Mock<IProductService>();
@@ -37,6 +39,7 @@ namespace Ecommerce.Test
 
             _discountService = new DiscountService(
                 _mockDiscountRepo.Object,
+                _mockDiscountReservationRepo.Object,
                 _mockVendorService.Object,
                 _mockCategoryService.Object,
                 _mockProductService.Object,
@@ -360,7 +363,7 @@ namespace Ecommerce.Test
             var expectedResponse = new List<DiscountResponse> { new DiscountResponse { Id = 1 } };
 
             _mockDiscountRepo.Setup(r => r.GetActiveDiscounts(1, 10, "test")).ReturnsAsync(list);
-            _mockDiscountRepo.Setup(r => r.GetDiscountsOfProduct(2, 3, 4)).ReturnsAsync(list);
+            _mockDiscountRepo.Setup(r => r.GetDiscountsOfProduct(2, 4, 3)).ReturnsAsync(list);
             _mockDiscountRepo.Setup(r => r.GetDiscountsByVendorId(5)).ReturnsAsync(list);
             _mockDiscountRepo.Setup(r => r.GetDiscountHistory(1, 10, "test")).ReturnsAsync(list);
 
@@ -452,6 +455,29 @@ namespace Ecommerce.Test
         }
 
         [Test]
+        public async Task GetApplicableLockedDiscounts_ShouldReturnMappedList()
+        {
+            var request = new CartEvaluationRequest
+            {
+                SubTotal = 100,
+                Items = new List<CartItemEvaluationResponse>
+                {
+                    new CartItemEvaluationResponse { ProductId = 1, CategoryId = 2, VendorId = 3 }
+                }
+            };
+            var discounts = new List<Discount> { new Discount { Id = 1, UsedCount = 2, MinOrderValue = 150 } };
+            _mockDiscountRepo.Setup(r => r.GetApplicableDiscountsAtCart(new List<int>{1}, new List<int>{2}, new List<int>{3}, decimal.MaxValue)).ReturnsAsync(discounts);
+
+            var expected = new List<DiscountResponse> { new DiscountResponse { Id = 1, Code = "CODE", UsedCount = 2, MinOrderValue = 150 } };
+            _mockMapper.Setup(m => m.Map<ICollection<DiscountResponse>>(discounts)).Returns(expected);
+
+            var result = await _discountService.GetApplicableLockedDiscounts(request);
+
+            Assert.That(result.First().Code, Is.EqualTo("CODE"));
+            Assert.That(result.First().MinOrderValue, Is.EqualTo(150));
+        }
+
+        [Test]
         public void ValidateDiscount_DiscountNotFound_ThrowsValidationException()
         {
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync((Discount?)null);
@@ -471,7 +497,7 @@ namespace Ecommerce.Test
         [Test]
         public void ValidateDiscount_ProductScope_ProductMismatched_ThrowsValidationException()
         {
-            var discount = new Discount { Scope = DiscountScope.Product, ProductId = 5, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1) };
+            var discount = new Discount { Scope = DiscountScope.Product, ProductId = 5, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1), UsageLimit = 10 };
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync(discount);
             
             var items = new List<CartItem>
@@ -485,7 +511,7 @@ namespace Ecommerce.Test
         [Test]
         public void ValidateDiscount_CategoryScope_CategoryMismatched_ThrowsValidationException()
         {
-            var discount = new Discount { Scope = DiscountScope.Category, Category = new Category { Id = 5 }, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1) };
+            var discount = new Discount { Scope = DiscountScope.Category, Category = new Category { Id = 5 }, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1), UsageLimit = 10 };
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync(discount);
             
             var items = new List<CartItem>
@@ -499,7 +525,7 @@ namespace Ecommerce.Test
         [Test]
         public void ValidateDiscount_VendorScope_VendorMismatched_ThrowsValidationException()
         {
-            var discount = new Discount { Scope = DiscountScope.Vendor, Vendor = new Vendor { Id = 5 }, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1) };
+            var discount = new Discount { Scope = DiscountScope.Vendor, Vendor = new Vendor { Id = 5 }, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1), UsageLimit = 10 };
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync(discount);
             
             var items = new List<CartItem>
@@ -513,7 +539,7 @@ namespace Ecommerce.Test
         [Test]
         public void ValidateDiscount_SubtotalLessThanMinOrderValue_ThrowsValidationException()
         {
-            var discount = new Discount { Scope = DiscountScope.Common, MinOrderValue = 150, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1) };
+            var discount = new Discount { Scope = DiscountScope.Common, MinOrderValue = 150, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1), UsageLimit = 10 };
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync(discount);
 
             Assert.ThrowsAsync<ValidationException>(async () => await _discountService.ValidateDiscount("CODE", new List<CartItem>(), 100));
@@ -522,7 +548,7 @@ namespace Ecommerce.Test
         [Test]
         public async Task ValidateDiscount_Valid_ReturnsDiscount()
         {
-            var discount = new Discount { Scope = DiscountScope.Common, MinOrderValue = 50, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1) };
+            var discount = new Discount { Scope = DiscountScope.Common, MinOrderValue = 50, IsActive = true, ExpiresAt = DateTime.Now.AddDays(1), UsageLimit = 10 };
             _mockDiscountRepo.Setup(r => r.GetByCode("CODE")).ReturnsAsync(discount);
 
             var result = await _discountService.ValidateDiscount("CODE", new List<CartItem>(), 100);
@@ -533,13 +559,16 @@ namespace Ecommerce.Test
         [Test]
         public async Task CalculateDiscountAmount_PercentageAndFlat_CalculatesCorrectly()
         {
-            var flat = new Discount { Type = DiscountType.Flat, Value = 15 };
-            var percentage = new Discount { Type = DiscountType.Percentage, Value = 10 };
+            var flat = new Discount { Scope = DiscountScope.Common, Type = DiscountType.Flat, Value = 15 };
+            var percentage = new Discount { Scope = DiscountScope.Common, Type = DiscountType.Percentage, Value = 10 };
 
-            var flatAmt = await _discountService.CalculateDiscountAmount(flat, 100);
+            var itemsFlat = new List<CartItem> { new CartItem { Variant = new ProductVariant { Price = 100, Product = new Product() }, Quantity = 1 } };
+            var itemsPct = new List<CartItem> { new CartItem { Variant = new ProductVariant { Price = 125.55m, Product = new Product() }, Quantity = 1 } };
+
+            var flatAmt = await _discountService.CalculateDiscountAmount(flat, itemsFlat);
             Assert.That(flatAmt, Is.EqualTo(15));
 
-            var pctAmt = await _discountService.CalculateDiscountAmount(percentage, 125.55m);
+            var pctAmt = await _discountService.CalculateDiscountAmount(percentage, itemsPct);
             Assert.That(pctAmt, Is.EqualTo(12.56m));
         }
 
@@ -585,6 +614,63 @@ namespace Ecommerce.Test
             _mockCurrentUserService.Setup(u => u.Role).Returns("Vendor");
 
             Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _discountService.DeactivateDiscount("CODE"));
+        }
+
+        [Test]
+        public async Task ReserveDiscount_UsageLimitNotExceeded_SucceedsAndIncrementsReservedCount()
+        {
+            var discount = new Discount { Id = 1, Code = "SAVE10", UsageLimit = 10, UsedCount = 5, ReservedCount = 2 };
+            _mockDiscountRepo.Setup(r => r.GetById(1)).ReturnsAsync(discount);
+            _mockDiscountReservationRepo.Setup(r => r.Reserve(100, 1)).ReturnsAsync(new DiscountReservation());
+
+            await _discountService.ReserveDiscount(100, 1);
+
+            Assert.That(discount.ReservedCount, Is.EqualTo(3));
+            _mockDiscountRepo.Verify(r => r.Update(1, discount), Times.Once);
+            _mockDiscountReservationRepo.Verify(r => r.Reserve(100, 1), Times.Once);
+        }
+
+        [Test]
+        public void ReserveDiscount_UsageLimitExceeded_ThrowsValidationException()
+        {
+            var discount = new Discount { Id = 1, Code = "SAVE10", UsageLimit = 10, UsedCount = 8, ReservedCount = 2 };
+            _mockDiscountRepo.Setup(r => r.GetById(1)).ReturnsAsync(discount);
+
+            Assert.ThrowsAsync<ValidationException>(async () => await _discountService.ReserveDiscount(100, 1));
+            Assert.That(discount.ReservedCount, Is.EqualTo(2));
+            _mockDiscountRepo.Verify(r => r.Update(It.IsAny<int>(), It.IsAny<Discount>()), Times.Never);
+        }
+
+        [Test]
+        public async Task ConfirmDiscountReservation_ReservationExists_UpdatesDiscountAndReleasesReservation()
+        {
+            var reservation = new DiscountReservation { OrderId = 100, DiscountId = 1 };
+            var discount = new Discount { Id = 1, Code = "SAVE10", UsedCount = 5, ReservedCount = 2 };
+            _mockDiscountReservationRepo.Setup(r => r.GetActiveByOrderId(100)).ReturnsAsync(reservation);
+            _mockDiscountRepo.Setup(r => r.GetById(1)).ReturnsAsync(discount);
+
+            await _discountService.ConfirmDiscountReservation(100);
+
+            Assert.That(discount.UsedCount, Is.EqualTo(6));
+            Assert.That(discount.ReservedCount, Is.EqualTo(1));
+            _mockDiscountRepo.Verify(r => r.Update(1, discount), Times.Once);
+            _mockDiscountReservationRepo.Verify(r => r.ReleaseByOrderId(100), Times.Once);
+        }
+
+        [Test]
+        public async Task ReleaseDiscountReservation_ReservationExists_UpdatesDiscountAndReleasesReservation()
+        {
+            var reservation = new DiscountReservation { OrderId = 100, DiscountId = 1 };
+            var discount = new Discount { Id = 1, Code = "SAVE10", UsedCount = 5, ReservedCount = 2 };
+            _mockDiscountReservationRepo.Setup(r => r.GetActiveByOrderId(100)).ReturnsAsync(reservation);
+            _mockDiscountRepo.Setup(r => r.GetById(1)).ReturnsAsync(discount);
+
+            await _discountService.ReleaseDiscountReservation(100);
+
+            Assert.That(discount.UsedCount, Is.EqualTo(5));
+            Assert.That(discount.ReservedCount, Is.EqualTo(1));
+            _mockDiscountRepo.Verify(r => r.Update(1, discount), Times.Once);
+            _mockDiscountReservationRepo.Verify(r => r.ReleaseByOrderId(100), Times.Once);
         }
     }
 }

@@ -31,6 +31,9 @@ namespace Ecommerce.DAL.Context
         public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+        public DbSet<DiscountReservation> DiscountReservations => Set<DiscountReservation>();
+        public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+        public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -227,6 +230,8 @@ namespace Ecommerce.DAL.Context
                 entity.ToTable("carts");
                 entity.HasKey(x => x.Id);
                 entity.Property(x => x.UpdatedAt).HasColumnType("timestamp without time zone");
+                entity.Property(x => x.DiscountCode).HasMaxLength(50);
+                entity.Property(x => x.DiscountAppliedAt).HasColumnType("timestamp without time zone");
 
                 //Relation(Cart to User => one to one)
                 entity.HasOne(x => x.User)
@@ -365,6 +370,8 @@ namespace Ecommerce.DAL.Context
                 .HasForeignKey(x => x.UserAddressId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasIndex(x => x.UserAddressId);
+                entity.HasIndex(x => x.Status);
             });
 
             modelBuilder.Entity<Payment>(entity =>
@@ -376,6 +383,7 @@ namespace Ecommerce.DAL.Context
                 entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
                 entity.Property(x => x.PaidAt).HasColumnType("timestamp without time zone");
 
+                entity.HasIndex(x => x.Status);
             });
 
             modelBuilder.Entity<Return>(entity => {
@@ -444,7 +452,7 @@ namespace Ecommerce.DAL.Context
                 enity.Property(x => x.Rating).IsRequired();
                 enity.Property(x => x.Title).IsRequired().HasMaxLength(100);
                 enity.Property(x => x.Body).HasMaxLength(500);
-                enity.Property(x => x.CreatedAt).IsRequired().HasColumnType("timestamp without time zone");
+                enity.Property(x => x.UpdatedAt).IsRequired().HasColumnType("timestamp without time zone");
 
                 //Relation(User to Review => One to Many)
                 enity.HasOne(x => x.User)
@@ -593,7 +601,62 @@ namespace Ecommerce.DAL.Context
                entity.HasIndex(x => new { x.OrderId, x.VariantId });
                entity.HasIndex(x => x.IsReleased);
             });
-            
+
+            // DiscountReservation: soft-lock table for pending payment order discounts
+            modelBuilder.Entity<DiscountReservation>(entity =>
+            {
+               entity.ToTable("discount_reservations");
+               entity.HasKey(x => x.Id);
+               entity.Property(x => x.OrderId).IsRequired();
+               entity.Property(x => x.DiscountId).IsRequired();
+               entity.Property(x => x.IsReleased).HasDefaultValueSql("false");
+               entity.Property(x => x.ReservedAt).HasColumnType("timestamp without time zone");
+               entity.Property(x => x.ReleasedAt).HasColumnType("timestamp without time zone");
+
+               // Relation(Order to DiscountReservation => One to Many)
+               entity.HasOne(x => x.Order)
+               .WithMany()
+               .HasForeignKey(x => x.OrderId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               // Relation(Discount to DiscountReservation => One to Many)
+               entity.HasOne(x => x.Discount)
+               .WithMany()
+               .HasForeignKey(x => x.DiscountId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+               entity.HasIndex(x => new { x.OrderId, x.DiscountId });
+               entity.HasIndex(x => x.IsReleased);
+            });
+            modelBuilder.Entity<ChatSession>(entity =>
+            {
+                entity.ToTable("chat_sessions");
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Role).IsRequired().HasMaxLength(20);
+                entity.Property(c => c.CreatedAt).HasColumnType("timestamp without time zone");
+
+                // Relation (User to ChatSession => One to Many)
+                entity.HasOne(x => x.User)
+                    .WithMany(u => u.ChatSessions)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.ToTable("chat_messages");
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Sender).IsRequired().HasMaxLength(10);
+                entity.Property(c => c.Content).IsRequired();
+                entity.Property(c => c.CreatedAt).HasColumnType("timestamp without time zone");
+
+                // Relation (ChatSession to ChatMessage => One to Many)
+                entity.HasOne(x => x.ChatSession)
+                    .WithMany(s => s.Messages)
+                    .HasForeignKey(x => x.ChatSessionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
 
@@ -602,5 +665,28 @@ namespace Ecommerce.DAL.Context
         {
             return base.SaveChangesAsync(cancellationToken);
         }
+
+        // public void AlignSequences()
+        // {
+        //     var sql = """
+        //         DO $$
+        //         DECLARE
+        //             r RECORD;
+        //         BEGIN
+        //             FOR r IN
+        //                 SELECT 
+        //                     tc.table_name, 
+        //                     tc.column_name, 
+        //                     pg_get_serial_sequence('"' || tc.table_schema || '"."' || tc.table_name || '"', tc.column_name) AS sequence_name
+        //                 FROM information_schema.columns tc
+        //                 WHERE tc.table_schema = 'public' 
+        //                   AND pg_get_serial_sequence('"' || tc.table_schema || '"."' || tc.table_name || '"', tc.column_name) IS NOT NULL
+        //             LOOP
+        //                 EXECUTE 'SELECT setval(''' || r.sequence_name || ''', COALESCE((SELECT MAX("' || r.column_name || '") FROM "' || r.table_name || '"), 0) + 1, false)';
+        //             END LOOP;
+        //         END $$;
+        //         """;
+        //     Database.ExecuteSqlRaw(sql);
+        // }
     }
 }

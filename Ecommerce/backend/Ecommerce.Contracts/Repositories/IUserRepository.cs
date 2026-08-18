@@ -11,7 +11,5 @@ namespace Ecommerce.Contracts.Repositories
         Task<bool> ChangePassword(int userId, string newPassword);
         Task<User?> CreateAdmin(User admin, int creatorId);
         Task<(ICollection<User>, int totalCount)> GetPagedUsers(string searchTerm, int pageNumber, int pageSize);
-        Task<ICollection<UserAddress>> GetAllAddressByUserId(int userId);
-        Task<UserAddress> AddUserAddress(UserAddress address);
     }
 }

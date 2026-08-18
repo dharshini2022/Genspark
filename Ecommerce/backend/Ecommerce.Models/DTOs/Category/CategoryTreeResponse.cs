@@ -6,6 +6,7 @@ namespace Ecommerce.Models.DTOs
         public string Name { get; set; } = null!;
         public string Slug { get; set; } = null!;
         public int? ParentId { get; set; }
+        public bool IsActive { get; set; } = true;
         public int ProductCount { get; set; } = 0;
         public ICollection<CategoryTreeResponse> Children { get; set; } = new List<CategoryTreeResponse>();
     }

@@ -20,6 +20,14 @@ namespace Ecommerce.DAL.Repositories
                 .Include(c => c.Items)
                     .ThenInclude(ci => ci.Variant)
                         .ThenInclude(v => v.Product)
+                            .ThenInclude(p => p.Category)
+                .Include(c => c.Items)
+                    .ThenInclude(ci => ci.Variant)
+                        .ThenInclude(v => v.Product)
+                            .ThenInclude(p => p.Vendor)
+                .Include(c => c.Items)
+                    .ThenInclude(ci => ci.Variant)
+                        .ThenInclude(v => v.VariantImages)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
         }
 

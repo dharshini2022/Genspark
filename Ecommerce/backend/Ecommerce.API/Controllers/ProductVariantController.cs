@@ -43,10 +43,10 @@ namespace Ecommerce.API.Controllers
         }
 
         [Authorize(Roles = "Vendor")]
-        [HttpDelete("{variantId}")]
-        public async Task<IActionResult> ArchiveVariant([FromRoute] int variantId)
+        [HttpPatch("{variantId}")]
+        public async Task<IActionResult> ToggleVariantStatus([FromRoute] int variantId)
         {
-            var variant = await _variantService.ArchiveVariant(variantId);
+            var variant = await _variantService.ToggleVariantStatus(variantId);
             return Ok(new { message = "Variant archived successfully.", data = variant });
         }
 

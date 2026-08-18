@@ -1,0 +1,123 @@
+<div class="review-form-container">
+  
+  <nav class="breadcrumb-nav">
+    <button class="bc-back-btn" (click)="goBack()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+      </svg>
+      Back
+    </button>
+  </nav>
+
+  <div class="card shadow-premium">
+    <div class="card-header-premium">
+      <h2>{{ reviewId() ? 'Edit Review' : 'Write a Review' }}</h2>
+      <p>Share your experience with this product to help others shoppers.</p>
+    </div>
+
+    <div class="product-summary-card">
+      <div class="product-img-box">
+        <img *ngIf="productImage()" [src]="productImage() | resolveImage" alt="{{ productName() }}" class="prod-thumb">
+        <div *ngIf="!productImage()" class="prod-thumb-fallback">📦</div>
+      </div>
+      <div class="product-info-box">
+        <h3>{{ productName() }}</h3>
+        <span class="order-id-tag">Order ID: #ORD-{{ orderId }}</span>
+      </div>
+    </div>
+
+    <form [formGroup]="reviewForm" (ngSubmit)="onSubmit()" class="premium-form">
+      
+      <div class="form-group rating-selection-group">
+        <label class="form-label">Overall Rating <span class="required-asterisk">*</span></label>
+        <div class="stars-container">
+          <span 
+            *ngFor="let star of [1, 2, 3, 4, 5]" 
+            class="star-item" 
+            (click)="setRating(star)"
+            (mouseenter)="hoverRating.set(star)"
+            (mouseleave)="hoverRating.set(0)"
+            [class.active]="(hoverRating() || selectedRating()) >= star"
+          >
+            ★
+          </span>
+        </div>
+        <span class="rating-descriptor">
+          {{ selectedRating() === 5 ? 'Excellent' : selectedRating() === 4 ? 'Very Good' : selectedRating() === 3 ? 'Good' : selectedRating() === 2 ? 'Fair' : 'Poor' }}
+        </span>
+      </div>
+
+      <!-- Title Input -->
+      <div class="form-group">
+        <label for="title" class="form-label">Review Title <span class="required-asterisk">*</span></label>
+        <input 
+          id="title" 
+          type="text" 
+          formControlName="title" 
+          placeholder="Summarize your experience (e.g. Great quality, fits perfectly)" 
+          class="form-control"
+        />
+        <div *ngIf="reviewForm.get('title')?.touched && reviewForm.get('title')?.invalid" class="validation-message">
+          <span *ngIf="reviewForm.get('title')?.errors?.['required']">Title is required.</span>
+          <span *ngIf="reviewForm.get('title')?.errors?.['minlength']">Title must be at least 3 characters.</span>
+          <span *ngIf="reviewForm.get('title')?.errors?.['maxlength']">Title cannot exceed 100 characters.</span>
+        </div>
+      </div>
+
+      <!-- Body TextArea -->
+      <div class="form-group">
+        <label for="body" class="form-label">Review Details</label>
+        <textarea 
+          id="body" 
+          formControlName="body" 
+          rows="5"
+          placeholder="Tell us what you liked or disliked about the product..." 
+          class="form-control text-area"
+        ></textarea>
+        <div *ngIf="reviewForm.get('body')?.touched && reviewForm.get('body')?.invalid" class="validation-message">
+          <span *ngIf="reviewForm.get('body')?.errors?.['maxlength']">Details cannot exceed 500 characters.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Add Photos</label>
+        <div class="upload-zone-wrapper">
+          <input 
+            #fileInput 
+            type="file" 
+            accept="image/*" 
+            multiple
+            (change)="onFileSelected($event)" 
+            class="hidden-file-input" 
+          />
+          <div class="upload-placeholder" (click)="triggerFileInput(fileInput)">
+            <div class="upload-icon-circle">
+              <span class="upload-icon">📷</span>
+            </div>
+            <span class="upload-instructions">Click to choose or drag photos from your device</span>
+          </div>
+
+          <div *ngIf="imagePreviews.length > 0" class="previews-container-grid">
+            <div *ngFor="let preview of imagePreviews; let i = index" class="preview-box">
+              <img [src]="preview" alt="Selected Preview" class="preview-img" />
+              <button type="button" class="btn-remove-photo-circle" (click)="removePhoto(i)" title="Remove Photo">
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-premium-light" [routerLink]="['/customer-home/order-detail', orderId]">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-premium-primary" [disabled]="reviewForm.invalid || submitting() || uploading()">
+          <span *ngIf="submitting() || uploading()" class="mini-spinner"></span>
+          Submit Review
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

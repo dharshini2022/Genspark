@@ -6,5 +6,6 @@ namespace Ecommerce.Contracts.Services
     {
         void ScheduleDelivery(int orderId, TimeSpan delay);
         void ScheduleStockRelease(int orderId, TimeSpan delay);
+        void ScheduleOrderConfirmationNotifications(int orderId);
     }
 }

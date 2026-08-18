@@ -8,6 +8,7 @@ namespace Ecommerce.Models.DTOs
         public decimal Price { get; set; }
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
+        public int OrderCount { get; set; }
         public Dictionary<string, string> AvailableValues { get; set; } = new();
         public ICollection<ProductImageResponse> VariantImages { get; set; } = new List<ProductImageResponse>();
     }

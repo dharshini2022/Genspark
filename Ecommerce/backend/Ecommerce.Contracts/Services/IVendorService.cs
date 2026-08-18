@@ -16,5 +16,6 @@ namespace Ecommerce.Contracts.Services
         Task<ICollection<VendorProfileResponse>> GetVendorsByStatus(string status);
         Task<VendorProfileResponse> ApproveVendor(int id);
         Task<VendorProfileResponse> CancelVendor(int id);
+        Task<decimal> GetAdminRevenueForVendor(int vendorId);
     }
 }

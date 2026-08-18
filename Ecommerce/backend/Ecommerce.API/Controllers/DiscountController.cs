@@ -21,7 +21,7 @@ namespace Ecommerce.API.Controllers
             _currentUserService = currentUserService;
         }
 
-        
+
         [AllowAnonymous]
         [HttpGet("active")]
         public async Task<IActionResult> GetActiveDiscounts([FromQuery] PageRequest request)
@@ -30,16 +30,33 @@ namespace Ecommerce.API.Controllers
             return Ok(result);
         }
 
+        [AllowAnonymous]
+        [HttpGet("product")]
+        public async Task<IActionResult> GetDiscountOfProduct([FromQuery] int productId, [FromQuery] int categoryId, [FromQuery] int vendorId)
+        {
+            var result = await _discountService.GetDiscountsOfProduct(productId, categoryId, vendorId);
+            return Ok(result);
+        }
+
+
 
         [Authorize(Roles = "Vendor")]
         [HttpGet("vendor")]
-        public async Task<IActionResult> GetMyVendorDiscounts()
+        public async Task<IActionResult> GetMyVendorDiscounts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
             var vendor = await _vendorService.GetVendorByUserId(_currentUserService.UserId);
             if (vendor == null) return NotFound(new { message = "Vendor profile not found." });
 
             var result = await _discountService.GetVendorDiscounts(vendor.Id);
-            return Ok(result);
+            var totalCount = result.Count;
+            var items = result.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<DiscountResponse>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
         }
 
    
@@ -56,10 +73,18 @@ namespace Ecommerce.API.Controllers
  
         [Authorize(Roles = "Admin")]
         [HttpGet("vendor/{vendorId}")]
-        public async Task<IActionResult> GetVendorDiscountsByAdmin([FromRoute] int vendorId)
+        public async Task<IActionResult> GetVendorDiscountsByAdmin([FromRoute] int vendorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
             var result = await _discountService.GetVendorDiscounts(vendorId);
-            return Ok(result);
+            var totalCount = result.Count;
+            var items = result.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<DiscountResponse>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
         }
 
 
@@ -91,6 +116,14 @@ namespace Ecommerce.API.Controllers
         public async Task<IActionResult> EvaluateCartDiscounts([FromBody] CartEvaluationRequest request)
         {
             var result = await _discountService.EvaluateCartDiscounts(request);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpPost("applicable-locked")]
+        public async Task<IActionResult> GetApplicableLockedDiscounts([FromBody] CartEvaluationRequest request)
+        {
+            var result = await _discountService.GetApplicableLockedDiscounts(request);
             return Ok(result);
         }
     }

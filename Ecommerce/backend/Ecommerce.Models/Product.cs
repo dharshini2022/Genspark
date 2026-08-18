@@ -14,6 +14,8 @@ public class Product
     public string? Description { get; set; }
     public ProductStatus Status { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public float Rating { get; set; } = 0f;
+    public int ReviewCount { get; set; } = 0;
 
     // Relations
     public Vendor Vendor { get; set; } = null!;

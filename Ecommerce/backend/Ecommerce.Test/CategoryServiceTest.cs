@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AutoMapper;
 using Ecommerce.BLL;
@@ -19,6 +20,7 @@ namespace Ecommerce.Test
         private Mock<ICategoryRepository> _mockCategoryRepo;
         private Mock<IMapper> _mockMapper;
         private CategoryService _categoryService;
+        private List<Category> _dbCategories;
 
         [SetUp]
         public void Setup()
@@ -26,6 +28,10 @@ namespace Ecommerce.Test
             _mockCategoryRepo = new Mock<ICategoryRepository>();
             _mockMapper = new Mock<IMapper>();
             _categoryService = new CategoryService(_mockCategoryRepo.Object, _mockMapper.Object);
+            _dbCategories = new List<Category>();
+
+            _mockCategoryRepo.Setup(r => r.Exists(It.IsAny<Expression<Func<Category, bool>>>()))
+                .ReturnsAsync((Expression<Func<Category, bool>> predicate) => _dbCategories.AsQueryable().Any(predicate.Compile()));
         }
 
         [Test]
@@ -57,7 +63,7 @@ namespace Ecommerce.Test
         [Test]
         public void Create_ShouldThrowException_WhenSlugExists()
         {
-            _mockCategoryRepo.Setup(r => r.SlugExists("electronics")).ReturnsAsync(true);
+            _dbCategories.Add(new Category { Id = 2, Name = "different", slug = "electronics" });
             var request = new CreateCategoryRequest { Name = "Electronics", Slug = "electronics" };
 
             Assert.ThrowsAsync<UniquenessViolationException>(async () => await _categoryService.Create(request));
@@ -66,8 +72,7 @@ namespace Ecommerce.Test
         [Test]
         public void Create_ShouldThrowException_WhenNameExists()
         {
-            _mockCategoryRepo.Setup(r => r.SlugExists("electronics")).ReturnsAsync(false);
-            _mockCategoryRepo.Setup(r => r.NameExists("electronics")).ReturnsAsync(true);
+            _dbCategories.Add(new Category { Id = 2, Name = "electronics", slug = "different" });
             var request = new CreateCategoryRequest { Name = "electronics", Slug = "electronics" };
 
             Assert.ThrowsAsync<UniquenessViolationException>(async () => await _categoryService.Create(request));
@@ -76,9 +81,6 @@ namespace Ecommerce.Test
         [Test]
         public async Task Create_ShouldCreateCategory_WhenRequestIsValid()
         {
-            _mockCategoryRepo.Setup(r => r.SlugExists("electronics")).ReturnsAsync(false);
-            _mockCategoryRepo.Setup(r => r.NameExists("electronics")).ReturnsAsync(false);
-            
             var createdCategory = new Category { Id = 1, Name = "electronics", slug = "electronics" };
             _mockCategoryRepo.Setup(r => r.Create(It.IsAny<Category>())).ReturnsAsync(createdCategory);
             _mockCategoryRepo.Setup(r => r.GetProductCount(1)).ReturnsAsync(0);
@@ -130,7 +132,7 @@ namespace Ecommerce.Test
         {
             var existing = new Category { Id = 1, Name = "electronics", slug = "electronics" };
             _mockCategoryRepo.Setup(r => r.GetById(1)).ReturnsAsync(existing);
-            _mockCategoryRepo.Setup(r => r.SlugExists("new-slug")).ReturnsAsync(true);
+            _dbCategories.Add(new Category { Id = 2, Name = "other", slug = "new-slug" });
             var request = new UpdateCategoryRequest { Slug = "new-slug" };
 
             Assert.ThrowsAsync<UniquenessViolationException>(async () => await _categoryService.Update(1, request));
@@ -141,7 +143,7 @@ namespace Ecommerce.Test
         {
             var existing = new Category { Id = 1, Name = "electronics", slug = "electronics" };
             _mockCategoryRepo.Setup(r => r.GetById(1)).ReturnsAsync(existing);
-            _mockCategoryRepo.Setup(r => r.NameExists("new-name")).ReturnsAsync(true);
+            _dbCategories.Add(new Category { Id = 2, Name = "new-name", slug = "other" });
             var request = new UpdateCategoryRequest { Name = "new-name" };
 
             Assert.ThrowsAsync<UniquenessViolationException>(async () => await _categoryService.Update(1, request));
@@ -153,8 +155,6 @@ namespace Ecommerce.Test
             var existing = new Category { Id = 1, Name = "electronics", slug = "electronics", ParentId = null };
             _mockCategoryRepo.Setup(r => r.GetById(1)).ReturnsAsync(existing);
             _mockCategoryRepo.Setup(r => r.GetAncestorIds(2)).ReturnsAsync(new List<int> { 3 });
-            _mockCategoryRepo.Setup(r => r.SlugExists("new-slug")).ReturnsAsync(false);
-            _mockCategoryRepo.Setup(r => r.NameExists("new-name")).ReturnsAsync(false);
 
             var updated = new Category { Id = 1, Name = "new-name", slug = "new-slug", ParentId = 2 };
             _mockCategoryRepo.Setup(r => r.Update(1, existing)).ReturnsAsync(updated);
@@ -258,7 +258,7 @@ namespace Ecommerce.Test
         public async Task GetFlatList_ShouldReturnFlatList()
         {
             var categories = new List<Category> { new Category { Id = 1 } };
-            _mockCategoryRepo.Setup(r => r.GetAll()).ReturnsAsync(categories);
+            _mockCategoryRepo.Setup(r => r.GetFlatList()).ReturnsAsync(categories);
             _mockCategoryRepo.Setup(r => r.GetProductCount(1)).ReturnsAsync(2);
 
             var mappedResponse = new CategoryResponse { Id = 1 };

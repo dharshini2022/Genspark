@@ -14,7 +14,7 @@ namespace Ecommerce.DAL.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<ICollection<Review>> GetReviewsByProductIdAsync(int productId)
+        public async Task<ICollection<Review>> GetReviewsByProductId(int productId)
         {
             return await _dbContext.Reviews
                 .Include(r => r.User)
@@ -24,7 +24,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ICollection<Review>> GetReviewsByUserIdAsync(int userId)
+        public async Task<ICollection<Review>> GetReviewsByUserId(int userId)
         {
             return await _dbContext.Reviews
                 .Include(r => r.User)
@@ -34,7 +34,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ICollection<Review>> GetReviewsByVendorIdAsync(int vendorId)
+        public async Task<ICollection<Review>> GetReviewsByVendorId(int vendorId)
         {
             return await _dbContext.Reviews
                 .Include(r => r.User)
@@ -45,7 +45,7 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Review?> GetReviewWithDetailsByIdAsync(int reviewId)
+        public async Task<Review?> GetReviewWithDetailsById(int reviewId)
         {
             return await _dbContext.Reviews
                 .Include(r => r.User)
@@ -61,6 +61,15 @@ namespace Ecommerce.DAL.Repositories
                 .Include(r => r.Product)
                 .Include(r => r.ReviewImages)
                 .ToListAsync();
+        }
+
+        public async Task<Review?> GetReviewByUserAndProduct(int userId, int productId)
+        {
+            return await _dbContext.Reviews
+                .Include(r => r.User)
+                .Include(r => r.Product)
+                .Include(r => r.ReviewImages)
+                .FirstOrDefaultAsync(r => r.UserId == userId && r.ProductId == productId);
         }
     }
 }

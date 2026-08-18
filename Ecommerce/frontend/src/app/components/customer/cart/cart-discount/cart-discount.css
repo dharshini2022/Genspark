@@ -1,0 +1,237 @@
+.locked-discounts-container {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.locked-discounts-header-wrapper {
+  margin-bottom: 20px;
+}
+
+.locked-discounts-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-gift {
+  color: #f97316; /* Orange Tag Icon */
+  font-size: 20px;
+}
+
+.locked-discounts-header {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #18181b;
+  margin: 0;
+}
+
+.locked-discounts-subheader {
+  font-size: 13px;
+  color: #71717a;
+  margin: 4px 0 0 0;
+}
+
+.locked-discounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.locked-discount-card {
+  position: relative;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background-color: #ffffff;
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 16px;
+}
+
+.locked-discount-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.locked-discount-card.locked {
+  background-color: #fafafa;
+}
+
+.card-glow-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.card-glow-bg.vendor-glow {
+  background: linear-gradient(90deg, #f43f5e, #db2777); 
+}
+
+.card-glow-bg.category-glow {
+  background: linear-gradient(90deg, #6366f1, #a855f7); 
+}
+
+.card-glow-bg.product-glow {
+  background: linear-gradient(90deg, #0ea5e9, #2563eb); 
+}
+
+/* Top Section */
+.discount-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.badge-value {
+  font-family: var(--font-display, "Plus Jakarta Sans", sans-serif);
+  font-weight: 800;
+  font-size: 20px;
+  color: #2563eb;
+}
+
+.scope-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.02em;
+}
+
+.vendor-scope {
+  background-color: #ffe4e6;
+  color: #e11d48;
+}
+
+.category-scope {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.product-scope {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.common-scope {
+  background-color: #faf5ff;
+  color: #7c3aed;
+}
+
+/* Middle Section */
+.discount-card-middle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.coupon-code-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease-in-out;
+}
+
+.coupon-code-row:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.coupon-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.coupon-code {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copy-icon {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.tap-apply-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+  background-color: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Bottom Section */
+.discount-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.min-spend-instruction {
+  font-size: 12.5px;
+  color: #71717a;
+  margin: 0;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.min-spend-instruction.unlocked {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.accent-cost {
+  font-weight: 700;
+  color: #e11d48;
+}
+
+.locked-discount-card.active {
+  border: 2px solid #22c55e !important; /* Green active border */
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.15);
+  background-color: #f0fdf4 !important; /* Light green tint */
+}
+
+.locked-discount-card.active .badge-value {
+  color: #16a34a;
+}
+
+.applied-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background-color: #dcfce7;
+  color: #15803d;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #bbf7d0;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .locked-discounts-grid {
+    grid-template-columns: 1fr;
+  }
+}

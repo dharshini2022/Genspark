@@ -18,6 +18,7 @@ namespace Ecommerce.BLL.Mapper
 
             #region UserAddress
             CreateMap<UserAddress,AddAddressRequest>().ReverseMap();
+            CreateMap<UserAddress, AddressResponse>();
             #endregion
 
             #region vendor
@@ -38,18 +39,23 @@ namespace Ecommerce.BLL.Mapper
 
             #region Products
             CreateMap<Product, CreateProductRequest>().ReverseMap();
+            CreateMap<UpdateProductRequest, Product>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<Product, ProductResponse>()
                 .ForMember(DTO => DTO.StoreName,    opt => opt.MapFrom(Model => Model.Vendor.StoreName))
                 .ForMember(DTO => DTO.CategoryName, opt => opt.MapFrom(Model => Model.Category.Name))
                 .ForMember(DTO => DTO.Variants,     opt => opt.MapFrom(Model => Model.Variants))
+                .ForMember(DTO => DTO.AverageRating, opt => opt.MapFrom(Model => (decimal)Model.Rating))
+                .ForMember(DTO => DTO.ReviewCount,   opt => opt.MapFrom(Model => Model.ReviewCount))
                 .ReverseMap();
+            CreateMap<Product, ProductSearchResult>().ReverseMap();
             #endregion
 
             #region Product Variants
             CreateMap<ProductVariant, AddProductVariantRequest>().ReverseMap();
-            CreateMap<ProductVariant, UpdateProductVariantRequest>().ReverseMap();
+            CreateMap<UpdateProductVariantRequest, ProductVariant>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<ProductVariant, ProductVariantResponse>()
                 .ForMember(DTO => DTO.VariantImages, opt => opt.MapFrom(Model => Model.VariantImages))
+                .ForMember(DTO => DTO.OrderCount,    opt => opt.MapFrom(Model => Model.OrderItems.Count))
                 .ReverseMap();
             #endregion
             
@@ -67,9 +73,15 @@ namespace Ecommerce.BLL.Mapper
             CreateMap<CartItem, CartItemResponse>()
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Variant.Product.Name))
             .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.Variant.ProductId))
+            .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.Variant.Product.CategoryId))
+            .ForMember(dest => dest.VendorId, opt => opt.MapFrom(src => src.Variant.Product.VendorId))
             .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.Variant.Price))
             .ForMember(dest => dest.SubTotal, opt => opt.MapFrom(src => src.Quantity * src.Variant.Price))
             .ForMember(dest => dest.IsInStock, opt => opt.MapFrom(src => src.Variant.IsActive && src.Variant.StockQty > 0))
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Variant.Product.Category != null ? src.Variant.Product.Category.Name : string.Empty))
+            .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.Variant.VariantImages != null && src.Variant.VariantImages.Any() ? src.Variant.VariantImages.OrderBy(vi => vi.ImageOrder).First().ImageUrl : string.Empty))
+            .ForMember(dest => dest.StockQty, opt => opt.MapFrom(src => src.Variant.StockQty))
+            .ForMember(dest => dest.ReservedStockQty, opt => opt.MapFrom(src => src.Variant.ReservedStockQty))
             .ReverseMap();
 
             CreateMap<CartItem, CartItemEvaluationResponse>()
@@ -88,6 +100,8 @@ namespace Ecommerce.BLL.Mapper
             .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Variant.Product.Name))
             .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.Variant.Price))
             .ForMember(dest => dest.IsInStock,opt => opt.MapFrom(src => src.Variant.IsActive && src.Variant.StockQty > 0))
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Variant.Product.Category != null ? src.Variant.Product.Category.Name : string.Empty))
+            .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.Variant.VariantImages != null && src.Variant.VariantImages.Any() ? src.Variant.VariantImages.OrderBy(vi => vi.ImageOrder).First().ImageUrl : string.Empty))
             .ReverseMap();
             #endregion
 
@@ -103,11 +117,13 @@ namespace Ecommerce.BLL.Mapper
                 .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : string.Empty))
                 .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.OrderPaymentStatus))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.Provider : "Stripe"))
+                .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.TransactionId : string.Empty))
                 .ReverseMap();
             CreateMap<OrderItem, OrderItemDTO>()
                 .ForMember(DTO => DTO.ProductName, opt => opt.MapFrom(Model => Model.Variant.Product.Name))
-                .ForMember(DTO => DTO.VendorStoreName, opt => opt.MapFrom(Model => Model.Vendor.StoreName))
                 .ForMember(DTO => DTO.ProductId, opt => opt.MapFrom(Model => Model.Variant.ProductId))
+                .ForMember(DTO => DTO.ImageUrl, opt => opt.MapFrom(Model => Model.Variant != null && Model.Variant.VariantImages != null && Model.Variant.VariantImages.Any() ? Model.Variant.VariantImages.OrderBy(vi => vi.ImageOrder).First().ImageUrl : string.Empty))
                 .ReverseMap();
 
             CreateMap<Shipment, ShipmentResponseDTO>().ReverseMap();
@@ -141,6 +157,19 @@ namespace Ecommerce.BLL.Mapper
                 .ForMember(DTO => DTO.ProductName, opt => opt.MapFrom(Model => Model.Product.Name))
                 .ForMember(DTO => DTO.UserFullName, opt => opt.MapFrom(Model => Model.User.FullName))
                 .ForMember(DTO => DTO.ReviewImages, opt => opt.MapFrom(Model => Model.ReviewImages.Select(ri => ri.ImageUrl).ToList()))
+                .ReverseMap();
+            #endregion
+
+            #region AdminDashboard
+            CreateMap<Order, RecentOrderDTO>()
+                .ForMember(DTO => DTO.CustomerName, opt => opt.MapFrom(Model => Model.User != null ? Model.User.FullName : string.Empty))
+                .ForMember(DTO => DTO.Amount, opt => opt.MapFrom(Model => Model.Total))
+                .ForMember(DTO => DTO.Status, opt => opt.MapFrom(Model => Model.Status.ToString().ToUpper()))
+                .ReverseMap();
+
+            CreateMap<OrderItem, TopSellingProductDTO>()
+                .ForMember(DTO => DTO.Name, opt => opt.MapFrom(Model => Model.Variant.Product.Name))
+                .ForMember(DTO => DTO.Category, opt => opt.MapFrom(Model => Model.Variant.Product.Category.Name))
                 .ReverseMap();
             #endregion
         }

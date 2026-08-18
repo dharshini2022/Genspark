@@ -30,6 +30,13 @@ namespace Ecommerce.DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DiscountAppliedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DiscountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -117,6 +124,62 @@ namespace Ecommerce.DAL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Ecommerce.Models.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatSessionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Sender")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatSessionId");
+
+                    b.ToTable("chat_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Ecommerce.Models.ChatSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("chat_sessions", (string)null);
+                });
+
             modelBuilder.Entity("Ecommerce.Models.Discount", b =>
                 {
                     b.Property<int>("Id")
@@ -143,6 +206,9 @@ namespace Ecommerce.DAL.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<int?>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReservedCount")
                         .HasColumnType("integer");
 
                     b.Property<string>("Scope")
@@ -179,6 +245,42 @@ namespace Ecommerce.DAL.Migrations
                     b.HasIndex("VendorId");
 
                     b.ToTable("discounts", (string)null);
+                });
+
+            modelBuilder.Entity("Ecommerce.Models.DiscountReservation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DiscountId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsReleased")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValueSql("false");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("ReservedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscountId");
+
+                    b.HasIndex("IsReleased");
+
+                    b.HasIndex("OrderId", "DiscountId");
+
+                    b.ToTable("discount_reservations", (string)null);
                 });
 
             modelBuilder.Entity("Ecommerce.Models.Notification", b =>
@@ -238,6 +340,9 @@ namespace Ecommerce.DAL.Migrations
 
                     b.Property<int?>("DiscountId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasColumnType("text");
 
                     b.Property<string>("OrderPaymentStatus")
                         .IsRequired()
@@ -394,6 +499,12 @@ namespace Ecommerce.DAL.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<float>("Rating")
+                        .HasColumnType("real");
+
+                    b.Property<int>("ReviewCount")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -617,9 +728,6 @@ namespace Ecommerce.DAL.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
 
@@ -633,6 +741,9 @@ namespace Ecommerce.DAL.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -686,7 +797,7 @@ namespace Ecommerce.DAL.Migrations
                         .HasColumnType("date");
 
                     b.Property<DateTime?>("FulfilledAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("ShippedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1051,6 +1162,28 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("Ecommerce.Models.ChatMessage", b =>
+                {
+                    b.HasOne("Ecommerce.Models.ChatSession", "ChatSession")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatSession");
+                });
+
+            modelBuilder.Entity("Ecommerce.Models.ChatSession", b =>
+                {
+                    b.HasOne("Ecommerce.Models.User", "User")
+                        .WithMany("ChatSessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Ecommerce.Models.Discount", b =>
                 {
                     b.HasOne("Ecommerce.Models.Category", "Category")
@@ -1070,6 +1203,25 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Ecommerce.Models.DiscountReservation", b =>
+                {
+                    b.HasOne("Ecommerce.Models.Discount", "Discount")
+                        .WithMany()
+                        .HasForeignKey("DiscountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ecommerce.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Discount");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Ecommerce.Models.Notification", b =>
@@ -1397,6 +1549,11 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("Ecommerce.Models.ChatSession", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
             modelBuilder.Entity("Ecommerce.Models.Discount", b =>
                 {
                     b.Navigation("Orders");
@@ -1467,6 +1624,8 @@ namespace Ecommerce.DAL.Migrations
                     b.Navigation("Addresses");
 
                     b.Navigation("Cart");
+
+                    b.Navigation("ChatSessions");
 
                     b.Navigation("Notifications");
 

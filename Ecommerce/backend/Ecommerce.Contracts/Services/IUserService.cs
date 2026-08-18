@@ -11,7 +11,8 @@ namespace Ecommerce.Contracts.Services
         Task<bool> ToggleAccountStatus();
         Task<UserProfileResponse> RevokeAdmin(int userId);
         Task<UserProfileResponse> ChangeRole(ChangeRoleRequest request);
-        Task<AddAddressRequest> AddUserAddress(AddAddressRequest address);
-        Task<ICollection<AddAddressRequest>> GetAllUserAddress();
+        Task<AddressResponse> AddUserAddress(AddAddressRequest address);
+        Task<ICollection<AddressResponse>> GetAllUserAddress();
+        Task<AddressResponse> UpdateUserAddress(int id, AddAddressRequest address);
     }
 }

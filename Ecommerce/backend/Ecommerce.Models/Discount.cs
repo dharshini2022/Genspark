@@ -25,6 +25,7 @@ namespace Ecommerce.Models
         public decimal MinOrderValue { get; set; }
         public int UsageLimit { get; set; }
         public int UsedCount { get; set; }
+        public int ReservedCount { get; set; }
         public bool IsActive {get; set;}
         public DateTime ExpiresAt { get; set; }
 

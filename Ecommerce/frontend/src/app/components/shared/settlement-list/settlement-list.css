@@ -1,0 +1,353 @@
+.orders-settlements-tab-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6, 24px);
+}
+
+.tab-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.tab-card-header {
+  padding: 16px var(--space-6, 24px);
+  background-color: #ffffff;
+  border-bottom: 1.5px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tab-card-title {
+  font-family: var(--font-display, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin: 0;
+}
+
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.grid-table th {
+  font-family: var(--font-body, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #636366;
+  background-color: #fafafa;
+  padding: 12px var(--space-6, 24px);
+  text-transform: uppercase;
+  border-bottom: 1.5px solid #e5e7eb;
+}
+
+.grid-table td {
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid #f4f4f5;
+  vertical-align: middle;
+  font-size: 13px;
+  color: #334155;
+}
+
+.settlement-row {
+  transition: background-color 0.2s ease;
+}
+
+.settlement-row:hover {
+  background-color: #f8fafc;
+}
+
+.settlement-row.row-expanded {
+  background-color: #f1f5f9;
+}
+
+.expanded-details-row {
+  background-color: #f8fafc;
+}
+
+.expanded-details-row td {
+  padding: 0 !important;
+  border-top: none !important;
+}
+
+.settlement-details-expanded {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px 24px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  animation: slideDown 0.2s ease;
+}
+
+.settlement-details-expanded .detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.settlement-details-expanded .detail-label {
+  font-family: var(--font-body, sans-serif);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.settlement-details-expanded .detail-value {
+  font-family: var(--font-body, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.settlement-id-label {
+  font-weight: 700;
+  color: #475569;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.order-id-label {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.val-red {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.val-green {
+  color: #16a34a !important;
+  font-weight: 600;
+}
+
+.bold-text {
+  font-weight: 700;
+}
+
+.status-badge {
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-active {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-confirmed {
+  background-color: #fffbe6;
+  color: #d4b106;
+}
+
+.empty-row-text {
+  text-align: center !important;
+  color: #8e8e93;
+  padding: 40px !important;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background-color: #ffffff;
+  border-top: 1.5px solid #f4f4f5;
+}
+
+.pag-btn {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  transition: all 0.2s ease;
+}
+
+.pag-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  color: #1f2937;
+}
+
+.pag-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pag-info {
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.loading-indicator {
+  padding: 30px;
+  text-align: center;
+  font-style: italic;
+  color: #64748b;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-cards-container {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .desktop-table {
+    display: none;
+  }
+  
+  .mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background-color: #f8fafc;
+  }
+
+  .settlement-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    animation: slideDown 0.25s ease;
+    cursor: pointer;
+  }
+
+  .settlement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  }
+
+  .settlement-card.card-expanded {
+    background-color: #f1f5f9;
+  }
+
+  .card-id-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding-bottom: 10px;
+  }
+
+  .card-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed #f1f5f9;
+    padding-bottom: 6px;
+  }
+
+  .card-footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1.5px solid #e2e8f0;
+  }
+
+  .footer-status, .footer-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-label {
+    font-family: var(--font-body, sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .card-value {
+    font-family: var(--font-body, sans-serif);
+    font-size: 13px;
+    color: #334155;
+  }
+
+  /* Expanded detail drawer style on mobile */
+  .settlement-details-expanded-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1.5px dashed #cbd5e1;
+    margin-top: 6px;
+    animation: slideDown 0.2s ease;
+  }
+
+  .detail-item-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .detail-label-mobile {
+    font-family: var(--font-body, sans-serif);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-value-mobile {
+    font-family: var(--font-body, sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+}
+
+/* Tablet View: Enable horizontal scrollbar & set minimum table width */
+@media (min-width: 481px) and (max-width: 992px) {
+  .grid-table {
+    min-width: 700px;
+  }
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

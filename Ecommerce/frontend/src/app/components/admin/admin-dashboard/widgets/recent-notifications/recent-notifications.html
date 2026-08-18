@@ -1,0 +1,37 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>Recent Notifications</h3>
+    <a class="view-all" (click)="markAllNotificationsRead()">Mark all read</a>
+  </div>
+
+  @if (loading()) {
+    <ul class="notification-list">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <li class="skeleton-row">
+          <div class="skeleton-dot"></div>
+          <div class="skeleton-content">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else if (error()) {
+    <div class="error-container">
+      <span>{{ error() }}</span>
+      <button (click)="fetchNotifications()" class="retry-btn">Retry</button>
+    </div>
+  } @else {
+    <ul class="notification-list">
+      @for (note of recentNotifications(); track note.id) {
+        <li>
+          <span [class]="notificationDotClass(note.type)"></span>
+          <div>
+            <div class="notification-text">{{ note.message }}</div>
+            <div class="notification-time">{{ note.timeAgo }}</div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

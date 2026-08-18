@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AutoMapper;
 using Ecommerce.BLL;
@@ -22,6 +23,7 @@ namespace Ecommerce.Test
         private Mock<ICurrentUserService> _mockCurrentUser;
         private Mock<IMapper> _mockMapper;
         private ProductService _productService;
+        private List<Product> _dbProducts;
 
         [SetUp]
         public void Setup()
@@ -30,6 +32,10 @@ namespace Ecommerce.Test
             _mockVendorRepo = new Mock<IVendorRepository>();
             _mockCurrentUser = new Mock<ICurrentUserService>();
             _mockMapper = new Mock<IMapper>();
+            _dbProducts = new List<Product>();
+
+            _mockProductRepo.Setup(r => r.Exists(It.IsAny<Expression<Func<Product, bool>>>()))
+                .ReturnsAsync((Expression<Func<Product, bool>> predicate) => _dbProducts.AsQueryable().Any(predicate.Compile()));
 
             _productService = new ProductService(
                 _mockProductRepo.Object,
@@ -62,12 +68,21 @@ namespace Ecommerce.Test
         {
            
             var request = new ProductFilterRequest { PageNumber = 1, PageSize = 10, SortBy = "price", SortOrder = "asc", CategoryId = 5 };
-            var products = new List<Product> { new Product { Id = 1 } };
-            _mockProductRepo.Setup(r => r.GetProductsPaged(1, 10, "price", "asc", 5)).ReturnsAsync(products);
-            _mockProductRepo.Setup(r => r.GetProductsCount(5)).ReturnsAsync(1);
+            var products = new List<Product> { 
+                new Product { 
+                    Id = 1, 
+                    CategoryId = 5, 
+                    Status = ProductStatus.Active, 
+                    Variants = new List<ProductVariant> { 
+                        new ProductVariant { IsActive = true, IsDefault = true, Price = 100 } 
+                    } 
+                } 
+            };
+            _mockProductRepo.Setup(r => r.GetProductsPaged(1, 10, "price", "asc", 5, It.IsAny<decimal?>(), It.IsAny<decimal?>())).ReturnsAsync(products);
+            _mockProductRepo.Setup(r => r.GetProductsCount(5, It.IsAny<decimal?>(), It.IsAny<decimal?>(), It.IsAny<bool>())).ReturnsAsync(1);
 
             var mappedList = new List<ProductResponse> { new ProductResponse { Id = 1 } };
-            _mockMapper.Setup(m => m.Map<ICollection<ProductResponse>>(products)).Returns(mappedList);
+            _mockMapper.Setup(m => m.Map<ICollection<ProductResponse>>(It.IsAny<ICollection<Product>>())).Returns(mappedList);
 
             
             var result = await _productService.GetProductsCatalog(request);
@@ -85,8 +100,8 @@ namespace Ecommerce.Test
             var products = new List<Product> { new Product { Id = 1 } };
             _mockProductRepo.Setup(r => r.SearchProductsByName("test")).ReturnsAsync(products);
 
-            var mappedList = new List<ProductResponse> { new ProductResponse { Id = 1 } };
-            _mockMapper.Setup(m => m.Map<ICollection<ProductResponse>>(products)).Returns(mappedList);
+            var mappedList = new List<ProductSearchResult> { new ProductSearchResult { Id = 1 } };
+            _mockMapper.Setup(m => m.Map<ICollection<ProductSearchResult>>(products)).Returns(mappedList);
 
             
             var result = await _productService.SearchProducts("test");
@@ -180,6 +195,36 @@ namespace Ecommerce.Test
         }
 
         [Test]
+        public void CreateProduct_ShouldThrowUniquenessViolationException_WhenNameAlreadyExistsForVendor()
+        {
+            _mockCurrentUser.Setup(u => u.UserId).Returns(1);
+            var vendor = new Vendor { Id = 10 };
+            _mockVendorRepo.Setup(r => r.GetByUserId(1)).ReturnsAsync(vendor);
+
+            _dbProducts.Add(new Product { Id = 50, VendorId = 10, Name = "existing product" });
+
+            var request = new CreateProductRequest { Name = "existing product" };
+
+            Assert.ThrowsAsync<UniquenessViolationException>(async () => await _productService.CreateProduct(request));
+        }
+
+        [Test]
+        public void UpdateProduct_ShouldThrowUniquenessViolationException_WhenNameAlreadyExistsForVendor()
+        {
+            var product = new Product { Id = 100, VendorId = 10, Name = "Old Name" };
+            _mockProductRepo.Setup(r => r.GetById(100)).ReturnsAsync(product);
+
+            _mockCurrentUser.Setup(u => u.UserId).Returns(1);
+            _mockVendorRepo.Setup(r => r.GetByUserId(1)).ReturnsAsync(new Vendor { Id = 10 });
+
+            _dbProducts.Add(new Product { Id = 50, VendorId = 10, Name = "duplicate name" });
+
+            var request = new UpdateProductRequest { Name = "duplicate name" };
+
+            Assert.ThrowsAsync<UniquenessViolationException>(async () => await _productService.UpdateProduct(100, request));
+        }
+
+        [Test]
         public void UpdateProduct_ShouldThrowException_WhenProductNotFound()
         {
            
@@ -231,16 +276,16 @@ namespace Ecommerce.Test
         }
 
         [Test]
-        public void ArchiveProduct_ShouldThrowException_WhenProductNotFound()
+        public void ToggleProductStatus_ShouldThrowException_WhenProductNotFound()
         {
            
             _mockProductRepo.Setup(r => r.GetById(100)).ReturnsAsync((Product?)null);
 
-            Assert.ThrowsAsync<InvalidProductException>(async () => await _productService.ArchiveProduct(100));
+            Assert.ThrowsAsync<InvalidProductException>(async () => await _productService.ToggleProductStatus(100));
         }
 
         [Test]
-        public async Task ArchiveProduct_ShouldArchiveProductAndVariants_WhenValid()
+        public async Task ToggleProductStatus_ShouldArchiveProductAndVariants_WhenValid()
         {
            
             var variant = new ProductVariant { Id = 5, IsActive = true };
@@ -254,7 +299,7 @@ namespace Ecommerce.Test
             _mockMapper.Setup(m => m.Map<ProductResponse>(product)).Returns(new ProductResponse { Id = 100 });
 
             
-            await _productService.ArchiveProduct(100);
+            await _productService.ToggleProductStatus(100);
 
             
             Assert.That(product.Status, Is.EqualTo(ProductStatus.Archived));
@@ -311,18 +356,18 @@ namespace Ecommerce.Test
         public async Task PublishProduct_ShouldPublishProduct_WhenValid()
         {
            
-            var variant = new ProductVariant { IsActive = true, Price = 10.00m, StockQty = 5 };
+            var variant = new ProductVariant { IsActive = true, Price = 10.00m, StockQty = 5, VariantImages = new List<ProductImage> { new ProductImage { ImageUrl = "http://test.png" } } };
             var product = new Product { Id = 100, VendorId = 10, Status = ProductStatus.Draft, Variants = new List<ProductVariant> { variant } };
             _mockProductRepo.Setup(r => r.GetById(100)).ReturnsAsync(product);
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             _mockVendorRepo.Setup(r => r.GetByUserId(1)).ReturnsAsync(new Vendor { Id = 10 });
-
+ 
             _mockProductRepo.Setup(r => r.Update(100, product)).ReturnsAsync(product);
             _mockMapper.Setup(m => m.Map<ProductResponse>(product)).Returns(new ProductResponse { Id = 100 });
-
+ 
             
             var result = await _productService.PublishProduct(100);
-
+ 
             
             Assert.That(product.Status, Is.EqualTo(ProductStatus.Active));
             _mockProductRepo.Verify(r => r.Update(100, product), Times.Once);

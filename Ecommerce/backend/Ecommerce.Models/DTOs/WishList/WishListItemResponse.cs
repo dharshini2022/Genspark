@@ -8,5 +8,7 @@ namespace Ecommerce.Models.DTOs
         public string ProductName { get; set; } = null!;
         public decimal UnitPrice { get; set; }
         public bool IsInStock { get; set; }
+        public string? CategoryName { get; set; }
+        public string? ImageUrl { get; set; }
     }
 }

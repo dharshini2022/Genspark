@@ -30,43 +30,68 @@ namespace Ecommerce.BLL
 
         public async Task CreateSettlementsForOrder(Order order, string chargeId, Discount? discount)
         {
+            Dictionary<int, decimal> vendorDiscountAllocations = PreCalculateVendorDiscounts(order, discount);
             var byVendor = order.Items.GroupBy(i => i.VendorId).ToList();
-            var summary = new VendorSummary();
+
             foreach (var vendorGroup in byVendor)
             {
                 int vendorId = vendorGroup.Key;
+                var summary = new VendorSummary();
                 summary.GrossAmount = vendorGroup.Sum(i => i.UnitPrice * i.Quantity);
                 summary.ShippingAmount = Math.Round(summary.GrossAmount * OrderService.VendorShippingRate, 2);
-                summary.VendorDiscountAmount = CalculateVendorDiscount(order, vendorId, summary.GrossAmount, discount);
+                summary.VendorDiscountAmount = vendorDiscountAllocations.GetValueOrDefault(vendorId, 0);
 
                 decimal commissionBase = summary.GrossAmount + summary.ShippingAmount - summary.VendorDiscountAmount;
                 summary.PlatformCommissionAmount = Math.Round(commissionBase * OrderService.PlatformCommissionRate, 2);
                 summary.NetPayoutAmount = commissionBase - summary.PlatformCommissionAmount;
                 summary.TransactionReference = chargeId;
                 summary.SettlementStatus = SettlementStatus.Paid;
+                
                 await CreateVendorSettlement(vendorId, order.Id, summary);
             }
         }
 
-        private decimal CalculateVendorDiscount(Order order, int vendorId, decimal vendorGrossAmount, Discount? discount)
+        private Dictionary<int, decimal> PreCalculateVendorDiscounts(Order order, Discount? discount)
         {
-            decimal vendorDiscount = 0;
-            if (discount != null)
+            var allocations = new Dictionary<int, decimal>();
+
+            if (discount == null || order.DiscountAmount <= 0 || order.Items == null)   return allocations;
+
+            switch (discount.Scope)
             {
-                if (discount.Scope == DiscountScope.Vendor)
-                {
-                    if (discount.VendorId == vendorId)
+                case DiscountScope.Vendor:
+                    allocations[discount.VendorId.Value] = order.DiscountAmount;
+                    break;
+
+                case DiscountScope.Product:
+                    var targetedItem = order.Items.FirstOrDefault(i => i.Variant?.ProductId == discount.ProductId);
+                    if (targetedItem != null)
                     {
-                        vendorDiscount = order.DiscountAmount;
+                        allocations[targetedItem.VendorId] = order.DiscountAmount;
                     }
-                }
-                else if (discount.Scope == DiscountScope.Product || discount.Scope == DiscountScope.Category)
-                {
-                    decimal vendorShare = vendorGrossAmount / order.Subtotal;
-                    vendorDiscount = Math.Round(order.DiscountAmount * vendorShare, 2);
-                }
+                    break;
+
+                case DiscountScope.Category:
+                    var eligibleItems = order.Items
+                        .Where(i => i.Variant?.Product?.CategoryId == discount.CategoryId)
+                        .ToList();
+
+                    decimal totalCategoryAmount = eligibleItems.Sum(i => i.UnitPrice * i.Quantity);
+
+                    if (totalCategoryAmount > 0)
+                    {
+                        var categoryItemsByVendor = eligibleItems.GroupBy(i => i.VendorId);
+                        foreach (var group in categoryItemsByVendor)
+                        {
+                            decimal vendorCategoryAmount = group.Sum(i => i.UnitPrice * i.Quantity);
+                            decimal categoryShare = vendorCategoryAmount / totalCategoryAmount;
+                            allocations[group.Key] = Math.Round(order.DiscountAmount * categoryShare, 2);
+                        }
+                    }
+                    break;
             }
-            return vendorDiscount;
+
+            return allocations;
         }
 
         private async Task CreateVendorSettlement(int vendorId, int orderId, VendorSummary summary)
@@ -89,7 +114,7 @@ namespace Ecommerce.BLL
 
         public async Task<ICollection<VendorSettlementDTO>> GetVendorSettlements(int vendorId)
         {
-            var settlements = await _vendorSettlementRepository.GetSettlementsByVendorIdAsync(vendorId);
+            var settlements = await _vendorSettlementRepository.GetSettlementsByVendorId(vendorId);
             return _mapper.Map<ICollection<VendorSettlementDTO>>(settlements);
         }
 

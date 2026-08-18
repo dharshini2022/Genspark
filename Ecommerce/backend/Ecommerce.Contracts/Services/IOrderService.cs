@@ -5,10 +5,10 @@ namespace Ecommerce.Contracts.Services
 {
     public interface IOrderService
     {
-        Task<OrderResponse> CreateOrder(CreateOrderRequest request);
+        Task<OrderResponse> CreateOrder(CreateOrderRequest request, string? idempotencyKey = null);
         Task<OrderSummaryResponse> GetOrderDetails(int orderId);
-        Task<ICollection<OrderSummaryResponse>> GetMyOrders();
-        Task<ICollection<OrderSummaryResponse>> GetVendorOrders();
+        Task<PageResponse<OrderSummaryResponse>> GetMyOrders(OrderFilterRequest? query = null);
+        Task<PageResponse<OrderSummaryResponse>> GetVendorOrders(int? vendorId = null, OrderFilterRequest? query = null);
         Task<PageResponse<OrderSummaryResponse>> GetAllOrders(OrderFilterRequest query);
     }
 }

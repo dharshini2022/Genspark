@@ -7,6 +7,8 @@ namespace Ecommerce.Models
         public int Id { get; set; }
         public int UserId { get; set; }
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        public string? DiscountCode { get; set; }
+        public DateTime? DiscountAppliedAt { get; set; }
 
         public User User { get; set; } = null!;
         public ICollection<CartItem> Items { get; set; } = [];

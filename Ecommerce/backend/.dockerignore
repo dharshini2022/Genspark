@@ -1,0 +1,24 @@
+# Ignore appsettings & secret config files
+appsettings.json
+appsettings.*.json
+.env*
+*.secrets
+
+# Ignore key & certificate files
+**/*.pem
+**/*.key
+**/*.pfx
+**/*.crt
+
+# Ignore local build artifacts & logs
+**/bin/
+**/obj/
+publish/
+logs/
+*.log
+
+# Ignore VCS & IDE files
+.git/
+.gitignore
+.vs/
+.vscode/

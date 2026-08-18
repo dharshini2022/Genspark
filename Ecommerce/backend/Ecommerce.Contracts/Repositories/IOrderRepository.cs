@@ -13,5 +13,7 @@ namespace Ecommerce.Contracts.Repositories
         Task<Order?> GetOrderByStripeIntentIdAsync(string stripePaymentIntentId);
         Task<ICollection<Order>> GetAllOrdersWithDetails();
         Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrders(int pageNumber, int pageSize, string? searchTerm);
+        Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrdersByUserId(int userId, int pageNumber, int pageSize, string? searchTerm);
+        Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrdersByVendorId(int vendorId, int pageNumber, int pageSize, string? searchTerm);
     }
 }

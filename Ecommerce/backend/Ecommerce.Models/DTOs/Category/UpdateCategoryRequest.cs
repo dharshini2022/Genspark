@@ -11,5 +11,7 @@ namespace Ecommerce.Models.DTOs
         public string? Slug { get; set; }
 
         public int? ParentId { get; set; }
+
+        public bool? IsActive { get; set; }
     }
 }

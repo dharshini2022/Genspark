@@ -24,6 +24,14 @@ namespace Ecommerce.API.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
+        [HttpPost("checkout-session/{orderId}")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> CreateCheckoutSession([FromRoute] int orderId)
+        {
+            var url = await _paymentService.CreateCheckoutSessionUrl(orderId);
+            return Ok(new { url });
+        }
+
         [HttpGet("history")]
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> GetMyPaymentHistory()
@@ -38,6 +46,23 @@ namespace Ecommerce.API.Controllers
         {
             var result = await _paymentService.GetOverallPaymentHistory(request);
             return Ok(result);
+        }
+
+        [HttpPost("webhook")]
+        [AllowAnonymous]
+        public async Task<IActionResult> StripeWebhook()
+        {
+            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+            var signatureHeader = Request.Headers["Stripe-Signature"].ToString();
+            try
+            {
+                await _paymentService.HandleStripeWebhookEvent(json, signatureHeader);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Webhook Error: {ex.Message}" });
+            }
         }
     }
 }

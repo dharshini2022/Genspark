@@ -53,6 +53,73 @@ namespace Ecommerce.BLL
             await SendEmailClientAsync(message, host, port, senderEmail, password);
         }
 
+        public async Task SendOtpEmail(string email, string otp)
+        {
+            var host = _configuration["Smtp:Host"];
+            var portStr = _configuration["Smtp:Port"];
+            var senderEmail = _configuration["Smtp:SenderEmail"];
+            var password = _configuration["Smtp:Password"];
+            var fromName = _configuration["Smtp:FromName"] ?? "BBS";
+
+            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(password) || !int.TryParse(portStr, out int port))
+            {
+                throw new InvalidEmailCredsException("Invalid Email Credentials");
+            }
+
+            var subject = "Your Password Reset OTP - ShopHive";
+            var body = $"<html><body style='font-family: Arial, sans-serif;'>" +
+                       $"<h2>ShopHive Password Reset Request</h2>" +
+                       $"<p>You requested a password reset. Please use the following OTP to proceed:</p>" +
+                       $"<p style='font-size: 24px; font-weight: bold; color: #2e7d32; letter-spacing: 2px;'>{otp}</p>" +
+                       $"<p>This OTP is valid for 10 minutes.</p>" +
+                       $"<p>If you did not request this, please ignore this email.</p>" +
+                       $"<p>Best regards,<br/><strong>ShopHive Team</strong></p>" +
+                       $"</body></html>";
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, senderEmail));
+            message.To.Add(new MailboxAddress("Valued Customer", email));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            await SendEmailClientAsync(message, host, port, senderEmail, password);
+        }
+
+        public async Task SendVendorApprovalEmail(string email, string storeName)
+        {
+            var host = _configuration["Smtp:Host"];
+            var portStr = _configuration["Smtp:Port"];
+            var senderEmail = _configuration["Smtp:SenderEmail"];
+            var password = _configuration["Smtp:Password"];
+            var fromName = _configuration["Smtp:FromName"] ?? "BBS";
+
+            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(password) || !int.TryParse(portStr, out int port))
+            {
+                throw new InvalidEmailCredsException("Invalid Email Credentials");
+            }
+
+            var subject = "Vendor Status Approved - ShopHive";
+            var body = $"<html><body style='font-family: Arial, sans-serif;'>" +
+                       $"<h2>ShopHive Vendor Partnership Approved</h2>" +
+                       $"<p>Congratulations! Your store <strong>{storeName}</strong> has been approved by the admin.</p>" +
+                       $"<p style='font-size: 18px; color: #2e7d32; font-weight: bold;'>Vendor Status Approved, Start Selling!</p>" +
+                       $"<p>Log in to your vendor dashboard to list your products and manage your store.</p>" +
+                       $"<p>Best regards,<br/><strong>ShopHive Team</strong></p>" +
+                       $"</body></html>";
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, senderEmail));
+            message.To.Add(new MailboxAddress(storeName, email));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            await SendEmailClientAsync(message, host, port, senderEmail, password);
+        }
+
         protected virtual async Task SendEmailClientAsync(MimeMessage mimeMessage, string host, int port, string senderEmail, string password)
         {
             using var client = new SmtpClient();

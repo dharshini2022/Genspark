@@ -1,6 +1,8 @@
 using Ecommerce.Contracts.Repositories;
 using Ecommerce.DAL.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+
 namespace  Ecommerce.DAL.Repositories
 {
     public class AbstractRepository<K,T> : IRepository<K,T> where T: class
@@ -44,6 +46,10 @@ namespace  Ecommerce.DAL.Repositories
         public async Task SaveChangesAsync()
         {
             await _dbContext.SaveChangesAsync();
+        }
+        public virtual async Task<bool> Exists(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbContext.Set<T>().AnyAsync(predicate);
         }
     }
 }

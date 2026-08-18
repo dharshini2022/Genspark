@@ -48,6 +48,7 @@ namespace Ecommerce.DAL.Repositories
         {
             return await _dbContext.Discounts.Where(d => d.VendorId == vendorId).ToListAsync();
         }
+        
         public async Task<ICollection<Discount>> GetDiscountsOfProduct(int productId, int vendorId, int categoryId)
         {
             return await _dbContext.Discounts.Where(d => 

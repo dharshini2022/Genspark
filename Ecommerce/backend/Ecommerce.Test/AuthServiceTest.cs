@@ -23,6 +23,7 @@ namespace Ecommerce.Test
         private Mock<IMapper> _mockMapper;
         private Mock<IConfiguration> _mockConfig;
         private Mock<ICurrentUserService> _mockCurrentUserService;
+        private Mock<IEmailService> _mockEmailService;
         private AuthService _authService;
 
         [SetUp]
@@ -33,13 +34,15 @@ namespace Ecommerce.Test
             _mockMapper = new Mock<IMapper>();
             _mockConfig = new Mock<IConfiguration>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
+            _mockEmailService = new Mock<IEmailService>();
 
             _authService = new AuthService(
                 _mockUserRepo.Object,
                 _mockRefreshTokenRepo.Object,
                 _mockMapper.Object,
                 _mockConfig.Object,
-                _mockCurrentUserService.Object
+                _mockCurrentUserService.Object,
+                _mockEmailService.Object
             );
         }
 
@@ -153,13 +156,42 @@ namespace Ecommerce.Test
             Assert.That(result, Is.Not.Null);
             Assert.That(result.AccessToken, Is.Not.Null.Or.Empty);
             Assert.That(result.RefreshToken, Is.Not.Null.Or.Empty);
+            Assert.That(result.Role, Is.EqualTo("Customer"));
             _mockRefreshTokenRepo.Verify(r => r.Create(It.IsAny<RefreshToken>()), Times.Once);
+        }
+
+        private string GenerateTestToken(int userId, string email = "test@example.com")
+        {
+            var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes("SuperSecretKeyForJWTEcommerceProject2026!");
+            var claims = new[]
+            {
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, userId.ToString()),
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, email),
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Customer"),
+                new System.Security.Claims.Claim("fullName", "Test User")
+            };
+            var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
+            {
+                Subject = new System.Security.Claims.ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddMinutes(-5),
+                Issuer = "Ecommerce.API",
+                Audience = "Ecommerce.Client",
+                SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key), Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
 
         [Test]
         public void RefreshToken_ShouldThrowUnauthorizedException_WhenTokenNotFoundOrExpired()
         {
-            _mockCurrentUserService.Setup(s => s.UserId).Returns(1);
+            _mockConfig.Setup(c => c["Jwt:Key"]).Returns("SuperSecretKeyForJWTEcommerceProject2026!");
+            _mockConfig.Setup(c => c["Jwt:Issuer"]).Returns("Ecommerce.API");
+            _mockConfig.Setup(c => c["Jwt:Audience"]).Returns("Ecommerce.Client");
+
+            var expiredAccessToken = GenerateTestToken(1);
+
             var tokens = new List<RefreshToken>
             {
                 new RefreshToken { Token = BCrypt.Net.BCrypt.HashPassword("Token1"), IsRevoked = true, ExpiresAt = DateTime.Now.AddDays(1) },
@@ -167,15 +199,14 @@ namespace Ecommerce.Test
             };
             _mockRefreshTokenRepo.Setup(r => r.GetTokensByUserIdWithUser(1)).ReturnsAsync(tokens);
 
-            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken("Token1"));
-            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken("Token2"));
-            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken("Token3")); // completely missing
+            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken(expiredAccessToken, "Token1"));
+            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken(expiredAccessToken, "Token2"));
+            Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _authService.RefreshToken(expiredAccessToken, "Token3")); // completely missing
         }
 
         [Test]
         public async Task RefreshToken_ShouldReturnNewTokens_WhenValid()
         {
-            _mockCurrentUserService.Setup(s => s.UserId).Returns(1);
             var user = new User { Id = 1, Email = "test@example.com", Role = UserRole.Customer, FullName = "Test User" };
             var rawToken = "ValidRawToken";
             var tokenEntity = new RefreshToken
@@ -195,11 +226,13 @@ namespace Ecommerce.Test
             _mockConfig.Setup(c => c["Jwt:Issuer"]).Returns("Ecommerce.API");
             _mockConfig.Setup(c => c["Jwt:Audience"]).Returns("Ecommerce.Client");
 
-            var result = await _authService.RefreshToken(rawToken);
+            var expiredAccessToken = GenerateTestToken(1);
+            var result = await _authService.RefreshToken(expiredAccessToken, rawToken);
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result.AccessToken, Is.Not.Null.Or.Empty);
             Assert.That(result.RefreshToken, Is.Not.Null.Or.Empty);
+            Assert.That(result.Role, Is.EqualTo("Customer"));
             Assert.That(tokenEntity.IsRevoked, Is.True);
             _mockRefreshTokenRepo.Verify(r => r.Update(10, tokenEntity), Times.Once);
             _mockRefreshTokenRepo.Verify(r => r.Create(It.IsAny<RefreshToken>()), Times.Once);
@@ -243,6 +276,54 @@ namespace Ecommerce.Test
             Assert.That(token1.IsRevoked, Is.True);
             Assert.That(token2.IsRevoked, Is.True);
             _mockRefreshTokenRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task SendForgotPasswordOtp_ShouldSendEmail_WhenUserExists()
+        {
+            var email = "existing@example.com";
+            var user = new User { Id = 123, Email = email };
+            _mockUserRepo.Setup(r => r.GetByEmail(email)).ReturnsAsync(user);
+            _mockEmailService.Setup(s => s.SendOtpEmail(email, It.IsAny<string>())).Returns(Task.CompletedTask);
+
+            var result = await _authService.SendForgotPasswordOtp(email);
+
+            await Task.Delay(100);
+
+            Assert.That(result, Is.True);
+            _mockEmailService.Verify(s => s.SendOtpEmail(email, It.IsAny<string>()), Times.Once);
+        }
+
+        [Test]
+        public void SendForgotPasswordOtp_ShouldThrowException_WhenUserDoesNotExist()
+        {
+            var email = "nonexistent@example.com";
+            _mockUserRepo.Setup(r => r.GetByEmail(email)).ReturnsAsync((User?)null);
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await _authService.SendForgotPasswordOtp(email));
+        }
+
+        [Test]
+        public async Task VerifyForgotPasswordOtp_ShouldReturnTrue_WhenOtpIsValid()
+        {
+            var email = "test@example.com";
+            var user = new User { Id = 1, Email = email };
+            _mockUserRepo.Setup(r => r.GetByEmail(email)).ReturnsAsync(user);
+
+            string sentOtp = "";
+            _mockEmailService.Setup(s => s.SendOtpEmail(email, It.IsAny<string>()))
+                .Callback<string, string>((e, otp) => sentOtp = otp)
+                .Returns(Task.CompletedTask);
+
+            await _authService.SendForgotPasswordOtp(email);
+
+            await Task.Delay(100);
+
+            var verifyResult = await _authService.VerifyForgotPasswordOtp(email, sentOtp);
+            Assert.That(verifyResult, Is.True);
+
+            var verifyInvalidResult = await _authService.VerifyForgotPasswordOtp(email, "000000");
+            Assert.That(verifyInvalidResult, Is.False);
         }
     }
 }

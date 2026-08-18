@@ -47,10 +47,34 @@ namespace Ecommerce.API.Controllers
 
         [Authorize(Roles = "Vendor")]
         [HttpGet("vendor")]
-        public async Task<IActionResult> GetMyProducts()
+        public async Task<IActionResult> GetMyProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
             var products = await _productService.GetVendorProducts();
-            return Ok(products);
+            var totalCount = products.Count;
+            var items = products.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<ProductResponse>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("vendor/{vendorId}")]
+        public async Task<IActionResult> GetProductsByVendorId([FromRoute] int vendorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        {
+            var products = await _productService.GetProductsByVendorId(vendorId);
+            var totalCount = products.Count;
+            var items = products.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<ProductResponse>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
         }
 
         [Authorize(Roles = "Vendor")]
@@ -79,11 +103,11 @@ namespace Ecommerce.API.Controllers
         }
 
         [Authorize(Roles = "Vendor")]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> ArchiveProduct([FromRoute] int id)
+        [HttpPatch("toggle/{id}")]
+        public async Task<IActionResult> ToggleProductStatus([FromRoute] int id)
         {
-            var product = await _productService.ArchiveProduct(id);
-            return Ok(new { message = "Product archived successfully.", data = product });
+            var product = await _productService.ToggleProductStatus(id);
+            return Ok(new { message = "Product status toggled successfully.", data = product });
         }
     }
 }

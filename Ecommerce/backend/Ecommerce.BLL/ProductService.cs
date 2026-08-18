@@ -26,11 +26,14 @@ namespace Ecommerce.BLL
         {
             if (!string.IsNullOrEmpty(query.SortOrder) && !(query.SortOrder == "asc" || query.SortOrder == "desc"))
                 throw new ValidationException("Sort Order must be 'asc' or 'desc'");
-            if (!string.IsNullOrEmpty(query.SortBy) && !(query.SortBy == "price" || query.SortBy == "newest" || query.SortBy == "review" || query.SortBy == "rating"))
-                throw new ValidationException("Sort By must be 'price', 'newest', 'review', or 'rating'");
+            if (!string.IsNullOrEmpty(query.SortBy) && !(query.SortBy == "price" || query.SortBy == "newest" || query.SortBy == "rating" || query.SortBy == "discount"))
+                throw new ValidationException("Sort By must be 'price', 'newest', 'rating' or 'discount'");
 
-            var products = await _productRepository.GetProductsPaged(query.PageNumber, query.PageSize, query.SortBy, query.SortOrder, query.CategoryId);
-            var totalCount = await _productRepository.GetProductsCount(query.CategoryId);
+            bool onlyDiscounted = string.Equals(query.SortBy, "discount", StringComparison.OrdinalIgnoreCase);
+
+            var products = await _productRepository.GetProductsPaged(query.PageNumber, query.PageSize,query.SortBy,query.SortOrder,query.CategoryId,query.MinPrice,query.MaxPrice,query.SearchQuery);
+
+            var totalCount = await _productRepository.GetProductsCount(query.CategoryId,query.MinPrice,query.MaxPrice,onlyDiscounted,query.SearchQuery);
 
             return new PageResponse<ProductResponse>
             {
@@ -41,10 +44,10 @@ namespace Ecommerce.BLL
             };
         }
 
-        public async Task<ICollection<ProductResponse>> SearchProducts(string searchTerm)
+        public async Task<ICollection<ProductSearchResult>> SearchProducts(string searchTerm)
         {
             var products = await _productRepository.SearchProductsByName(searchTerm);
-            return _mapper.Map<ICollection<ProductResponse>>(products);    
+            return _mapper.Map<ICollection<ProductSearchResult>>(products);    
         }
 
         public async Task<ProductResponse> GetProductDetails(int productId)
@@ -60,9 +63,20 @@ namespace Ecommerce.BLL
             return _mapper.Map<ICollection<ProductResponse>>(products);
         }
 
+        public async Task<ICollection<ProductResponse>> GetProductsByVendorId(int vendorId)
+        {
+            var products = await _productRepository.GetProductsByVendorId(vendorId);
+            return _mapper.Map<ICollection<ProductResponse>>(products);
+        }
+
         public async Task<ProductResponse> CreateProduct(CreateProductRequest request)
         {
             var vendorId = await GetCurrentVendorId();
+
+            if (await _productRepository.Exists(p => p.VendorId == vendorId && p.Name.ToLower().Trim() == request.Name.ToLower().Trim()))
+            {
+                throw new UniquenessViolationException($"Product name '{request.Name}' already exists.");
+            }
 
             var product = _mapper.Map<Product>(request);
             product.VendorId = vendorId;
@@ -79,7 +93,14 @@ namespace Ecommerce.BLL
 
             await EnsureVendorOwns(product);
 
-            if (!string.IsNullOrEmpty(request.Name)) product.Name = request.Name;
+            if (!string.IsNullOrEmpty(request.Name) && !string.Equals(product.Name, request.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                if (await _productRepository.Exists(p => p.VendorId == product.VendorId && p.Id != productId && p.Name.ToLower().Trim() == request.Name.ToLower().Trim()))
+                {
+                    throw new UniquenessViolationException($"Product name '{request.Name}' already exists.");
+                }
+                product.Name = request.Name;
+            }
             if (!string.IsNullOrEmpty(request.Description)) product.Description = request.Description;
             if (request.CategoryId.HasValue) product.CategoryId = request.CategoryId.Value;
 
@@ -87,30 +108,34 @@ namespace Ecommerce.BLL
             return _mapper.Map<ProductResponse>(product);
         }
 
-        public async Task<ProductResponse> ArchiveProduct(int productId)
+        public async Task<ProductResponse> ToggleProductStatus(int productId)
         {
             var product = await _productRepository.GetById(productId) ?? throw new InvalidProductException($"Product with ID {productId} not found.");
 
             await EnsureVendorOwns(product);
-
-            product.Status = ProductStatus.Archived;
-            foreach(var variant in product.Variants)
-            {
-                variant.IsActive = false;
+            if(product.Status == ProductStatus.Archived){
+                ValidateProductForPublish(product);
+                product.Status = ProductStatus.Active;
             }
+            else {
+                product.Status = ProductStatus.Archived;
+                foreach(var variant in product.Variants)
+                {
+                    variant.IsActive = false;
+                }
+            }
+            
             await _productRepository.Update(productId, product);
             return _mapper.Map<ProductResponse>(product);
         }
 
+        
         public async Task<ProductResponse?> PublishProduct(int productId)
         {
             var product = await _productRepository.GetById(productId) ?? throw new InvalidProductException("Product not found.");
-            var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId) ?? throw new InvalidOwnershipException("Vendor account not found.");
-
-            if (product.VendorId != vendor.Id) throw new InvalidOwnershipException("You don't own this product.");
-            bool hasValidVariant = product.Variants.Any(v => v.IsActive && v.Price > 0 && v.StockQty >= 0);
-            if (!hasValidVariant) throw new InvalidOperationException("Product must contain at least one valid variant.");
-
+            await EnsureVendorOwns(product);
+            ValidateProductForPublish(product);
+            
             product.Status = ProductStatus.Active;
             var result = await _productRepository.Update(productId, product);
             return _mapper.Map<ProductResponse>(result);
@@ -127,5 +152,13 @@ namespace Ecommerce.BLL
             var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId) ?? throw new InvalidOwnershipException("Vendor account not found.");
             return vendor.Id;
         }
+        private void ValidateProductForPublish(Product product){
+            bool hasValidActiveVariant = product.Variants.Any(v => v.IsActive && v.Price > 0 && v.StockQty >= 0);
+            if (!hasValidActiveVariant) throw new InvalidOperationException("Product must contain at least one active variant with a valid price and stock.");
+            
+            bool activeVariantsHaveImages = product.Variants.Where(v => v.IsActive).All(v => v.VariantImages != null && v.VariantImages.Any());
+            if (!activeVariantsHaveImages) throw new InvalidOperationException("All active variants must have at least one image before publishing.");
+        }
+
     }
 }

@@ -1,0 +1,51 @@
+<div class="sidebar-overlay" [class.open]="isOpen" (click)="onClose()"></div>
+
+<div class="sidebar-container" [class.open]="isOpen">
+  <div class="sidebar-header">
+    <h2 class="sidebar-title">Notifications</h2>
+    <div class="header-actions">
+      @if (unreadCount() > 0) {
+        <button class="mark-all-btn" (click)="onMarkAllAsRead()">Mark all as read</button>
+      }
+      <button class="close-btn" (click)="onClose()" aria-label="Close notifications">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="sidebar-content">
+    @if (notifications().length === 0) {
+      <div class="empty-state">
+        <i class="bi bi-bell-slash empty-icon"></i>
+        <div class="empty-title">All caught up!</div>
+        <div class="empty-text">No notifications to show right now.</div>
+      </div>
+    } @else {
+      @for (notification of notifications(); track notification.id) {
+        <div class="notification-item" [class.unread]="!notification.isRead" (click)="onNotificationClick(notification)">
+          <div class="notification-icon-container">
+            <div class="notification-icon"
+                 [class.info]="notification.level === 1 || notification.level === 'Info'"
+                 [class.success]="notification.level === 2 || notification.level === 'Success'"
+                 [class.warning]="notification.level === 3 || notification.level === 'Warning'"
+                 [class.error]="notification.level === 4 || notification.level === 'Error'">
+              <i class="bi"
+                 [class.bi-info-circle]="notification.level === 1 || notification.level === 'Info'"
+                 [class.bi-check-circle]="notification.level === 2 || notification.level === 'Success'"
+                 [class.bi-exclamation-triangle]="notification.level === 3 || notification.level === 'Warning'"
+                 [class.bi-exclamation-octagon]="notification.level === 4 || notification.level === 'Error'"></i>
+            </div>
+          </div>
+          <div class="notification-details">
+            <span class="notification-title">{{ notification.title }}</span>
+            <span class="notification-message">{{ notification.message }}</span>
+            <span class="notification-time">{{ formatTime(notification.createdAt) }}</span>
+          </div>
+          @if (!notification.isRead) {
+            <span class="unread-dot"></span>
+          }
+        </div>
+      }
+    }
+  </div>
+</div>

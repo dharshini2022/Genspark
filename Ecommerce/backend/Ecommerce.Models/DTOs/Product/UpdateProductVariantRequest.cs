@@ -11,5 +11,9 @@ namespace Ecommerce.Models.DTOs
         public int? StockQty { get; set; }
         
         public Dictionary<string, string>? AvailableValues { get; set; } = new();
+
+        public bool? IsActive { get; set; }
+
+        public bool? IsDefault { get; set; }
     }
 }

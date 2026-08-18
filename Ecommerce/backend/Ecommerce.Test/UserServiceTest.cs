@@ -12,6 +12,7 @@ namespace Ecommerce.Test
     public class UserServiceTest
     {
         private Mock<IUserRepository>     _mockUserRepo;
+        private Mock<IUserAddressRepository> _mockUserAddressRepo;
         private Mock<ICurrentUserService> _mockCurrentUser;
         private Mock<IMapper>             _mockMapper;
         private UserService               _userService;
@@ -20,6 +21,7 @@ namespace Ecommerce.Test
         public void Setup()
         {
             _mockUserRepo    = new Mock<IUserRepository>();
+            _mockUserAddressRepo = new Mock<IUserAddressRepository>();
             _mockCurrentUser = new Mock<ICurrentUserService>();
             _mockMapper      = new Mock<IMapper>();
 
@@ -37,17 +39,19 @@ namespace Ecommerce.Test
                     State = req.State, PostalCode = req.PostalCode, Country = req.Country, Label = req.Label
                 });
 
-            _mockMapper.Setup(m => m.Map<AddAddressRequest>(It.IsAny<UserAddress>()))
-                .Returns((UserAddress a) => new AddAddressRequest
+            _mockMapper.Setup(m => m.Map<AddressResponse>(It.IsAny<UserAddress>()))
+                .Returns((UserAddress a) => new AddressResponse
                 {
+                    Id = a.Id,
                     RecipientName = a.RecipientName, Phone = a.Phone,
                     Line1 = a.Line1, Line2 = a.Line2, City = a.City,
                     State = a.State, PostalCode = a.PostalCode, Country = a.Country, Label = a.Label
                 });
 
-            _mockMapper.Setup(m => m.Map<ICollection<AddAddressRequest>>(It.IsAny<ICollection<UserAddress>>()))
-                .Returns((ICollection<UserAddress> list) => list.Select(a => new AddAddressRequest
+            _mockMapper.Setup(m => m.Map<ICollection<AddressResponse>>(It.IsAny<ICollection<UserAddress>>()))
+                .Returns((ICollection<UserAddress> list) => list.Select(a => new AddressResponse
                 {
+                    Id = a.Id,
                     RecipientName = a.RecipientName, Phone = a.Phone,
                     Line1 = a.Line1, Line2 = a.Line2, City = a.City,
                     State = a.State, PostalCode = a.PostalCode, Country = a.Country, Label = a.Label
@@ -58,7 +62,7 @@ namespace Ecommerce.Test
 
             _mockUserRepo.Setup(r => r.VerifyEmailUnique(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(true);
 
-            _userService = new UserService(_mockUserRepo.Object, _mockMapper.Object, _mockCurrentUser.Object);
+            _userService = new UserService(_mockUserRepo.Object, _mockUserAddressRepo.Object, _mockMapper.Object, _mockCurrentUser.Object);
         }
 
 
@@ -406,8 +410,8 @@ namespace Ecommerce.Test
                 State = "Tamil Nadu", PostalCode = "600001", Country = "India"
             };
 
-            _mockUserRepo
-                .Setup(r => r.AddUserAddress(It.IsAny<UserAddress>()))
+            _mockUserAddressRepo
+                .Setup(r => r.Create(It.IsAny<UserAddress>()))
                 .ReturnsAsync((UserAddress a) => a);
 
             
@@ -424,8 +428,8 @@ namespace Ecommerce.Test
             _mockCurrentUser.Setup(c => c.UserId).Returns(17);
             int capturedUserId = 0;
 
-            _mockUserRepo
-                .Setup(r => r.AddUserAddress(It.IsAny<UserAddress>()))
+            _mockUserAddressRepo
+                .Setup(r => r.Create(It.IsAny<UserAddress>()))
                 .Callback<UserAddress>(a => capturedUserId = a.UserId)
                 .ReturnsAsync((UserAddress a) => a);
 
@@ -447,8 +451,8 @@ namespace Ecommerce.Test
         {
            
             _mockCurrentUser.Setup(c => c.UserId).Returns(18);
-            _mockUserRepo
-                .Setup(r => r.AddUserAddress(It.IsAny<UserAddress>()))
+            _mockUserAddressRepo
+                .Setup(r => r.Create(It.IsAny<UserAddress>()))
                 .ReturnsAsync((UserAddress a) => a);
 
             var addressReq = new AddAddressRequest
@@ -468,6 +472,29 @@ namespace Ecommerce.Test
             Assert.That(result.Label, Is.EqualTo("Home"));
         }
 
+        [Test]
+        public async Task AddUserAddress_FailTest_AddressAlreadyExists_ThrowsInvalidOperationException()
+        {
+            _mockCurrentUser.Setup(c => c.UserId).Returns(18);
+            _mockUserAddressRepo
+                .Setup(r => r.Exists(It.IsAny<System.Linq.Expressions.Expression<System.Func<UserAddress, bool>>>()))
+                .ReturnsAsync(true);
+
+            var addressReq = new AddAddressRequest
+            {
+                RecipientName = "Rachel", Phone = "5555555555",
+                Line1 = "99 Park Ave", Line2 = "Suite 10",
+                Landmark = "Near City Park", City = "Pune",
+                State = "Maharashtra", PostalCode = "411001",
+                Country = "India", Label = "Home"
+            };
+
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await _userService.AddUserAddress(addressReq));
+
+            Assert.That(ex.Message, Is.EqualTo("Address already exists."));
+        }
+
 
         [Test]
         public async Task GetAllUserAddress_PassTest_ReturnsAddresses()
@@ -479,7 +506,7 @@ namespace Ecommerce.Test
                 new UserAddress { Id = 1, UserId = 19, City = "Delhi", RecipientName = "Sam", Phone = "1111111111", Line1 = "1 A", State = "DL", PostalCode = "110001" },
                 new UserAddress { Id = 2, UserId = 19, City = "Pune",  RecipientName = "Sam", Phone = "2222222222", Line1 = "2 B", State = "MH", PostalCode = "411001" }
             };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(19)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(19)).ReturnsAsync(addresses);
 
             
             var result = await _userService.GetAllUserAddress();
@@ -493,7 +520,7 @@ namespace Ecommerce.Test
         {
            
             _mockCurrentUser.Setup(c => c.UserId).Returns(20);
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(20)).ReturnsAsync(new List<UserAddress>());
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(20)).ReturnsAsync(new List<UserAddress>());
 
             
             var result = await _userService.GetAllUserAddress();
@@ -511,7 +538,7 @@ namespace Ecommerce.Test
             {
                 new UserAddress { Id = 3, UserId = 21, City = "Bangalore", RecipientName = "Tom", Phone = "3333333333", Line1 = "3 C", State = "KA", PostalCode = "560001" }
             };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(21)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(21)).ReturnsAsync(addresses);
 
             
             var result = await _userService.GetAllUserAddress();

@@ -1,0 +1,39 @@
+<div class="panel">
+  <h3>Discount Distribution</h3>
+  <p class="panel-subtitle">Share of total promotional spend</p>
+
+  @if (loading()) {
+    <div class="skeleton-container">
+      <div class="skeleton-donut"></div>
+      <div class="skeleton-legend">
+        <div class="skeleton-legend-item"></div>
+        <div class="skeleton-legend-item"></div>
+        <div class="skeleton-legend-item"></div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <span>{{ error() }}</span>
+      <button (click)="fetchDiscountDistribution()" class="retry-btn">Retry</button>
+    </div>
+  } @else if (discountDistribution(); as data) {
+    <div class="donut-wrapper">
+      <div class="donut" [style.background]="donutGradient(data.slices)">
+        <div class="donut-center">
+          <strong>{{ data.totalTypes }}</strong>
+          <span>types</span>
+        </div>
+      </div>
+    </div>
+
+    <ul class="legend two-col">
+      @for (slice of data.slices; track slice.label) {
+        <li>
+          <span class="legend-dot" [style.background]="slice.color"></span>
+          {{ slice.label }}
+          <span class="legend-pct">{{ slice.percentage }}%</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

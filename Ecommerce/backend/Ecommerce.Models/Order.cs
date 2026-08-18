@@ -38,6 +38,7 @@ namespace Ecommerce.Models
         public OrderStatus Status { get; set; }
         public PaymentStatus OrderPaymentStatus { get; set; }
         public string? StripePaymentIntentId { get; set; } 
+        public string? IdempotencyKey { get; set; }
         public DateTime PlacedAt { get; set; } = DateTime.Now;
         public int? UserAddressId { get; set; }
 

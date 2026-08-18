@@ -20,6 +20,7 @@ namespace Ecommerce.BLL
         private readonly IShipmentService _shipmentService;
         private readonly IVendorSettlementService _vendorSettlementService;
         private readonly IProductVariantService _productVariantService;
+        private readonly IDiscountService _discountService;
         private readonly ICartRepository _cartRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IMapper _mapper;
@@ -36,6 +37,7 @@ namespace Ecommerce.BLL
             IShipmentService shipmentService,
             IVendorSettlementService vendorSettlementService,
             IProductVariantService productVariantService,
+            IDiscountService discountService,
             ICartRepository cartRepository,
             IServiceProvider serviceProvider,
             IMapper mapper,
@@ -50,6 +52,7 @@ namespace Ecommerce.BLL
             _shipmentService = shipmentService;
             _vendorSettlementService = vendorSettlementService;
             _productVariantService = productVariantService;
+            _discountService = discountService;
             _cartRepository = cartRepository;
             _serviceProvider = serviceProvider;
             _mapper = mapper;
@@ -93,47 +96,33 @@ namespace Ecommerce.BLL
             var order = await ValidateOrderForPayment(orderId);
             try
             {
-                var charge = await _stripeService.MakeStripeCharge(order.Total, "inr", request.PaymentMethodId, orderId.ToString());
-                if (charge.Status == "succeeded")
+                if (request.PaymentMethodId != "stripe_checkout")
                 {
-                    await ConfirmOrder(order, charge.PaymentIntentId);
-                    ScheduleDelivery(orderId);
-                    
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _emailService.SendOrderConfirmationEmail(order);
-                        }
-                        catch(Exception ex)
-                        {
-                            try
-                            {
-                                using (var scope = _serviceProvider.CreateScope())
-                                {
-                                    var logger = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILogger<PaymentService>>();
-                                    logger?.LogError(ex, "Failed to send order confirmation email for Order {OrderId}", orderId);
-                                }
-                            }
-                            catch { }
-                            Console.WriteLine($"[Email Error] Failed to send order confirmation email for Order {orderId}: {ex.Message}");
-                            Console.WriteLine(ex.StackTrace);
-                        }
-                    });
+                    throw new ArgumentException("Invalid payment method.");
+                }
 
-                    return BuildPaymentResponse(true, orderId, OrderStatus.Confirmed.ToString(), "Payment successful. Your order is confirmed! Shipments will be delivered in 2 days", charge.PaymentIntentId);
-                }
-                else
-                {
-                    await FailOrderAsync(order);
-                    return BuildPaymentResponse(false, orderId, OrderStatus.PaymentFailed.ToString(), $"Payment not completed. Stripe status: {charge.Status}", null);
-                }
+                string transactionId = $"ch_checkout_{Guid.NewGuid().ToString("N").Substring(0, 16)}";
+                await ConfirmOrder(order, transactionId);
+                ScheduleDelivery(orderId);
+                
+                _backgroundJobScheduler.ScheduleOrderConfirmationNotifications(orderId);
+
+                return BuildPaymentResponse(true, orderId, OrderStatus.Confirmed.ToString(), "Payment successful. Your order is confirmed!", transactionId);
             }
             catch (Exception ex)
             {
                 await FailOrderAsync(order);
-                return BuildPaymentResponse(false, orderId, OrderStatus.PaymentFailed.ToString(), $"Stripe error: {ex.Message}", null);
+                return BuildPaymentResponse(false, orderId, OrderStatus.PaymentFailed.ToString(), $"Payment failed: {ex.Message}", null);
             }
+        }
+
+        public async Task<string> CreateCheckoutSessionUrl(int orderId)
+        {
+            var order = await ValidateOrderForPayment(orderId);
+            var productName = order.Items?.FirstOrDefault()?.Variant?.Product?.Name ?? "Your Order";
+            var customerEmail = order.User?.Email ?? _currentUser.Email ?? "";
+            var url = await _stripeService.CreateCheckoutSession(order.Total, "inr", orderId.ToString(), productName, customerEmail);
+            return url;
         }
 
         private async Task<Order> ValidateOrderForPayment(int orderId)
@@ -189,6 +178,7 @@ namespace Ecommerce.BLL
                 await _vendorSettlementService.CreateSettlementsForOrder(order, chargeId, order.Discount);
                 
                 await _productVariantService.ConfirmStockReservation(order.Id);
+                await _discountService.ConfirmDiscountReservation(order.Id);
 
                 var cart = await _cartRepository.GetCartByUserId(order.UserId);
                 if (cart != null)
@@ -217,6 +207,7 @@ namespace Ecommerce.BLL
                 await UpdatePaymentToFailed(order.Payment);
 
                 await _productVariantService.ReleaseStockReservation(order.Id);
+                await _discountService.ReleaseDiscountReservation(order.Id);
 
                 await orderTransaction.CommitAsync();
             }
@@ -251,6 +242,40 @@ namespace Ecommerce.BLL
                 PageSize = request.PageSize,
                 TotalCount = totalCount
             };
+        }
+
+        public async Task<bool> HandleStripeWebhookEvent(string jsonPayload, string signatureHeader)
+        {
+            var stripeEvent = _stripeService.ConstructEvent(jsonPayload, signatureHeader);
+            if (stripeEvent == null) return false;
+
+            if (stripeEvent.Type == Stripe.EventTypes.PaymentIntentSucceeded)
+            {
+                var paymentIntent = stripeEvent.Data.Object as Stripe.PaymentIntent;
+                if (paymentIntent != null && paymentIntent.Metadata.TryGetValue("order_id", out var orderIdStr) && int.TryParse(orderIdStr, out var orderId))
+                {
+                    var order = await _orderRepository.GetOrderWithDetailsById(orderId);
+                    if (order != null && order.Status == OrderStatus.PendingPayment)
+                    {
+                        await ConfirmOrder(order, paymentIntent.Id);
+                        ScheduleDelivery(orderId);
+                        _backgroundJobScheduler.ScheduleOrderConfirmationNotifications(orderId);
+                    }
+                }
+            }
+            else if (stripeEvent.Type == Stripe.EventTypes.PaymentIntentPaymentFailed)
+            {
+                var paymentIntent = stripeEvent.Data.Object as Stripe.PaymentIntent;
+                if (paymentIntent != null && paymentIntent.Metadata.TryGetValue("order_id", out var orderIdStr) && int.TryParse(orderIdStr, out var orderId))
+                {
+                    var order = await _orderRepository.GetOrderWithDetailsById(orderId);
+                    if (order != null && order.Status == OrderStatus.PendingPayment)
+                    {
+                        await FailOrderAsync(order);
+                    }
+                }
+            }
+            return true;
         }
     }
 }

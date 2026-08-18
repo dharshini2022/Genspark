@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Ecommerce.BLL;
 using Ecommerce.Contracts.Repositories;
+using Ecommerce.Contracts.Services;
 using Ecommerce.Models;
 using Moq;
 using NUnit.Framework;
@@ -14,13 +16,28 @@ namespace Ecommerce.Test
     public class ShipmentServiceTest
     {
         private Mock<IShipmentRepository> _mockShipmentRepo;
+        private Mock<IOrderRepository> _mockOrderRepo;
+        private Mock<ICurrentUserService> _mockCurrentUserService;
+        private Mock<IVendorRepository> _mockVendorRepo;
+        private Mock<IMapper> _mockMapper;
         private ShipmentService _shipmentService;
 
         [SetUp]
         public void Setup()
         {
             _mockShipmentRepo = new Mock<IShipmentRepository>();
-            _shipmentService = new ShipmentService(_mockShipmentRepo.Object);
+            _mockOrderRepo = new Mock<IOrderRepository>();
+            _mockCurrentUserService = new Mock<ICurrentUserService>();
+            _mockVendorRepo = new Mock<IVendorRepository>();
+            _mockMapper = new Mock<IMapper>();
+
+            _shipmentService = new ShipmentService(
+                _mockShipmentRepo.Object,
+                _mockOrderRepo.Object,
+                _mockCurrentUserService.Object,
+                _mockVendorRepo.Object,
+                _mockMapper.Object
+            );
         }
 
         [Test]

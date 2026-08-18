@@ -20,7 +20,10 @@ namespace Ecommerce.Test
         private Mock<IVendorRepository> _mockVendorRepo;
         private Mock<IUserRepository> _mockUserRepo;
         private Mock<ICurrentUserService> _mockCurrentUser;
+        private Mock<IOrderItemRepository> _mockOrderItemRepo;
         private Mock<IMapper> _mockMapper;
+        private Mock<INotificationService> _mockNotificationService;
+        private Mock<IEmailService> _mockEmailService;
         private VendorService _vendorService;
 
         [SetUp]
@@ -29,13 +32,19 @@ namespace Ecommerce.Test
             _mockVendorRepo = new Mock<IVendorRepository>();
             _mockUserRepo = new Mock<IUserRepository>();
             _mockCurrentUser = new Mock<ICurrentUserService>();
+            _mockOrderItemRepo = new Mock<IOrderItemRepository>();
             _mockMapper = new Mock<IMapper>();
+            _mockNotificationService = new Mock<INotificationService>();
+            _mockEmailService = new Mock<IEmailService>();
 
             _vendorService = new VendorService(
                 _mockVendorRepo.Object,
                 _mockUserRepo.Object,
                 _mockCurrentUser.Object,
-                _mockMapper.Object
+                _mockOrderItemRepo.Object,
+                _mockMapper.Object,
+                _mockNotificationService.Object,
+                _mockEmailService.Object
             );
         }
 
@@ -236,7 +245,7 @@ namespace Ecommerce.Test
         public async Task ToggleVendorStatus_ShouldToggleStatus_WhenValid()
         {
            
-            var vendor = new Vendor { Id = 100 };
+            var vendor = new Vendor { Id = 100, Status = VendorStatus.Approved };
             _mockVendorRepo.Setup(r => r.GetByUserId(1)).ReturnsAsync(vendor);
             _mockVendorRepo.Setup(r => r.ToggleVendorStatus(100)).ReturnsAsync(vendor);
             _mockMapper.Setup(m => m.Map<VendorStatusResponse>(vendor)).Returns(new VendorStatusResponse());
@@ -247,6 +256,24 @@ namespace Ecommerce.Test
             
             Assert.That(result, Is.Not.Null);
             _mockVendorRepo.Verify(r => r.ToggleVendorStatus(100), Times.Once);
+        }
+
+        [Test]
+        public async Task ToggleVendorStatus_ShouldApprove_WhenPending()
+        {
+            var vendor = new Vendor { Id = 100, UserId = 200, Status = VendorStatus.Pending, StoreName = "test" };
+            var user = new User { Id = 200, Email = "test@example.com", FullName = "Test" };
+            _mockVendorRepo.Setup(r => r.GetByUserId(1)).ReturnsAsync(vendor);
+            _mockVendorRepo.Setup(r => r.GetById(100)).ReturnsAsync(vendor);
+            _mockVendorRepo.Setup(r => r.Update(100, It.IsAny<Vendor>())).ReturnsAsync(vendor);
+            _mockUserRepo.Setup(r => r.GetById(200)).ReturnsAsync(user);
+            _mockUserRepo.Setup(r => r.Update(200, It.IsAny<User>())).ReturnsAsync(user);
+            _mockMapper.Setup(m => m.Map<VendorStatusResponse>(vendor)).Returns(new VendorStatusResponse());
+
+            var result = await _vendorService.ToggleVendorStatus(1);
+
+            Assert.That(result, Is.Not.Null);
+            _mockVendorRepo.Verify(r => r.Update(100, It.IsAny<Vendor>()), Times.Once);
         }
 
         [Test]

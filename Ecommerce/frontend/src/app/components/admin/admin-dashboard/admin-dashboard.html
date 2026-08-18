@@ -1,0 +1,35 @@
+<div class="dashboard-wrapper">
+
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Platform-wide performance overview</p>
+    </div>
+    <div class="header-actions">
+      <input 
+        type="month" 
+        [value]="selectedMonth()" 
+        (change)="onMonthChange($event)" 
+        class="month-btn" 
+        style="font-family: inherit; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 16px; background: white;" />
+      <button class="export-btn" (click)="exportReport()">⬆ Export report</button>
+    </div>
+  </div>
+
+  <app-kpi-grid [month]="selectedMonth()"></app-kpi-grid>
+
+  <div class="row row-3col">
+    <app-revenue-breakdown></app-revenue-breakdown>
+    <app-order-status></app-order-status>
+    <app-recent-orders></app-recent-orders>
+  </div>
+
+  <div class="row row-3col">
+    <app-top-products [month]="selectedMonth()"></app-top-products>
+    <app-discount-distribution></app-discount-distribution>
+    <app-recent-notifications></app-recent-notifications>
+  </div>
+
+  <app-performance-metrics [month]="selectedMonth()"></app-performance-metrics>
+
+</div>

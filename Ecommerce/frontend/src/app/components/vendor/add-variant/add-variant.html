@@ -1,0 +1,194 @@
+<div class="variant-form-card">
+  <div class="card-header">
+    <div class="header-title">
+      <span class="icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cpu" viewBox="0 0 16 16">
+          <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h.5a.5.5 0 0 1 .5.5v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v.5a.5.5 0 0 1-.5.5h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-.5a.5.5 0 0 1-.5-.5v-1H2v-1.5a.5.5 0 0 1 0-1H2v-1.5a.5.5 0 0 1 0-1H2v-1.5a.5.5 0 0 1 0-1H2v-.5a.5.5 0 0 1 .5-.5h1V2h1.5a.5.5 0 0 1 0-1H5zm1 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+        </svg>
+      </span>
+      <h3>{{ variantToEdit ? 'Update Variant' : 'Add Variant #' + variantNumber }}</h3>
+    </div>
+    <button class="close-btn" (click)="discard()" aria-label="Close variant form">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="fields-grid">
+    <div class="form-group">
+      <label for="stockQty">Stock Quantity</label>
+      <input 
+        type="number" 
+        id="stockQty" 
+        [ngModel]="stockQty()" 
+        (ngModelChange)="stockQty.set($event)" 
+        placeholder="e.g. 100" 
+        min="0"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="price">Price (INR) <span class="required">*</span></label>
+      <div class="price-input-wrapper">
+        <span class="currency-symbol">₹</span>
+        <input 
+          type="number" 
+          id="price" 
+          [ngModel]="price()" 
+          (ngModelChange)="price.set($event)" 
+          placeholder="0.00" 
+          min="0.01" 
+          step="0.01"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group toggle-group">
+    <label>Default Variant?</label>
+    <div class="toggle-buttons">
+      <button 
+        type="button" 
+        class="toggle-btn" 
+        [class.active]="isDefault()" 
+        (click)="setDefault(true)">
+        <span class="check-icon" *ngIf="isDefault()">✓</span>
+        Yes
+      </button>
+      <button 
+        type="button" 
+        class="toggle-btn" 
+        [class.active]="!isDefault()" 
+        (click)="setDefault(false)">
+        <span class="check-icon" *ngIf="!isDefault()">✓</span>
+        No
+      </button>
+    </div>
+  </div>
+
+  <div class="sub-section ai-specs-section">
+    <div class="section-header">
+      <h4>AI Spec Assistant</h4>
+      <span class="section-subtitle">Describe variant specs to extract features automatically</span>
+    </div>
+
+    <div class="form-group spec-desc-group">
+      <div class="spec-input-container">
+        <textarea 
+          id="specDescription" 
+          [ngModel]="specDescription()" 
+          (ngModelChange)="specDescription.set($event)" 
+          placeholder="Describe your specs in detail... (Or type a few keywords and click Generate Spec!)" 
+          rows="4"
+          class="spec-textarea"
+        ></textarea>
+        <button 
+          type="button" 
+          class="btn-generate-spec" 
+          [disabled]="generatingSpecs() || !specDescription().trim()"
+          (click)="generateSpecsFromAI()"
+        >
+          <span class="spinner-small" *ngIf="generatingSpecs()"></span>
+          <span *ngIf="!generatingSpecs()">Generate Spec</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="section-header">
+      <h4>Features</h4>
+      <span class="section-subtitle">Key-Value pairs</span>
+    </div>
+
+    <div class="features-list">
+      @for (feat of features(); track $index) {
+        <div class="feature-row">
+          <input 
+            type="text" 
+            [(ngModel)]="feat.key" 
+            placeholder="key (e.g. color)" 
+            class="feature-input"
+          />
+          <input 
+            type="text" 
+            [(ngModel)]="feat.value" 
+            placeholder="Value (e.g. Midnight Black)" 
+            class="feature-input value-input"
+          />
+          <button class="row-delete-btn" (click)="removeFeaturePair($index)" aria-label="Delete feature pair">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+            </svg>
+          </button>
+        </div>
+      }
+
+      <button type="button" class="add-row-btn" (click)="addFeaturePair()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5a.5.5 0 0 1 .5-.5"/>
+        </svg>
+        Add Pair
+      </button>
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="section-header">
+      <h4>Images</h4>
+      <span class="section-subtitle">Click to choose or drag photos</span>
+    </div>
+
+    <div class="upload-zone-wrapper">
+      <input 
+        #fileInput 
+        type="file" 
+        style="display: none;"
+        accept="image/*" 
+        multiple
+        (change)="onFileSelected($event)" 
+      />
+      <div class="upload-placeholder" (click)="fileInput.click()">
+        <div class="upload-icon-circle">
+          <span class="upload-icon">📷</span>
+        </div>
+        <span class="upload-instructions">Click to choose or drag photos from your device</span>
+      </div>
+
+      @if (images().length > 0) {
+        <div class="previews-container-grid">
+          @for (img of images(); track $index) {
+            <div class="preview-box">
+              <img [src]="(img.previewUrl || img.url) | resolveImage" alt="Variant preview" class="preview-img" />
+              <button type="button" class="btn-remove-photo-circle" (click)="removeImage($index)" title="Remove Photo">
+                ✕
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="error-banner" *ngIf="errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+    </svg>
+    <span>{{ errorMsg() }}</span>
+  </div>
+
+  <div class="card-footer">
+    <button type="button" class="btn-secondary" (click)="discard()" [disabled]="saving()">
+      Discard
+    </button>
+    <button type="button" class="btn-primary" (click)="saveVariant()" [disabled]="saving()">
+      <span class="spinner-small" *ngIf="saving()"></span>
+      <span *ngIf="!saving()">
+        <span class="check-icon">✓</span> {{ variantToEdit ? 'Update Variant' : 'Save Variant' }}
+      </span>
+      <span *ngIf="saving()">Saving...</span>
+    </button>
+  </div>
+</div>

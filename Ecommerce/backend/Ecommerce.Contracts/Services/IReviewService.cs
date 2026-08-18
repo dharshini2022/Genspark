@@ -10,6 +10,7 @@ namespace Ecommerce.Contracts.Services
         Task<ICollection<ReviewDTO>> GetUserReviews(int userId);
         Task<ICollection<ReviewDTO>> GetProductReviews(int productId);
         Task<ICollection<ReviewDTO>> GetVendorReviews(int vendorId);
-        Task<ICollection<ReviewDTO>> GetAllReviews(); // Admin
+        Task<ICollection<ReviewDTO>> GetAllReviews(); 
+        Task<ReviewDTO?> GetReviewByUserAndProduct(int userId, int productId);
     }
 }

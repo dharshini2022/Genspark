@@ -2,7 +2,7 @@ namespace Ecommerce.Models.DTOs
 {
     public class DiscountResponse
     {
-        public int Id;
+        public int Id { get; set; }
         public int? VendorId { get; set; }
         public int? ProductId {get; set; }
         public int? CategoryId { get; set; }

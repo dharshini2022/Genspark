@@ -8,5 +8,7 @@ namespace Ecommerce.Models.DTOs
         public string? SortBy { get; set; } 
         public string? SortOrder { get; set; } 
         public string? SearchQuery { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
     }
 }

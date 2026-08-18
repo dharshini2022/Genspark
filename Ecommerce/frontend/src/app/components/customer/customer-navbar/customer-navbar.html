@@ -1,0 +1,71 @@
+<header class="navbar">
+
+  <div class="brand" routerLink="/customer-home">
+    <span class="logo-hex">⬡</span>
+    <span class="brand-name">ShopHive</span>
+  </div>
+
+  <div class="search-section">
+    <div class="search-bar">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Search products..." (keyup.enter)="onSearch()"/>
+      <button class="search-action-btn" (click)="onSearch()" type="button">Search</button>
+    </div>
+  </div>
+
+  <div class="right-section">
+    
+    <button class="icon-btn" aria-label="Notifications" (click)="toggleNotificationSidebar($event)">
+      <i class="bi bi-bell"></i>
+      @if (notificationService.unreadCount() > 0) {
+        <span class="cart-badge">{{ notificationService.unreadCount() }}</span>
+      }
+    </button>
+
+    <button class="icon-btn cart-btn" aria-label="Wishlist" routerLink="/customer-home/wishlist">
+      <i class="bi bi-heart"></i>
+      @if (wishlistCount() > 0) {
+        <span class="cart-badge">{{ wishlistCount() }}</span>
+      }
+    </button>
+
+    <button class="icon-btn cart-btn" aria-label="Cart" routerLink="/customer-home/cart">
+      <i class="bi bi-cart3"></i>
+      @if (cartCount() > 0) {
+        <span class="cart-badge">{{ cartCount() }}</span>
+      }
+    </button>
+    @if(isLoggedIn){
+      <div class="profile-container">
+        <button class="profile-btn" (click)="toggleDropdown($event)" aria-haspopup="true" [attr.aria-expanded]="isDropdownOpen()">
+          <i class="bi bi-person-circle profile-icon"></i>
+          <span class="profile-name">{{ name() }}</span>
+          <i class="bi bi-chevron-down chevron-arrow-icon" [class.open]="isDropdownOpen()"></i>
+        </button>
+
+        @if (isDropdownOpen()) {
+          <div class="dropdown-menu">
+            <div class="user-profile-header">
+              <div class="profile-header-name">{{ name() }}</div>
+              <div class="profile-header-email">{{ email() }}</div>
+            </div>
+            <hr class="dropdown-divider">
+            <a routerLink="/customer-home/profile" class="dropdown-item" (click)="closeDropdown()"> <i class="bi bi-person"></i> View Profile </a>
+            <hr class="dropdown-divider">
+            <a routerLink="/customer-home/order-list" class="dropdown-item" (click)="closeDropdown()"> <i class="bi bi-card-list"></i> Order History </a>
+            <hr class="dropdown-divider">
+            <button class="dropdown-item logout-item" (click)="logout()"> <i class="bi bi-box-arrow-right"></i> Logout </button>
+          </div>
+        }
+      </div>
+    }
+    @else{
+      <button class="btn-primary" routerLink="/login">Login</button>
+    }
+    
+
+  </div>
+
+</header>
+
+<app-notification-sidebar [isOpen]="isNotificationSidebarOpen()" (closeSidebar)="closeNotificationSidebar()"></app-notification-sidebar>

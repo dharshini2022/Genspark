@@ -1,0 +1,19 @@
+<div class="toast-global-container">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast-item" [class]="toast.type" (click)="dismissToast(toast.id)">
+      <div class="toast-icon">
+        @if (toast.type === 'success') {
+          <i class="bi bi-check-circle-fill"></i>
+        } @else if (toast.type === 'info') {
+          <i class="bi bi-info-circle-fill"></i>
+        } @else if (toast.type === 'warning') {
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        } @else if (toast.type === 'error') {
+          <i class="bi bi-x-circle-fill"></i>
+        }
+      </div>
+      <div class="toast-message">{{ toast.message }}</div>
+      <button class="toast-close-btn" aria-label="Dismiss">&times;</button>
+    </div>
+  }
+</div>

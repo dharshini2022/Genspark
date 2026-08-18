@@ -32,6 +32,7 @@ namespace Ecommerce.Test
         private Mock<ICartRepository> _mockCartRepo;
         private Mock<IOrderItemRepository> _mockOrderItemRepo;
         private Mock<IUserRepository> _mockUserRepo;
+        private Mock<IUserAddressRepository> _mockUserAddressRepo;
         private Mock<IDiscountService> _mockDiscountService;
         private Mock<ICartService> _mockCartService;
         private Mock<IPaymentService> _mockPaymentService;
@@ -41,6 +42,7 @@ namespace Ecommerce.Test
         private Mock<IProductVariantService> _mockVariantService;
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<IBackgroundJobScheduler> _mockBackgroundJobScheduler;
+        private Mock<ICalculationService> _mockCalculationService;
         private OrderService _orderService;
 
         [SetUp]
@@ -50,7 +52,7 @@ namespace Ecommerce.Test
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
-            _mockDbContext = new Mock<AppDbContext>(options);
+            _mockDbContext = new Mock<AppDbContext>(options) { CallBase = true };
             _mockDatabaseFacade = new Mock<DatabaseFacade>(_mockDbContext.Object);
             _mockTransaction = new Mock<IDbContextTransaction>();
 
@@ -64,6 +66,7 @@ namespace Ecommerce.Test
             _mockCartRepo = new Mock<ICartRepository>();
             _mockOrderItemRepo = new Mock<IOrderItemRepository>();
             _mockUserRepo = new Mock<IUserRepository>();
+            _mockUserAddressRepo = new Mock<IUserAddressRepository>();
             _mockDiscountService = new Mock<IDiscountService>();
             _mockCartService = new Mock<ICartService>();
             _mockPaymentService = new Mock<IPaymentService>();
@@ -72,6 +75,15 @@ namespace Ecommerce.Test
             _mockShipmentService = new Mock<IShipmentService>();
             _mockVariantService = new Mock<IProductVariantService>();
             _mockBackgroundJobScheduler = new Mock<IBackgroundJobScheduler>();
+            _mockCalculationService = new Mock<ICalculationService>();
+
+            var realCalc = new CalculationService();
+            _mockCalculationService.Setup(x => x.CalculateShipping(It.IsAny<ICollection<CartItem>>()))
+                                   .Returns((ICollection<CartItem> items) => realCalc.CalculateShipping(items));
+            _mockCalculationService.Setup(x => x.CalculateTax(It.IsAny<decimal>(), It.IsAny<decimal>()))
+                                   .Returns((decimal sub, decimal disc) => realCalc.CalculateTax(sub, disc));
+            _mockCalculationService.Setup(x => x.CalculateTotal(It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+                                   .Returns((decimal sub, decimal ship, decimal tax, decimal disc) => realCalc.CalculateTotal(sub, ship, tax, disc));
 
             var mockScope = new Mock<IServiceScope>();
             var mockScopeProvider = new Mock<IServiceProvider>();
@@ -96,6 +108,7 @@ namespace Ecommerce.Test
                 _mockCartRepo.Object,
                 _mockOrderItemRepo.Object,
                 _mockUserRepo.Object,
+                _mockUserAddressRepo.Object,
                 _mockDiscountService.Object,
                 _mockCartService.Object,
                 _mockPaymentService.Object,
@@ -104,7 +117,8 @@ namespace Ecommerce.Test
                 _mockShipmentService.Object,
                 _mockVariantService.Object,
                 _mockServiceProvider.Object,
-                _mockBackgroundJobScheduler.Object
+                _mockBackgroundJobScheduler.Object,
+                _mockCalculationService.Object
             );
 
             _orderService.StockReleaseDelay = TimeSpan.Zero;
@@ -115,7 +129,7 @@ namespace Ecommerce.Test
         {
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(new List<UserAddress>());
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(new List<UserAddress>());
             var request = new CreateOrderRequest { UserAddressId = 10 };
 
              
@@ -128,7 +142,7 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             var cart = new Cart { Id = 100, Items = new List<CartItem> { new CartItem() } };
             _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
@@ -143,7 +157,7 @@ namespace Ecommerce.Test
 
             var discount = new Discount { Id = 5 };
             _mockDiscountService.Setup(s => s.ValidateDiscount("CODE", eligibleItems, 200.00m)).ReturnsAsync(discount);
-            _mockDiscountService.Setup(s => s.CalculateDiscountAmount(discount, 200.00m)).ReturnsAsync(20.00m);
+            _mockDiscountService.Setup(s => s.CalculateDiscountAmount(discount, eligibleItems)).ReturnsAsync(20.00m);
 
             var payment = new Payment { Id = 50 };
             _mockPaymentService.Setup(s => s.CreatePendingPayment(It.IsAny<decimal>())).ReturnsAsync(payment);
@@ -174,7 +188,7 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
             
             var product = new Product { Id = 20, VendorId = 2 };
             var variant = new ProductVariant { Id = 30, Price = 100.00m, Product = product };
@@ -197,7 +211,7 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             var cart = new Cart { Id = 100, Items = new List<CartItem>() };
             _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
@@ -287,26 +301,29 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var list = new List<Order> { new Order { Id = 10 } };
-            _mockOrderRepo.Setup(r => r.GetOrdersByUserId(It.IsAny<int>())).ReturnsAsync(list);
+            
+            var pagedResult = ((ICollection<Order>)list, 1);
+            _mockOrderRepo.Setup(r => r.GetPagedOrdersByUserId(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+                           .ReturnsAsync(pagedResult);
 
-            var pagedResult = (list, 1);
             _mockOrderRepo.Setup(r => r.GetPagedOrders(1, 10, "search")).ReturnsAsync(pagedResult);
 
             _mockCurrentUser.Setup(u => u.UserId).Returns(2);
             _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 5 });
-            _mockOrderRepo.Setup(r => r.GetOrdersByVendorId(5)).ReturnsAsync(list);
+            _mockOrderRepo.Setup(r => r.GetPagedOrdersByVendorId(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+                           .ReturnsAsync(pagedResult);
 
             var mappedList = new List<OrderSummaryResponse> { new OrderSummaryResponse { OrderId = 10 } };
             _mockMapper.Setup(m => m.Map<ICollection<OrderSummaryResponse>>(list)).Returns(mappedList);
 
             var myOrders = await _orderService.GetMyOrders();
-            Assert.That(myOrders.First().OrderId, Is.EqualTo(10));
+            Assert.That(myOrders.Items.First().OrderId, Is.EqualTo(10));
 
             var allOrders = await _orderService.GetAllOrders(new OrderFilterRequest { PageNumber = 1, PageSize = 10, SearchTerm = "search" });
             Assert.That(allOrders.Items.First().OrderId, Is.EqualTo(10));
 
             var vendorOrders = await _orderService.GetVendorOrders();
-            Assert.That(vendorOrders.First().OrderId, Is.EqualTo(10));
+            Assert.That(vendorOrders.Items.First().OrderId, Is.EqualTo(10));
         }
 
         [Test]
@@ -315,7 +332,7 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             var cart = new Cart { Id = 100, Items = new List<CartItem>() };
             _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
@@ -385,7 +402,7 @@ namespace Ecommerce.Test
            
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             var cart = new Cart { Id = 100, Items = new List<CartItem> { new CartItem(), new CartItem() } };
             _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
@@ -427,7 +444,7 @@ namespace Ecommerce.Test
         {
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             var cart = new Cart { Id = 100, Items = new List<CartItem> { new CartItem() } };
             _mockCartRepo.Setup(r => r.GetCartByUserId(1)).ReturnsAsync(cart);
@@ -466,7 +483,7 @@ namespace Ecommerce.Test
         {
             _mockCurrentUser.Setup(u => u.UserId).Returns(1);
             var addresses = new List<UserAddress> { new UserAddress { Id = 10, UserId = 1 } };
-            _mockUserRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
+            _mockUserAddressRepo.Setup(r => r.GetAllAddressByUserId(1)).ReturnsAsync(addresses);
 
             _mockCartService.Setup(s => s.GetEligibleItems(1)).ReturnsAsync(new List<CartItem>());
 
@@ -474,6 +491,75 @@ namespace Ecommerce.Test
 
             var ex = Assert.ThrowsAsync<ValidationException>(async () => await _orderService.CreateOrder(request));
             Assert.That(ex.Message, Is.EqualTo("Cart is empty or has no eligible items."));
+        }
+
+        [Test]
+        public async Task CreateOrder_ShouldReturnExistingOrder_WhenIdempotencyKeyMatches()
+        {
+            // Arrange
+            _mockCurrentUser.Setup(u => u.UserId).Returns(1);
+
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            // Re-instantiate service using a database context with CallBase = true and containing the order
+            var dbContextMock = new Mock<AppDbContext>(options) { CallBase = true };
+            dbContextMock.Setup(x => x.Database).Returns(_mockDatabaseFacade.Object);
+
+            var existingOrder = new Order
+            {
+                Id = 123,
+                UserId = 1,
+                Subtotal = 100.00m,
+                Total = 120.00m,
+                DiscountAmount = 10.00m,
+                TaxAmount = 2.00m,
+                ShippingAmount = 8.00m,
+                PlatformCommission = 20.00m,
+                IdempotencyKey = "duplicate-key-123",
+                PaymentId = 1,
+                UserAddressId = 10
+            };
+
+            using (var context = new AppDbContext(options))
+            {
+                context.Orders.Add(existingOrder);
+                await context.SaveChangesAsync();
+            }
+
+            var orderServiceInstance = new OrderService(
+                dbContextMock.Object,
+                _mockOrderRepo.Object,
+                _mockDiscountRepo.Object,
+                _mockVendorRepo.Object,
+                _mockCartRepo.Object,
+                _mockOrderItemRepo.Object,
+                _mockUserRepo.Object,
+                _mockUserAddressRepo.Object,
+                _mockDiscountService.Object,
+                _mockCartService.Object,
+                _mockPaymentService.Object,
+                _mockCurrentUser.Object,
+                _mockMapper.Object,
+                _mockShipmentService.Object,
+                _mockVariantService.Object,
+                _mockServiceProvider.Object,
+                _mockBackgroundJobScheduler.Object,
+                _mockCalculationService.Object
+            );
+
+            var request = new CreateOrderRequest { UserAddressId = 10 };
+
+            // Act
+            var result = await orderServiceInstance.CreateOrder(request, "duplicate-key-123");
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.OrderId, Is.EqualTo(123));
+            Assert.That(result.Total, Is.EqualTo(120.00m));
+            Assert.That(result.Message, Contains.Substring("idempotent request"));
+            _mockOrderRepo.Verify(r => r.Create(It.IsAny<Order>()), Times.Never);
         }
     }
 }

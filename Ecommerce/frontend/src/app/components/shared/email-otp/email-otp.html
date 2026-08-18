@@ -1,0 +1,129 @@
+<div class="page-wrapper">
+  <div class="card">
+    <div class="brand">
+      <span class="logo-hex">⬡</span>
+      <span class="brand-name">ShopHive</span>
+    </div>
+
+    <!-- Step 1: Send OTP -->
+    <div *ngIf="step === 1" class="step-container">
+      <h2>Forgot Password</h2>
+      <p class="subtitle">Enter your email address and we'll send you an OTP to reset your password.</p>
+
+      <form [formGroup]="emailForm" (ngSubmit)="sendOtp()" novalidate>
+        <label class="field-label">Email Address <span class="req">*</span></label>
+        <input
+          type="email"
+          formControlName="email"
+          placeholder="name@example.com"
+          class="text-input"
+          [class.invalid]="ef['email'].invalid && ef['email'].touched"
+        />
+        <div *ngIf="ef['email'].touched && ef['email'].errors?.['required']" class="error-text">
+          Email address is required.
+        </div>
+        <div *ngIf="ef['email'].touched && ef['email'].errors?.['pattern']" class="error-text">
+          Please enter a valid email address (.com, .in, .org).
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Sending OTP...' : 'Send OTP' }}
+        </button>
+      </form>
+
+      <a routerLink="/login" class="back-link">Back to Sign In</a>
+    </div>
+
+    <!-- Step 2: Verify OTP -->
+    <div *ngIf="step === 2" class="step-container">
+      <h2>Verify OTP</h2>
+      <p class="subtitle">We've sent a 6-digit verification code to <strong class="user-email">{{ emailForm.value.email }}</strong>.</p>
+
+      <form [formGroup]="otpForm" (ngSubmit)="verifyOtp()" novalidate>
+        <label class="field-label">Enter 6-Digit OTP <span class="req">*</span></label>
+        <input
+          type="text"
+          formControlName="otp"
+          placeholder="000000"
+          maxlength="6"
+          class="text-input otp-input"
+          [class.invalid]="of['otp'].invalid && of['otp'].touched"
+        />
+        <div *ngIf="of['otp'].touched && of['otp'].errors?.['required']" class="error-text">
+          OTP is required.
+        </div>
+        <div *ngIf="of['otp'].touched && (of['otp'].errors?.['minlength'] || of['otp'].errors?.['pattern'])" class="error-text">
+          OTP must be a 6-digit number.
+        </div>
+
+        <div class="otp-actions">
+          <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Verifying...' : 'Verify OTP' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="resend-section">
+        <p *ngIf="resendCountdown > 0" class="countdown-text">
+          Resend code in <span>{{ resendCountdown }}s</span>
+        </p>
+        <button
+          *ngIf="resendCountdown === 0"
+          type="button"
+          class="btn-resend"
+          (click)="resendOtp()"
+          [disabled]="isSubmitting"
+        >
+          Resend OTP
+        </button>
+      </div>
+
+      <button type="button" class="btn-secondary" (click)="goBackToStep1()">
+        Change Email
+      </button>
+    </div>
+
+    <!-- Step 3: Reset Password -->
+    <div *ngIf="step === 3" class="step-container">
+      <h2>Reset Password</h2>
+      <p class="subtitle">Set your new password to regain access to your account.</p>
+
+      <form [formGroup]="resetForm" (ngSubmit)="resetPassword()" novalidate>
+        <label class="field-label">New Password <span class="req">*</span></label>
+        <input
+          type="password"
+          formControlName="password"
+          placeholder="Min 6 characters"
+          class="text-input"
+          [class.invalid]="rf['password'].invalid && rf['password'].touched"
+        />
+        <div *ngIf="rf['password'].touched && rf['password'].errors?.['required']" class="error-text">
+          New password is required.
+        </div>
+        <div *ngIf="rf['password'].touched && rf['password'].errors?.['minlength']" class="error-text">
+          Password must be at least 6 characters.
+        </div>
+
+        <label class="field-label">Confirm Password <span class="req">*</span></label>
+        <input
+          type="password"
+          formControlName="confirmPassword"
+          placeholder="Re-enter your new password"
+          class="text-input"
+          [class.invalid]="(rf['confirmPassword'].invalid && rf['confirmPassword'].touched) || (resetForm.errors?.['mismatch'] && rf['confirmPassword'].touched)"
+        />
+        <div *ngIf="rf['confirmPassword'].touched && rf['confirmPassword'].errors?.['required']" class="error-text">
+          Confirm password is required.
+        </div>
+        <div *ngIf="resetForm.errors?.['mismatch'] && rf['confirmPassword'].touched" class="error-text">
+          Passwords do not match.
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Resetting Password...' : 'Reset Password' }}
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>

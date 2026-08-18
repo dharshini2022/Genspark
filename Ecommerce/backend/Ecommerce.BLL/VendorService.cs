@@ -13,14 +13,20 @@ namespace Ecommerce.BLL
         private readonly IVendorRepository _vendorRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IOrderItemRepository _orderItemRepository;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
+        private readonly IEmailService _emailService;
 
-        public VendorService(IVendorRepository vendorRepository, IUserRepository userRepository, ICurrentUserService currentUserService, IMapper mapper)
+        public VendorService(IVendorRepository vendorRepository, IUserRepository userRepository, ICurrentUserService currentUserService, IOrderItemRepository orderItemRepository, IMapper mapper, INotificationService notificationService, IEmailService emailService)
         {
             _vendorRepository = vendorRepository;
             _userRepository = userRepository;
             _currentUserService = currentUserService;
+            _orderItemRepository = orderItemRepository;
             _mapper = mapper;
+            _notificationService = notificationService;
+            _emailService = emailService;
         }
 
         public async Task<VendorProfileResponse> CreateVendor(CreateVendorRequest vendor)
@@ -42,7 +48,31 @@ namespace Ecommerce.BLL
             
             createdVendor.User = await _userRepository.GetById(createdVendor.UserId) ?? throw new KeyNotFoundException("User not found.");
             
+            await NotifiyAdmins(createdVendor);
+
             return _mapper.Map<VendorProfileResponse>(createdVendor);
+        }
+
+        private async Task NotifiyAdmins(Vendor vendor)
+        {
+            try
+            {
+                var admins = await _userRepository.GetAllByRole(UserRole.Admin);
+                foreach (var admin in admins)
+                {
+                    await _notificationService.CreateNotification(
+                        admin.Id,
+                        NotificationType.VendorPending,
+                        NotificationLevel.Info,
+                        "Pending Vendor Registration",
+                        $"New vendor registered: {vendor.StoreName} is pending approval. (Vendor ID: #{vendor.Id})"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Notification Error] Failed to notify admins about new vendor: {ex.Message}");
+            }
         }
 
         public async Task<VendorProfileResponse> UpdateVendor(UpdateVendorRequest vendor)
@@ -101,8 +131,46 @@ namespace Ecommerce.BLL
         {
             var vendor = await _vendorRepository.GetByUserId(id);
             if (vendor == null) throw new InvalidVendorException("Vendor not found for the current user.");
-            await _vendorRepository.ToggleVendorStatus(vendor.Id);
-            return _mapper.Map<VendorStatusResponse>(vendor);
+            
+            if (vendor.Status == VendorStatus.Pending)
+            {
+                await ApproveVendor(vendor.Id);
+                var updatedVendor = await _vendorRepository.GetById(vendor.Id);
+                return _mapper.Map<VendorStatusResponse>(updatedVendor);
+            }
+
+            var toggled = await _vendorRepository.ToggleVendorStatus(vendor.Id);
+            if (toggled != null && toggled.Status == VendorStatus.Approved)
+            {
+                try
+                {
+                    await _notificationService.CreateNotification(
+                        toggled.UserId,
+                        NotificationType.VendorApproved,
+                        NotificationLevel.Success,
+                        "Vendor Status Approved",
+                        "Vendor Status Approved, Start Selling!"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Notification Error] Failed to notify vendor of approval: {ex.Message}");
+                }
+
+                try
+                {
+                    var user = await _userRepository.GetById(toggled.UserId);
+                    if (user != null)
+                    {
+                        await _emailService.SendVendorApprovalEmail(user.Email, toggled.StoreName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Email Error] Failed to send vendor approval email: {ex.Message}");
+                }
+            }
+            return _mapper.Map<VendorStatusResponse>(toggled);
         }
 
         public async Task<PageResponse<VendorProfileResponse>> GetAllVendors(PageRequest query)
@@ -178,6 +246,37 @@ namespace Ecommerce.BLL
             if (!await ChangeUserRole(existingVendor.UserId, UserRole.Vendor)) throw new InvalidOperationException("Failed to update user status for the vendor.");
 
             var approvedResult = await _vendorRepository.Update(existingVendor.Id, existingVendor);
+            if (approvedResult != null)
+            {
+                try
+                {
+                    await _notificationService.CreateNotification(
+                        existingVendor.UserId,
+                        NotificationType.VendorApproved,
+                        NotificationLevel.Success,
+                        "Vendor Status Approved",
+                        "Vendor Status Approved, Start Selling!"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Notification Error] Failed to notify vendor of approval: {ex.Message}");
+                }
+
+                try
+                {
+                    var user = await _userRepository.GetById(existingVendor.UserId);
+                    if (user != null)
+                    {
+                        await _emailService.SendVendorApprovalEmail(user.Email, existingVendor.StoreName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Email Error] Failed to send vendor approval email: {ex.Message}");
+                }
+            }
+
             return _mapper.Map<VendorProfileResponse>(approvedResult ?? throw new InvalidVendorException("Failed to approve vendor."));
         }
 
@@ -217,6 +316,22 @@ namespace Ecommerce.BLL
             int vendorId = vendor?.Id ?? 0;
             if (panNumber.Length != 10) throw new InvalidVendorException("Invalid PAN Number. PAN Number must be 10 characters long.");
             return await _vendorRepository.VerifyPANUnique(panNumber.ToUpper(), vendorId);
+        }
+
+        public async Task<decimal> GetAdminRevenueForVendor(int vendorId)
+        {
+            var items = await _orderItemRepository.GetAll();
+            var vendorItems = items.Where(i => i.VendorId == vendorId).ToList();
+            if (!vendorItems.Any()) return 0m;
+
+            var orderGroups = vendorItems.GroupBy(i => i.OrderId);
+            decimal revenue = 0m;
+            foreach (var group in orderGroups)
+            {
+                decimal orderVendorTotal = group.Sum(i => i.UnitPrice * i.Quantity);
+                revenue += 20m + (0.02m * orderVendorTotal);
+            }
+            return revenue;
         }
     }
 }

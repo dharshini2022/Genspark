@@ -4,10 +4,11 @@ namespace Ecommerce.Contracts.Repositories
 {
     public interface IReviewRepository : IRepository<int, Review>
     {
-        Task<ICollection<Review>> GetReviewsByProductIdAsync(int productId);
-        Task<ICollection<Review>> GetReviewsByUserIdAsync(int userId);
-        Task<ICollection<Review>> GetReviewsByVendorIdAsync(int vendorId);
-        Task<Review?> GetReviewWithDetailsByIdAsync(int reviewId);
+        Task<ICollection<Review>> GetReviewsByProductId(int productId);
+        Task<ICollection<Review>> GetReviewsByUserId(int userId);
+        Task<ICollection<Review>> GetReviewsByVendorId(int vendorId);
+        Task<Review?> GetReviewWithDetailsById(int reviewId);
         Task<ICollection<Review>> GetAllReviewsWithDetails();
+        Task<Review?> GetReviewByUserAndProduct(int userId, int productId);
     }
 }

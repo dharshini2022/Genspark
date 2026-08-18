@@ -1,0 +1,148 @@
+<div class="tab-card shadow-sm form-card">
+  <div class="tab-card-header">
+    <h5 class="tab-card-title">Create New Discount Coupon</h5>
+    <button class="action-btn-secondary" (click)="cancelAddDiscount()">Back to List</button>
+  </div>
+  <div class="form-container-pad">
+    <form (submit)="submitDiscount($event)" class="discount-form">
+      <div class="form-grid-2col">
+        
+        @if (isAdmin) {
+          <div class="form-group-field">
+            <label for="discountScope" class="form-label-style">Discount Scope</label>
+            <select 
+              id="discountScope" 
+              [ngModel]="selectedScope()" 
+              (ngModelChange)="onScopeChange($event)"
+              name="scope" 
+              required 
+              class="form-control-style">
+              <option value="Common">Common (Global)</option>
+              <option value="Product">Product Specific</option>
+              <option value="Category">Category Specific</option>
+            </select>
+          </div>
+        }
+
+        @if (selectedScope() === 'Product') {
+          <div class="form-group-field autocomplete-wrapper">
+            <label for="productSearch" class="form-label-style">Select Product</label>
+            <input 
+              type="text" 
+              id="productSearch" 
+              [ngModel]="productSearchQuery()" 
+              (ngModelChange)="onProductSearchChange($event)"
+              name="productSearch" 
+              required 
+              class="form-control-style" 
+              placeholder="Type to search product..."
+              autocomplete="off">
+            @if (searchedProducts().length > 0) {
+              <ul class="autocomplete-dropdown">
+                @for (product of searchedProducts(); track product.id) {
+                  <li (click)="selectProduct(product)" class="autocomplete-item">
+                    {{ product.name }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        @if (selectedScope() === 'Category') {
+          <div class="form-group-field">
+            <label for="discountCategory" class="form-label-style">Select Category</label>
+            <select 
+              id="discountCategory" 
+              [ngModel]="selectedCategoryId()" 
+              (ngModelChange)="selectedCategoryId.set($event)"
+              name="categoryId" 
+              required 
+              class="form-control-style">
+              <option [value]="null" disabled>-- Select a Category --</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        <div class="form-group-field">
+          <label for="discountType" class="form-label-style">Discount Type</label>
+          <select 
+            id="discountType" 
+            [ngModel]="newDiscountType()" 
+            (ngModelChange)="newDiscountType.set($event)"
+            name="type" 
+            required 
+            class="form-control-style">
+            <option value="Flat">Flat Amount (₹)</option>
+            <option value="Percentage">Percentage (%)</option>
+          </select>
+        </div>
+
+        <div class="form-group-field">
+          <label for="discountValue" class="form-label-style">Value</label>
+          <input 
+            type="number" 
+            id="discountValue" 
+            [ngModel]="newDiscountValue()" 
+            (ngModelChange)="newDiscountValue.set($event)"
+            name="value" 
+            min="0.01"
+            required 
+            class="form-control-style" 
+            placeholder="e.g. 10">
+        </div>
+
+        <div class="form-group-field">
+          <label for="minOrderValue" class="form-label-style">Min Order Value (₹)</label>
+          <input 
+            type="number" 
+            id="minOrderValue" 
+            [ngModel]="newDiscountMinOrder()" 
+            (ngModelChange)="newDiscountMinOrder.set($event)"
+            name="minOrderValue" 
+            min="0"
+            required 
+            class="form-control-style" 
+            placeholder="e.g. 100">
+        </div>
+
+        <div class="form-group-field">
+          <label for="usageLimit" class="form-label-style">Usage Limit</label>
+          <input 
+            type="number" 
+            id="usageLimit" 
+            [ngModel]="newDiscountUsageLimit()" 
+            (ngModelChange)="newDiscountUsageLimit.set($event)"
+            name="usageLimit" 
+            min="10"
+            required 
+            class="form-control-style" 
+            placeholder="e.g. 50">
+          <small class="form-tip-text">Must be at least 10 uses.</small>
+        </div>
+
+        <div class="form-group-field full-width">
+          <label for="expiresAt" class="form-label-style">Expires At</label>
+          <input 
+            type="date" 
+            id="expiresAt" 
+            [ngModel]="newDiscountExpiry()" 
+            (ngModelChange)="newDiscountExpiry.set($event)"
+            name="expiresAt" 
+            required 
+            class="form-control-style">
+        </div>
+
+      </div>
+
+      <div class="form-actions-row">
+        <button type="submit" class="submit-action-btn" [disabled]="submittingDiscount()">
+          {{ submittingDiscount() ? 'Creating...' : 'Create Discount' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

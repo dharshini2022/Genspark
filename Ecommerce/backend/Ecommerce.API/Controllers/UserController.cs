@@ -27,6 +27,15 @@ namespace Ecommerce.API.Controllers
             return Ok(result);
         }
 
+        [Authorize]
+        [HttpGet("my-token-payload")]
+        public async Task<IActionResult> GetCurrentUserDetails()
+        {
+            int userId = _currentUserService.UserId;
+            var result = await _userService.GetUserDetails(userId);
+            return Ok(result);
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserDetails(int userId)
@@ -75,11 +84,20 @@ namespace Ecommerce.API.Controllers
             return Ok(result);
         }
 
+
         [Authorize(Roles = "Customer")]
-        [HttpGet("AllUserAdress")]
-        public async Task<IActionResult> GetAllUserAddress()
+        [HttpGet("GetMyAddress")]
+        public async Task<IActionResult> GetMyAddress()
         {
             var result = await _userService.GetAllUserAddress();
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Customer")]
+        [HttpPut("UserAddress/{id}")]
+        public async Task<IActionResult> UpdateUserAddress(int id, [FromBody] AddAddressRequest request)
+        {
+            var result = await _userService.UpdateUserAddress(id, request);
             return Ok(result);
         }
 

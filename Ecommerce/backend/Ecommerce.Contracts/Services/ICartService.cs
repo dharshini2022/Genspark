@@ -11,5 +11,7 @@ namespace Ecommerce.Contracts.Services
         Task<CartItemDeletionResponse> RemoveFromCart(int cartItemId);
         Task<CartItemResponse> UpdateCartItemQuantity(int cartItemId, UpdateCartItemRequest request);
         Task ClearCart();
+        Task ApplyDiscount(string discountCode);
+        Task RemoveDiscount();
     }
 }

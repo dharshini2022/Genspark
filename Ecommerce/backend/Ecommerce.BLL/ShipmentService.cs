@@ -1,16 +1,32 @@
+using AutoMapper;
 using Ecommerce.Contracts.Repositories;
 using Ecommerce.Contracts.Services;
 using Ecommerce.Models;
+using Ecommerce.Models.DTOs;
+using Ecommerce.Shared.Exceptions;
 
 namespace Ecommerce.BLL
 {
     public class ShipmentService : IShipmentService
     {
         private readonly IShipmentRepository _shipmentRepository;
+        private readonly IOrderRepository _orderRepository;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IVendorRepository _vendorRepository;
+        private readonly IMapper _mapper;
 
-        public ShipmentService(IShipmentRepository shipmentRepository)
+        public ShipmentService(
+            IShipmentRepository shipmentRepository,
+            IOrderRepository orderRepository,
+            ICurrentUserService currentUserService,
+            IVendorRepository vendorRepository,
+            IMapper mapper)
         {
             _shipmentRepository = shipmentRepository;
+            _orderRepository = orderRepository;
+            _currentUserService = currentUserService;
+            _vendorRepository = vendorRepository;
+            _mapper = mapper;
         }
 
         public async Task<Shipment> GetShipmentDetails(int shipmentId)
@@ -75,6 +91,44 @@ namespace Ecommerce.BLL
 
             await _shipmentRepository.Update(shipmentId, shipment);
             return true;
+        }
+
+        public async Task<ICollection<ShipmentResponseDTO>> GetShipmentsByOrderIdAsync(int orderId)
+        {
+            var order = await _orderRepository.GetOrderWithDetailsById(orderId) 
+                ?? throw new KeyNotFoundException($"Order {orderId} not found.");
+
+            var role = _currentUserService.Role;
+            var userId = _currentUserService.UserId;
+
+            if (role == "Customer" && order.UserId != userId)
+            {
+                throw new InvalidOwnershipException("Access denied. You do not own this order.");
+            }
+
+            var shipments = await _shipmentRepository.GetShipmentsByOrderIdAsync(orderId);
+
+            if (role == "Vendor")
+            {
+                var vendor = await _vendorRepository.GetByUserId(userId) 
+                    ?? throw new KeyNotFoundException("Vendor profile not found for current user.");
+
+                foreach (var s in shipments)
+                {
+                    s.OrderItems = s.OrderItems
+                        .Where(oi => oi.VendorId == vendor.Id)
+                        .ToList();
+                }
+
+                var filteredShipments = shipments
+                    .Where(s => s.OrderItems.Any())
+                    .ToList();
+
+                var dtoList = _mapper.Map<ICollection<ShipmentResponseDTO>>(filteredShipments);
+                return dtoList;
+            }
+
+            return _mapper.Map<ICollection<ShipmentResponseDTO>>(shipments);
         }
     }
 }

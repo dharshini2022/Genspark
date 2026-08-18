@@ -1,0 +1,105 @@
+<div class="wishlist-page-container">
+  <div class="wishlist-header">
+    <h2 class="wishlist-title">My Wishlist <span class="item-count">({{ wishlistItems().length }} items)</span></h2>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <p>Loading your wishlist...</p>
+    </div>
+  } @else if (wishlistItems().length === 0) {
+    <div class="empty-wishlist-state">
+      <i class="bi bi-heartbreak empty-icon"></i>
+      <h3>Your wishlist is empty</h3>
+      <p>Explore our products and add your favorites to the wishlist!</p>
+      <button class="btn-primary-shopping" routerLink="/customer-home/products-list">Explore Products</button>
+    </div>
+  } @else {
+    <div class="wishlist-content-grid">
+      
+      <div class="wishlist-left-col">
+        <div class="wishlist-items-card">
+          <div class="wishlist-items-header">
+            <div class="wishlist-items-title-wrapper">
+              <i class="bi bi-heart-fill wishlist-icon-title"></i>
+              <span class="wishlist-items-title-text">Wishlist Items</span>
+              <span class="wishlist-items-count-badge">{{ wishlistItems().length }}</span>
+            </div>
+            <button class="clear-wishlist-header-btn" (click)="clearWishlist()">Clear wishlist</button>
+          </div>
+
+          <div class="wishlist-items-list">
+            @for (item of wishlistItems(); track item.id) {
+              <div class="wishlist-item-row">
+                <button class="remove-item-btn" (click)="removeItem(item.id)" aria-label="Remove item">×</button>
+                
+                <div class="item-product-details">
+                  <img [src]="item.imageUrl | resolveImage" alt="{{ item.name }}" class="item-thumbnail" />
+                  <div class="item-meta">
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="item-category">{{ item.category }}</span>
+                    <div class="item-stock-status">
+                      @if (item.isInStock) {
+                        <span class="status-badge in-stock"><span class="dot-indicator"></span> In Stock</span>
+                      } @else {
+                        <span class="status-badge out-of-stock"><span class="dot-indicator"></span> Out of Stock</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="item-action-price-section">
+                  <div class="item-price-info">
+                    <span class="item-price">Rs. {{ item.price | number:'1.2-2' }}</span>
+                  </div>
+                  
+                  <button 
+                    class="add-to-cart-btn" 
+                    [disabled]="!item.isInStock" 
+                    (click)="addToCart(item)"
+                    aria-label="Add to cart">
+                    <i class="bi bi-cart-plus"></i> <span class="btn-text">Add to Cart</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="wishlist-right-col">
+        <div class="wishlist-summary-card">
+          <h3 class="summary-card-title">Wishlist Summary</h3>
+          
+          <div class="summary-breakdown-rows">
+            <div class="summary-row">
+              <span class="row-label">Total Items</span>
+              <span class="row-value">{{ wishlistItems().length }}</span>
+            </div>
+            
+            <div class="summary-row">
+              <span class="row-label">In-stock Items</span>
+              <span class="row-value">{{ inStockItemsCount() }}</span>
+            </div>
+          </div>
+
+          <div class="summary-divider-line"></div>
+
+          <button class="add-all-btn" [disabled]="inStockItemsCount() === 0" (click)="addAllToCart()">
+            Add All In-Stock to Cart
+          </button>
+          
+          <button class="clear-wishlist-btn" (click)="clearWishlist()">
+            Clear Wishlist
+          </button>
+
+          <button class="continue-shopping-btn" routerLink="/customer-home/products-list">
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

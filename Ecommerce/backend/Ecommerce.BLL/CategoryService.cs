@@ -20,8 +20,8 @@ namespace Ecommerce.BLL
 
         public async Task<CategoryResponse> Create(CreateCategoryRequest request)
         {
-            if (await SlugExists(request.Slug))    throw new UniquenessViolationException($"Slug '{request.Slug}' is already in use.");
-            if(await _categoryRepository.NameExists(request.Name))     throw new UniquenessViolationException($"Category name '{request.Name}' is already in use.");
+            if (await _categoryRepository.Exists(c => c.slug == request.Slug.Trim().ToLower()))    throw new UniquenessViolationException($"Slug '{request.Slug}' is already in use.");
+            if (await _categoryRepository.Exists(c => c.Name == request.Name.Trim().ToLower()))     throw new UniquenessViolationException($"Category name '{request.Name}' is already in use.");
 
             var category = new Category
             {
@@ -42,6 +42,11 @@ namespace Ecommerce.BLL
         {
             var existing = await _categoryRepository.GetById(id)  ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
 
+            if (request.IsActive.HasValue)
+            {
+                existing.isActive = request.IsActive.Value;
+            }
+
             if (request.ParentId.HasValue)
             {
                 if (request.ParentId.Value == id)   throw new InvalidAncestorException("Cannot set a category as its own parent.");                    
@@ -52,13 +57,13 @@ namespace Ecommerce.BLL
             }
             if (!string.IsNullOrWhiteSpace(request.Slug) && !string.Equals(existing.slug, request.Slug.Trim().ToLower()))
             {
-                if (await SlugExists(request.Slug.Trim().ToLower()))   throw new UniquenessViolationException($"Slug '{request.Slug}' is already in use.");
+                if (await _categoryRepository.Exists(c => c.slug == request.Slug.Trim().ToLower() && c.Id != id))   throw new UniquenessViolationException($"Slug '{request.Slug}' is already in use.");
                 existing.slug = request.Slug.Trim().ToLower();
             }
 
-            if (!string.IsNullOrWhiteSpace(request.Name))
+            if (!string.IsNullOrWhiteSpace(request.Name) && !string.Equals(existing.Name, request.Name.Trim().ToLower()))
             {
-                if (await _categoryRepository.NameExists(request.Name.Trim().ToLower()))   throw new UniquenessViolationException($"Name '{request.Name}' is already in use.");
+                if (await _categoryRepository.Exists(c => c.Name == request.Name.Trim().ToLower() && c.Id != id))   throw new UniquenessViolationException($"Name '{request.Name}' is already in use.");
                 existing.Name = request.Name.Trim().ToLower();
             }
 
@@ -78,7 +83,7 @@ namespace Ecommerce.BLL
             foreach (var cat in all)
             {
                 var value = _mapper.Map<CategoryTreeResponse>(cat);
-                value.ProductCount = cat.Products.Count;
+                value.ProductCount = cat.Products.Count(p => p.Status == ProductStatus.Active);
                 lookup[cat.Id] = value;
             }
 
@@ -121,7 +126,7 @@ namespace Ecommerce.BLL
 
         public async Task<ICollection<CategoryResponse>> GetFlatList()
         {
-            var all = await _categoryRepository.GetAll();
+            var all = await _categoryRepository.GetFlatList();
             var result = new List<CategoryResponse>();
             foreach (var cat in all)
             {

@@ -3,10 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Ecommerce.Models.DTOs
 {
-
-
-    
-
     public class OrderItemDTO
     {
         public int Id { get; set; }
@@ -15,8 +11,8 @@ namespace Ecommerce.Models.DTOs
         public string ProductName { get; set; } = null!;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public int VendorId { get; set; }
-        public string VendorStoreName { get; set; } = null!;
     }
 
 
@@ -93,6 +89,7 @@ namespace Ecommerce.Models.DTOs
         public int OrderId { get; set; }
         public decimal GrossAmount { get; set; }
         public decimal ShippingAmount { get; set; }
+        public decimal VendorDiscountAmount { get; set; }
         public decimal PlatformCommissionAmount { get; set; }
         public decimal NetPayoutAmount { get; set; }
         public string Status { get; set; } = null!;

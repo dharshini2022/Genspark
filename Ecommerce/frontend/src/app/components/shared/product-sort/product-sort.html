@@ -1,0 +1,37 @@
+<div class="products-header-sticky">
+  <div class="top-meta-row">
+    <div class="breadcrumbs">
+      <button class="mobile-menu-btn" (click)="toggleSidebar.emit()">
+        <i class="bi bi-list"></i>
+      </button>
+      <a routerLink="/" class="breadcrumb-link">Home</a>
+      <span class="breadcrumb-separator">></span>
+      <span class="breadcrumb-current">All Products</span>
+    </div>
+    <div class="total-units">
+      Total Products: <strong>{{ totalProducts() }} units</strong>
+    </div>
+  </div>
+
+  <div class="sort-header-row">
+    <span class="sort-title">Sort By</span>
+    <span class="sort-divider">|</span>
+    <div class="sort-options">
+      <button class="sort-option-btn" [class.active]="currentSort() === 'price_asc'" (click)="onSortClick('price', 'asc')">
+        Price — Low to High
+      </button>
+      <button class="sort-option-btn" [class.active]="currentSort() === 'price_desc'" (click)="onSortClick('price', 'desc')">
+        Price — High to Low
+      </button>
+      <button class="sort-option-btn" [class.active]="currentSort() === 'newest'" (click)="onSortClick('newest', 'desc')">
+        Newest First
+      </button>
+      <button class="sort-option-btn" [class.active]="currentSort() === 'rating'" (click)="onSortClick('rating', 'desc')">
+        Highest Rating
+      </button>
+      <button class="sort-option-btn" [class.active]="currentSort() === 'discount'" (click)="onSortClick('discount', 'desc')">
+        Discount
+      </button>
+    </div>
+  </div>
+</div>

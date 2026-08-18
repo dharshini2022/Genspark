@@ -15,6 +15,7 @@ using Ecommerce.DAL.Context;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 
 namespace Ecommerce.BLL
 {
@@ -24,15 +25,19 @@ namespace Ecommerce.BLL
         private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
         private ICurrentUserService _currentUserService;
 
-        public AuthService(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IMapper mapper,  IConfiguration configuration, ICurrentUserService currentUserService)
+        private static readonly ConcurrentDictionary<string, (string Otp, DateTime Expiry)> _forgotPasswordOtps = new();
+
+        public AuthService(IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IMapper mapper,  IConfiguration configuration, ICurrentUserService currentUserService, IEmailService emailService)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
             _mapper = mapper;
             _configuration = configuration;
             _currentUserService = currentUserService;
+            _emailService = emailService;
         }
 
         public async Task<RegisterResponse> Register(RegisterRequest request)
@@ -50,9 +55,10 @@ namespace Ecommerce.BLL
             if(_currentUserService.Role == "Admin"){
                 user.Role = UserRole.Admin;
             }
-
-            user.Role = UserRole.Customer;
-
+            else{
+                user.Role = UserRole.Customer;
+            }
+            
             var createdUser = await _userRepository.Create(user);
 
             return  _mapper.Map<RegisterResponse>(createdUser);
@@ -73,7 +79,7 @@ namespace Ecommerce.BLL
             }
 
             var accessToken = GenerateJwtToken(user);
-            var refreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshTokenString = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
             var hashedRefreshToken = BCrypt.Net.BCrypt.HashPassword(refreshTokenString);
 
             var refreshTokenEntity = new RefreshToken
@@ -86,20 +92,29 @@ namespace Ecommerce.BLL
 
             await _refreshTokenRepository.Create(refreshTokenEntity);
 
-            _currentUserService = new CurrentUserService(new HttpContextAccessor());
             return new TokenResponse
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshTokenString,
-                ExpiresAt = DateTime.Now.AddMinutes(15)
+                ExpiresAt = DateTime.Now.AddMinutes(30),
+                Role = user.Role.ToString()
             };
         }
 
-        public async Task<TokenResponse> RefreshToken(string refreshToken)
+        public async Task<TokenResponse> RefreshToken(string expiredAccessToken, string refreshToken)
         {
-            var userId = _currentUserService.UserId;
+            var principal = GetPrincipalFromExpiredToken(expiredAccessToken);
+            var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                throw new UnauthorizedAccessException("Invalid token claims.");
+            }
+
             var tokenEntities = await _refreshTokenRepository.GetTokensByUserIdWithUser(userId);
-            var tokenEntity = tokenEntities.FirstOrDefault(rt => BCrypt.Net.BCrypt.Verify(refreshToken, rt.Token));
+            
+            // Optimize BCrypt verify loop by only verifying active (unrevoked, unexpired) tokens.
+            var activeTokenEntities = tokenEntities.Where(rt => !rt.IsRevoked && rt.ExpiresAt > DateTime.Now);
+            var tokenEntity = activeTokenEntities.FirstOrDefault(rt => BCrypt.Net.BCrypt.Verify(refreshToken, rt.Token));
             
             if (tokenEntity == null || tokenEntity.IsRevoked || tokenEntity.ExpiresAt < DateTime.Now)
             {
@@ -109,11 +124,11 @@ namespace Ecommerce.BLL
             tokenEntity.IsRevoked = true;
             await _refreshTokenRepository.Update(tokenEntity.Id, tokenEntity);
 
-            var newRefreshTokenString = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var newRefreshTokenString = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
             var newRefreshTokenEntity = new RefreshToken
             {
                 UserId = tokenEntity.UserId,
-                Token = newRefreshTokenString,
+                Token = BCrypt.Net.BCrypt.HashPassword(newRefreshTokenString),
                 ExpiresAt = DateTime.Now.AddDays(7),
                 IsRevoked = false
             };
@@ -126,8 +141,40 @@ namespace Ecommerce.BLL
             {
                 AccessToken = newAccessToken,
                 RefreshToken = newRefreshTokenString,
-                ExpiresAt = newRefreshTokenEntity.ExpiresAt
+                ExpiresAt = newRefreshTokenEntity.ExpiresAt,
+                Role = tokenEntity.User.Role.ToString()
             };
+        }
+
+        private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "SuperSecretKeyForJWTEcommerceProject2026!")),
+                ValidateLifetime = false, 
+                ValidIssuer = _configuration["Jwt:Issuer"] ?? "Ecommerce.API",
+                ValidAudience = _configuration["Jwt:Audience"] ?? "Ecommerce.Client"
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            
+            if (securityToken is not JwtSecurityToken jwtSecurityToken)
+            {
+                throw new SecurityTokenException("Invalid token format.");
+            }
+
+            var algorithm = jwtSecurityToken.Header.Alg;
+            if (!algorithm.Equals(SecurityAlgorithms.HmacSha256Signature, StringComparison.InvariantCultureIgnoreCase) &&
+                !algorithm.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("Invalid token signature algorithm.");
+            }
+
+            return principal;
         }
 
         public async Task<bool> Logout(string refreshToken, int userId)
@@ -183,6 +230,77 @@ namespace Ecommerce.BLL
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        public async Task<bool> SendForgotPasswordOtp(string email)
+        {
+            var user = await _userRepository.GetByEmail(email);
+            if (user == null)
+            {
+                throw new InvalidOperationException("Email address is not registered.");
+            }
+
+            var otp = Random.Shared.Next(100000, 999999).ToString();
+            var expiry = DateTime.Now.AddMinutes(10);
+            _forgotPasswordOtps[email.ToLower().Trim()] = (otp, expiry);
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.SendOtpEmail(email, otp);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sending password reset OTP email: {ex.Message}");
+                }
+            });
+
+            return true;
+        }
+
+        public Task<bool> VerifyForgotPasswordOtp(string email, string otp)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(otp))
+            {
+                return Task.FromResult(false);
+            }
+
+            var key = email.ToLower().Trim();
+            if (_forgotPasswordOtps.TryGetValue(key, out var storedInfo))
+            {
+                if (storedInfo.Expiry >= DateTime.Now && storedInfo.Otp == otp.Trim())
+                {
+                    return Task.FromResult(true);
+                }
+            }
+
+            return Task.FromResult(false);
+        }
+
+        public async Task<bool> ResetPasswordWithOtp(string email, string otp, string newPassword)
+        {
+            var key = email.ToLower().Trim();
+            if (!_forgotPasswordOtps.TryGetValue(key, out var storedInfo) || storedInfo.Expiry < DateTime.Now || storedInfo.Otp != otp.Trim())
+            {
+                throw new InvalidOperationException("Invalid or expired OTP.");
+            }
+
+            var user = await _userRepository.GetByEmail(email);
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            var success = await _userRepository.ChangePassword(user.Id, newHash);
+
+            if (success)
+            {
+                _forgotPasswordOtps.TryRemove(key, out _);
+            }
+
+            return success;
         }
     }
 }

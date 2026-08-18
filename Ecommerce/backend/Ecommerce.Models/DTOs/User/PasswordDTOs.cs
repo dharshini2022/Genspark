@@ -29,4 +29,28 @@ namespace Ecommerce.Models.DTOs
         [EmailAddress(ErrorMessage = "Email must be a valid email address.")]
         public string Email { get; set; } = null!;
     }
+
+    public class ForgotPasswordVerifyOtpRequest
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Email must be a valid email address.")]
+        public string Email { get; set; } = null!;
+
+        [Required(ErrorMessage = "OTP is required.")]
+        public string Otp { get; set; } = null!;
+    }
+
+    public class ForgotPasswordResetPasswordRequest
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Email must be a valid email address.")]
+        public string Email { get; set; } = null!;
+
+        [Required(ErrorMessage = "OTP is required.")]
+        public string Otp { get; set; } = null!;
+
+        [Required(ErrorMessage = "New password is required.")]
+        [MinLength(6, ErrorMessage = "New password must be at least 6 characters long.")]
+        public string NewPassword { get; set; } = null!;
+    }
 }

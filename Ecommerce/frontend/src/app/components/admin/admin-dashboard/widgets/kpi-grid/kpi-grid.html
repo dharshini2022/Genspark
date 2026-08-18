@@ -1,0 +1,80 @@
+@if (loading()) {
+  <div class="stats-grid">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="stat-card skeleton">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+    }
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <span>{{ error() }}</span>
+    <button (click)="fetchKpis(month())" class="retry-btn">Retry</button>
+  </div>
+} @else if (kpis()) {
+  @if (kpis(); as stats) {
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-top">
+          <span>Total Revenue</span>
+          <span class="icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-currency-rupee" viewBox="0 0 16 16">
+              <path d="M4 3.06h2.726c1.22 0 2.12.575 2.325 1.724H4v1.051h5.051C8.855 7.001 8 7.558 6.788 7.558H4v1.317L8.437 14h2.11L6.095 8.884h.855c2.316-.018 3.465-1.476 3.688-3.049H12V4.784h-1.345c-.08-.778-.357-1.335-.793-1.732H12V2H4z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="stat-value">Rs. {{ (stats.totalRevenue.value) | number:'1.2-2' }}</div>
+        <div class="stat-change" [class.up]="stats.totalRevenue.changeDirection === 'up'" [class.down]="stats.totalRevenue.changeDirection === 'down'">
+          {{ stats.totalRevenue.changeDirection === 'up' ? '▲' : '▼' }} {{ stats.totalRevenue.changePercent }}% vs last month
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span>Total Orders</span>
+          <span class="icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart-check-fill" viewBox="0 0 16 16">
+              <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m-1.646-7.646-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708"/>
+            </svg>
+          </span>
+        </div>
+        <div class="stat-value">{{ stats.totalOrders.value | number }}</div>
+        <div class="stat-change" [class.up]="stats.totalOrders.changeDirection === 'up'" [class.down]="stats.totalOrders.changeDirection === 'down'">
+          {{ stats.totalOrders.changeDirection === 'up' ? '▲' : '▼' }} {{ stats.totalOrders.changePercent }}% vs last month
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span>Active Products</span>
+          <span class="icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box" viewBox="0 0 16 16">
+              <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="stat-value">{{ stats.activeProducts.value | number }}</div>
+        <div class="stat-change" [class.up]="stats.activeProducts.changeDirection === 'up'" [class.down]="stats.activeProducts.changeDirection === 'down'">
+          {{ stats.activeProducts.changeDirection === 'up' ? '▲' : '▼' }} {{ stats.activeProducts.changePercent }}% vs last month
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <span>Active Vendors</span>
+          <span class="icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
+            <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
+          </svg>
+          </span>
+        </div>
+        <div class="stat-value">{{ stats.activeVendors.value | number }}</div>
+        <div class="stat-change" [class.up]="stats.activeVendors.changeDirection === 'up'" [class.down]="stats.activeVendors.changeDirection === 'down'">
+          {{ stats.activeVendors.changeDirection === 'up' ? '▲' : '▼' }} {{ stats.activeVendors.changePercent }}% vs last month
+        </div>
+      </div>
+    </div>
+  }
+}

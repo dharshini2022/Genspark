@@ -1,0 +1,179 @@
+<div class="order-detail-wrapper">
+  
+  <nav class="breadcrumb-nav">
+    <button class="bc-back-btn" (click)="goBack()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+      </svg>
+      Back to Orders
+    </button>
+  </nav>
+
+  @if (loading()) {
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <p>Loading order details...</p>
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="error-container">
+      <span class="error-icon">⚠️</span>
+      <p>{{ errorMsg() }}</p>
+      <button class="btn-retry" (click)="loadOrderDetail()">Retry</button>
+    </div>
+  }
+
+  @if (!loading() && order()) {
+    <div class="detail-card shadow-sm">
+      
+      <div class="order-detail-header" [class]="getOrderStatusClass(order()!.status)">
+        <div class="header-col">
+          <span class="col-label">Order ID</span>
+          <span class="col-value">#ORD-{{ order()!.orderId }}</span>
+        </div>
+        <div class="header-col">
+          <span class="col-label">Payment Method</span>
+          <span class="col-value">{{ order()!.paymentMethod || 'Stripe' }}</span>
+        </div>
+        <div class="header-col">
+          <span class="col-label">Transaction ID</span>
+          <span class="col-value text-truncate">{{ order()!.transactionId || 'TRK-' + order()!.orderId + 'SFE' }}</span>
+        </div>
+        <div class="header-col action-col">
+          <button class="btn-invoice" (click)="downloadInvoice()">Download Invoice</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <h3 class="panel-title">Order Details</h3>
+        
+        <div class="order-items-table-container">
+          <table class="order-items-table" aria-label="Order items list">
+            <thead>
+              <tr>
+                <th scope="col" class="th-products">Products</th>
+                <th scope="col" class="th-qty">Qty</th>
+                <th scope="col" class="th-price">Unit Price</th>
+                <th scope="col" class="th-subtotal">Sub Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of order()!.items; track item.id) {
+                <tr>
+                  <td>
+                    <div class="product-info-col">
+                      <div class="product-img-wrapper">
+                        @if (item.imageUrl) {
+                          <img [src]="item.imageUrl | resolveImage" alt="{{ item.productName }}" class="product-thumb">
+                        } @else {
+                          <div class="product-thumb-fallback">📦</div>
+                        }
+                      </div>
+                      <div class="product-text-details">
+                        <h4 class="product-name">
+                          <a [routerLink]="getProductDetailRoute(item.productId)">{{ item.productName }}</a>
+                        </h4>
+                        @if (getOrderStatusLabel(order()!.status) === 'DELIVERED') {
+                          <button class="btn-review" [disabled]="!isCustomer()" (click)="navigateToReview(item.productId)">Review this Product</button>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-qty" data-label="Quantity">{{ item.quantity }}</td>
+                  <td class="td-price" data-label="Unit Price">₹{{ item.unitPrice | number:'1.2-2' }}</td>
+                  <td class="td-subtotal" data-label="Sub Total">₹{{ (item.unitPrice * item.quantity) | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (role() !== 'Vendor') {
+          <div class="summary-section">
+            <div class="summary-row">
+              <span class="summary-label">Shipping</span>
+              <span class="summary-val">₹{{ order()!.shippingAmount | number:'1.2-2' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Taxes</span>
+              <span class="summary-val">₹{{ order()!.taxAmount | number:'1.2-2' }}</span>
+            </div>
+            @if (order()!.discountAmount > 0) {
+              <div class="summary-row discount-row">
+                <span class="summary-label">Coupon Discount</span>
+                <span class="summary-val">-₹{{ order()!.discountAmount | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="summary-row divider"></div>
+            <div class="summary-row total-row">
+              <span class="summary-label bold">Total</span>
+              <span class="summary-val bold accent">₹{{ order()!.total | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (shipments().length > 0) {
+          <div class="shipments-section">
+            <h3 class="shipments-title">Shipment Information</h3>
+            
+            @for (ship of shipments(); track ship.id) {
+              <div class="shipment-card">
+                <div class="shipment-card-header">
+                  <div class="shipment-title-group">
+                    <span class="shipment-id">Shipment #{{ ship.id }}</span>
+                    <span class="shipment-badge" [class]="getShipmentStatusClass(ship.status)">
+                      {{ getShipmentStatusLabel(ship.status) }}
+                    </span>
+                  </div>
+                  <div class="shipment-tracking">
+                    <span class="tracking-label">Tracking:</span>
+                    <span class="tracking-val">{{ ship.trackingNumber }}</span>
+                  </div>
+                </div>
+
+                <div class="shipment-card-body">
+                  <div class="shipment-details-grid">
+                    <div class="detail-item">
+                      <span class="lbl">Estimated Delivery</span>
+                      <span class="val">{{ ship.estimatedFullfillement | date:'mediumDate' }}</span>
+                    </div>
+                    @if (ship.shippedAt) {
+                      <div class="detail-item">
+                        <span class="lbl">Shipped At</span>
+                        <span class="val">{{ ship.shippedAt | date:'mediumDate' }}</span>
+                      </div>
+                    }
+                    @if (ship.fulfilledAt) {
+                      <div class="detail-item">
+                        <span class="lbl">Fulfilled At</span>
+                        <span class="val">{{ ship.fulfilledAt | date:'mediumDate' }}</span>
+                      </div>
+                    }
+                    <div class="detail-item">
+                      <span class="lbl">Shipping Fee</span>
+                      <span class="val">₹{{ ship.shippingFee | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+
+                  <div class="shipment-items-section">
+                    <h4 class="shipment-items-title">Items in this shipment:</h4>
+                    @for (item of ship.orderItems; track item.id) {
+                      <div class="shipment-item-row">
+                        <span class="item-name">{{ item.productName }}</span>
+                        <span class="item-qty">Qty: {{ item.quantity }}</span>
+                        <span class="item-price">₹{{ item.unitPrice | number:'1.2-2' }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+
+    </div>
+  }
+</div>

@@ -1,0 +1,216 @@
+<div class="checkout-page-container">
+  
+  <div class="checkout-header-bar">
+    <button class="back-circle-btn" routerLink="/customer-home/cart" title="Back to Cart">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <h2 class="checkout-title">Order Checkout</h2>
+  </div>
+
+  <div class="checkout-content-flow">
+    
+    <div class="checkout-section">
+      <div class="section-header">
+        <div class="section-title-wrapper">
+          <i class="bi bi-geo-alt-fill icon-address"></i>
+          <span class="section-title-text">Delivery Address</span>
+        </div>
+        <button class="change-address-btn" (click)="toggleAddressDropdown()">Change</button>
+      </div>
+
+      @if (showAddressDropdown()) {
+        <div class="address-dropdown-container">
+          <div class="address-dropdown-list">
+            @for (address of addresses(); track address.id) {
+              <div class="address-dropdown-item" 
+                   [class.active]="address.id === selectedAddressId()"
+                   (click)="selectAddress(address.id!)">
+                <div class="address-item-left">
+                  <div class="radio-circle" [class.selected]="address.id === selectedAddressId()">
+                    @if (address.id === selectedAddressId()) {
+                      <div class="radio-inner"></div>
+                    }
+                  </div>
+                  <div class="address-item-details">
+                    <div class="address-details-top">
+                      <span class="recipient-name">{{ address.recipientName }}</span>
+                      <span class="address-label">{{ address.label }}</span>
+                      <span class="recipient-phone">{{ address.phone }}</span>
+                    </div>
+                    <p class="address-line">
+                      {{ address.line1 }}@if (address.line2) {, {{ address.line2 }}}@if (address.landmark) {, near {{ address.landmark }}}, {{ address.city }}, {{ address.state }} — <span class="pincode">{{ address.postalCode }}</span>
+                    </p>
+                  </div>
+                </div>
+                <button class="address-edit-link" (click)="openEditAddressForm(address, $event)">Edit</button>
+              </div>
+            }
+          </div>
+          
+          <div class="add-address-dotted-btn" (click)="openAddAddressForm()">
+            <i class="bi bi-plus-circle-dotted"></i>
+            <span>Add New Address</span>
+          </div>
+        </div>
+      }
+
+      @if (getSelectedAddress(); as selectedAddr) {
+        <div class="selected-address-card">
+          <div class="selected-icon-box">
+            <i class="bi bi-geo-alt icon-pin"></i>
+          </div>
+          <div class="selected-details">
+            <div class="details-top">
+              <span class="recipient-name">{{ selectedAddr.recipientName }}</span>
+              <span class="address-label">{{ selectedAddr.label }}</span>
+              <span class="recipient-phone">{{ selectedAddr.phone }}</span>
+            </div>
+            <p class="address-line">
+              {{ selectedAddr.line1 }}@if (selectedAddr.line2) {, {{ selectedAddr.line2 }}}@if (selectedAddr.landmark) {, near {{ selectedAddr.landmark }}}, {{ selectedAddr.city }}, {{ selectedAddr.state }} — <span class="pincode">{{ selectedAddr.postalCode }}</span>
+            </p>
+          </div>
+        </div>
+      } @else {
+        <div class="no-address-state">
+          <i class="bi bi-geo-alt-fill empty-pin"></i>
+          <p>No delivery address selected</p>
+          @if (addresses().length > 0) {
+            <button class="add-first-address-btn" (click)="toggleAddressDropdown()">Select Address</button>
+          } @else {
+            <button class="add-first-address-btn" (click)="openAddAddressForm()">Add Delivery Address</button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="checkout-section">
+      <div class="section-header border-none">
+        <div class="section-title-wrapper">
+          <i class="bi bi-cart-fill icon-summary"></i>
+          <span class="section-title-text">Order Summary <span class="items-count-label">({{ totalItemsCount() }} items)</span></span>
+        </div>
+      </div>
+
+      <div class="summary-items-card">
+        <div class="summary-items-list">
+          @for (item of cartItems(); track item.id) {
+            <div class="summary-item-row">
+              <img [src]="item.imageUrl | resolveImage" alt="{{ item.name }}" class="summary-item-thumb" />
+              <div class="summary-item-info">
+                <span class="summary-item-name">{{ item.name }}</span>
+                <span class="summary-item-category">{{ item.category }}</span>
+              </div>
+              <div class="summary-item-price-info">
+                <span class="summary-item-subtotal">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</span>
+                <span class="summary-item-qty">Qty: {{ item.quantity }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="section-header border-none">
+        <div class="section-title-wrapper">
+          <i class="bi bi-currency-dollar icon-pricing"></i>
+          <span class="section-title-text">Pricing</span>
+        </div>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-rows">
+          <div class="pricing-row">
+            <span class="row-label">Subtotal ({{ totalItemsCount() }} items)</span>
+            <span class="row-value">₹{{ subTotal() | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="pricing-row">
+            <span class="row-label">Shipping</span>
+            @if (shippingCost() === 0) {
+              <span class="row-value shipping-free">Free</span>
+            } @else {
+              <span class="row-value">₹{{ shippingCost() | number:'1.2-2' }}</span>
+            }
+          </div>
+
+          <div class="pricing-row">
+            <span class="row-label">Taxes <span class="tax-note">(2% GST)</span></span>
+            <span class="row-value">₹{{ taxes() | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="pricing-row platform-commission-row">
+            <span class="row-label">Platform Commission <i class="bi bi-question-circle" title="Platform usage fee"></i></span>
+            <span class="row-value">₹{{ platformCommission() | number:'1.2-2' }}</span>
+          </div>
+
+          @if (couponApplied() && discountAmount() > 0) {
+            <div class="applied-coupon-row">
+              <span class="coupon-banner-text">
+                <i class="bi bi-check-lg"></i> Discount ({{ discountCode() }})
+              </span>
+              <span class="coupon-banner-value">-₹{{ discountAmount() | number:'1.2-2' }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="pricing-divider"></div>
+
+        <div class="pricing-row total-row">
+          <span class="total-label">Total</span>
+          <div class="total-value-wrapper">
+            <span class="total-value">₹{{ grandTotal() | number:'1.2-2' }}</span>
+            <span class="total-subtext">inclusive of all taxes</span>
+          </div>
+        </div>
+
+        @if (couponApplied() && discountAmount() > 0) {
+          <div class="savings-banner">
+            <i class="bi bi-check-circle-fill"></i> You're saving on this order <span class="savings-amount">₹{{ discountAmount() | number:'1.2-2' }}</span>
+          </div>
+        }
+
+        <div class="discount-code-tag-row">
+          <div class="tag-left">
+            <i class="bi bi-tag-fill tag-icon"></i>
+            <span class="tag-label">Discount Code</span>
+            @if (couponApplied()) {
+              <span class="applied-tag-badge">{{ discountCode() }}</span>
+            } @else {
+              <span class="no-tag-text">None</span>
+            }
+          </div>
+          <button class="discount-change-btn" (click)="changeDiscountCode()">Change</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-actions-section">
+      <button class="proceed-payment-btn" (click)="proceedToPayment()" [disabled]="addresses().length === 0 || isSubmitting()">
+        @if (isSubmitting()) {
+          <span class="spinner-border" role="status" aria-hidden="true"></span> Processing...
+        } @else {
+          <i class="bi bi-credit-card-2-front"></i> Proceed to Payment
+        }
+      </button>
+
+      <button class="back-to-cart-link" routerLink="/customer-home/cart">
+        <i class="bi bi-chevron-left"></i> Back to Cart
+      </button>
+    </div>
+
+  </div>
+
+  @if (showAddressForm()) {
+    <div class="modal-overlay" (click)="closeAddressForm()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <app-address-form 
+          [address]="selectedAddressForEdit()" 
+          (save)="saveAddress($event)" 
+          (cancel)="closeAddressForm()">
+        </app-address-form>
+      </div>
+    </div>
+  }
+
+</div>

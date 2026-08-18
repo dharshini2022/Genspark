@@ -1,0 +1,126 @@
+<div class="discount-list-container">
+@if (showAddDiscountForm()) {
+  <app-discount-form (cancel)="onFormCancel()" (success)="onFormSuccess()"></app-discount-form>
+} @else {
+  <div class="tab-card shadow-sm">
+    <div class="tab-card-header">
+      <h5 class="tab-card-title">Discounts & Coupons ({{ totalCount() }})</h5>
+      <button class="action-btn-primary" (click)="addDiscount()">Add Discount</button>
+    </div>
+    
+    <div class="loading-indicator" *ngIf="loading() && discounts().length === 0">
+      <p>Loading discounts...</p>
+    </div>
+
+    <div class="table-container" *ngIf="!loading() || discounts().length > 0">
+      @if (discounts().length === 0) {
+        <div class="empty-row-text">No discount codes listed.</div>
+      } @else {
+        <table class="grid-table desktop-table" aria-label="Vendor discount coupons list">
+          <thead>
+            <tr>
+              <th scope="col">CODE</th>
+              <th scope="col">TYPE</th>
+              <th scope="col">VALUE</th>
+              <th scope="col">USED / LIMIT</th>
+              <th scope="col">STATUS</th>
+              <th scope="col">EXPIRES</th>
+              <th scope="col" class="text-right" *ngIf="!isAdminView">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of discounts(); track d.id) {
+              <tr>
+                <td class="bold-text">{{ d.code }}</td>
+                <td>{{ d.type }}</td>
+                <td class="bold-text">
+                  {{ d.type === 'Percentage' ? d.value + '%' : '₹' + d.value }}
+                </td>
+                <td>{{ d.id % 2 === 0 ? '842 / 1000' : '0 / 2000' }}</td>
+                <td>
+                  <span class="status-badge" [class.badge-active]="d.isActive" [class.badge-draft]="!d.isActive">
+                    {{ d.isActive ? 'ACTIVE' : 'EXPIRED' }}
+                  </span>
+                </td>
+                <td>{{ d.expiresAt | date:'mediumDate' }}</td>
+                <td class="text-right actions-column" *ngIf="!isAdminView">
+                  <button 
+                    class="icon-btn-delete" 
+                    [disabled]="!d.isActive" 
+                    (click)="deactivateDiscount(d.code)" 
+                    aria-label="Deactivate coupon">
+                    DeActivate
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="mobile-cards-container">
+          @for (d of discounts(); track d.id) {
+            <div class="discount-card">
+              <div class="card-code-header">
+                <span class="card-label">Code:</span>
+                <span class="card-value bold-text">{{ d.code }}</span>
+              </div>
+              
+              <div class="card-info-grid">
+                <div class="info-item">
+                  <span class="card-label">Type:</span>
+                  <span class="card-value">{{ d.type }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="card-label">Value:</span>
+                  <span class="card-value bold-text">
+                    {{ d.type === 'Percentage' ? d.value + '%' : '₹' + d.value }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="card-info-row">
+                <span class="card-label">Used/Limit:</span>
+                <span class="card-value">{{ d.id % 2 === 0 ? '842 / 1000' : '0 / 2000' }}</span>
+              </div>
+
+              <div class="card-info-row">
+                <span class="card-label">ExpiresAt:</span>
+                <span class="card-value">{{ d.expiresAt | date:'mediumDate' }}</span>
+              </div>
+
+              <div class="card-footer-row">
+                <div class="footer-status">
+                  <span class="status-badge" [class.badge-active]="d.isActive" [class.badge-draft]="!d.isActive">
+                    {{ d.isActive ? 'ACTIVE' : 'EXPIRED' }}
+                  </span>
+                </div>
+                <div class="footer-action" *ngIf="!isAdminView">
+                  <button 
+                    class="icon-btn-delete" 
+                    [disabled]="!d.isActive" 
+                    (click)="deactivateDiscount(d.code)" 
+                    aria-label="Deactivate coupon">
+                    DeActivate
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    
+    @if (totalPages() > 1) {
+      <div class="table-pagination">
+        <button class="pag-btn" [disabled]="page() === 1" (click)="setPage(page() - 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
+        </button>
+        <span class="pag-info">Page {{ page() }} of {{ totalPages() }}</span>
+        <button class="pag-btn" [disabled]="page() === totalPages()" (click)="setPage(page() + 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>
+        </button>
+      </div>
+    }
+  </div>
+}
+</div>

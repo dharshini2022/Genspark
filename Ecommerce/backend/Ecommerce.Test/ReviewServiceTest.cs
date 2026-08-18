@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using Ecommerce.BLL;
 using Ecommerce.Contracts.Repositories;
+using Ecommerce.DAL.Context;
 using Ecommerce.Models;
 using Ecommerce.Models.DTOs;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 using NUnit.Framework;
 
@@ -19,23 +24,47 @@ namespace Ecommerce.Test
         private Mock<IReviewImageRepository> _mockReviewImageRepo;
         private Mock<IOrderRepository> _mockOrderRepo;
         private Mock<IVendorRepository> _mockVendorRepo;
+        private Mock<IProductRepository> _mockProductRepo;
+        private Mock<AppDbContext> _mockDbContext;
+        private Mock<DatabaseFacade> _mockDatabaseFacade;
+        private Mock<IDbContextTransaction> _mockTransaction;
         private Mock<IMapper> _mockMapper;
         private ReviewService _reviewService;
 
         [SetUp]
         public void Setup()
         {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _mockDbContext = new Mock<AppDbContext>(options);
+            _mockDatabaseFacade = new Mock<DatabaseFacade>(_mockDbContext.Object);
+            _mockTransaction = new Mock<IDbContextTransaction>();
+
+            _mockDbContext.Setup(x => x.Database).Returns(_mockDatabaseFacade.Object);
+            _mockDatabaseFacade.Setup(d => d.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+                               .ReturnsAsync(_mockTransaction.Object);
+
             _mockReviewRepo = new Mock<IReviewRepository>();
             _mockReviewImageRepo = new Mock<IReviewImageRepository>();
             _mockOrderRepo = new Mock<IOrderRepository>();
             _mockVendorRepo = new Mock<IVendorRepository>();
+            _mockProductRepo = new Mock<IProductRepository>();
             _mockMapper = new Mock<IMapper>();
+
+            // Setup default product mock to avoid null reference exceptions in common tests
+            var product = new Product { Id = 10, Rating = 4f, ReviewCount = 1 };
+            _mockProductRepo.Setup(r => r.GetById(It.IsAny<int>())).ReturnsAsync(product);
+            _mockProductRepo.Setup(r => r.Update(It.IsAny<int>(), It.IsAny<Product>())).ReturnsAsync(product);
 
             _reviewService = new ReviewService(
                 _mockReviewRepo.Object,
                 _mockReviewImageRepo.Object,
                 _mockOrderRepo.Object,
                 _mockVendorRepo.Object,
+                _mockProductRepo.Object,
+                _mockDbContext.Object,
                 _mockMapper.Object
             );
         }
@@ -185,10 +214,13 @@ namespace Ecommerce.Test
 
             var createdReview = new Review { Id = 100, ProductId = 10, UserId = 1, OrderId = 1, Rating = 5, Title = "Nice" };
             _mockReviewRepo.Setup(r => r.Create(It.IsAny<Review>())).ReturnsAsync(createdReview);
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(createdReview);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(createdReview);
 
             var expectedDto = new ReviewDTO { Id = 100, ProductId = 10, UserId = 1, OrderId = 1, Rating = 5, Title = "Nice" };
             _mockMapper.Setup(m => m.Map<ReviewDTO>(createdReview)).Returns(expectedDto);
+
+            var product = new Product { Id = 10, Rating = 4f, ReviewCount = 1 };
+            _mockProductRepo.Setup(r => r.GetById(10)).ReturnsAsync(product);
 
             var request = new CreateReviewRequest { OrderId = 1, ProductId = 10, Rating = 5, Title = "Nice", ImageUrls = new List<string>() };
 
@@ -198,7 +230,11 @@ namespace Ecommerce.Test
             
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Id, Is.EqualTo(100));
+            Assert.That(product.Rating, Is.EqualTo(4.5f));
+            Assert.That(product.ReviewCount, Is.EqualTo(2));
             _mockReviewRepo.Verify(r => r.Create(It.IsAny<Review>()), Times.Once);
+            _mockProductRepo.Verify(r => r.Update(10, product), Times.Once);
+            _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -222,7 +258,7 @@ namespace Ecommerce.Test
             _mockReviewRepo.Setup(r => r.Create(It.IsAny<Review>()))
                 .Callback<Review>(r => capturedReview = r)
                 .ReturnsAsync(new Review { Id = 100 });
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(new Review());
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(new Review());
 
             var request = new CreateReviewRequest 
             { 
@@ -249,7 +285,7 @@ namespace Ecommerce.Test
         public void UpdateReview_ShouldThrowException_WhenReviewNotFound()
         {
            
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync((Review?)null);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync((Review?)null);
             var request = new UpdateReviewRequest { Rating = 5, Title = "Nice Update" };
 
             Assert.ThrowsAsync<KeyNotFoundException>(async () => await _reviewService.UpdateReview(1, 100, request));
@@ -260,7 +296,7 @@ namespace Ecommerce.Test
         {
            
             var review = new Review { Id = 100, UserId = 2 };
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(review);
             var request = new UpdateReviewRequest { Rating = 5, Title = "Nice Update" };
 
             Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _reviewService.UpdateReview(1, 100, request));
@@ -271,7 +307,7 @@ namespace Ecommerce.Test
         {
            
             var review = new Review { Id = 100, UserId = 1 };
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(review);
             var request = new UpdateReviewRequest { Rating = -0.5m, Title = "Nice Update" };
 
             Assert.ThrowsAsync<ArgumentException>(async () => await _reviewService.UpdateReview(1, 100, request));
@@ -282,7 +318,7 @@ namespace Ecommerce.Test
         {
            
             var review = new Review { Id = 100, UserId = 1 };
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(review);
             var request = new UpdateReviewRequest { Rating = 5.1m, Title = "Nice Update" };
 
             Assert.ThrowsAsync<ArgumentException>(async () => await _reviewService.UpdateReview(1, 100, request));
@@ -292,16 +328,20 @@ namespace Ecommerce.Test
         public async Task UpdateReview_ShouldUpdate_WhenRequestIsValid()
         {
            
-            var review = new Review { Id = 100, UserId = 1, Rating = 4, Title = "Old Title", ReviewImages = new List<ReviewImage>() };
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            var review = new Review { Id = 100, UserId = 1, ProductId = 10, Rating = 4, Title = "Old Title", ReviewImages = new List<ReviewImage>() };
+            var updatedReview = new Review { Id = 100, UserId = 1, ProductId = 10, Rating = 5, Title = "Nice Update" };
+            
+            var queue = new Queue<Review>(new[] { review, updatedReview });
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(() => queue.Dequeue());
             _mockReviewImageRepo.Setup(r => r.HardDeleteImagesByReviewId(100)).ReturnsAsync(true);
             
-            var updatedReview = new Review { Id = 100, UserId = 1, Rating = 5, Title = "Nice Update" };
             _mockReviewRepo.Setup(r => r.Update(100, It.IsAny<Review>())).ReturnsAsync(updatedReview);
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(updatedReview);
 
             var expectedDto = new ReviewDTO { Id = 100, UserId = 1, Rating = 5, Title = "Nice Update" };
             _mockMapper.Setup(m => m.Map<ReviewDTO>(updatedReview)).Returns(expectedDto);
+
+            var product = new Product { Id = 10, Rating = 4f, ReviewCount = 1 };
+            _mockProductRepo.Setup(r => r.GetById(10)).ReturnsAsync(product);
 
             var request = new UpdateReviewRequest { Rating = 5, Title = "Nice Update" };
 
@@ -311,8 +351,11 @@ namespace Ecommerce.Test
             
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Title, Is.EqualTo("Nice Update"));
+            Assert.That(product.Rating, Is.EqualTo(5.0f));
             _mockReviewImageRepo.Verify(r => r.HardDeleteImagesByReviewId(100), Times.Once);
             _mockReviewRepo.Verify(r => r.Update(100, It.IsAny<Review>()), Times.Once);
+            _mockProductRepo.Verify(r => r.Update(10, product), Times.Once);
+            _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -320,11 +363,11 @@ namespace Ecommerce.Test
         {
            
             var review = new Review { Id = 100, UserId = 1, Rating = 4, Title = "Old Title", ReviewImages = new List<ReviewImage>() };
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(review);
             _mockReviewImageRepo.Setup(r => r.HardDeleteImagesByReviewId(100)).ReturnsAsync(true);
             
             _mockReviewRepo.Setup(r => r.Update(100, It.IsAny<Review>())).ReturnsAsync(review);
-            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsByIdAsync(100)).ReturnsAsync(review);
+            _mockReviewRepo.Setup(r => r.GetReviewWithDetailsById(100)).ReturnsAsync(review);
 
             var request = new UpdateReviewRequest 
             { 
@@ -363,18 +406,25 @@ namespace Ecommerce.Test
         public async Task DeleteReview_ShouldDelete_WhenRequestIsValid()
         {
            
-            var review = new Review { Id = 100, UserId = 1 };
+            var review = new Review { Id = 100, UserId = 1, ProductId = 10, Rating = 5 };
             _mockReviewRepo.Setup(r => r.GetById(100)).ReturnsAsync(review);
             _mockReviewImageRepo.Setup(r => r.HardDeleteImagesByReviewId(100)).ReturnsAsync(true);
             _mockReviewRepo.Setup(r => r.Delete(100)).ReturnsAsync(review);
+
+            var product = new Product { Id = 10, Rating = 4.5f, ReviewCount = 2 };
+            _mockProductRepo.Setup(r => r.GetById(10)).ReturnsAsync(product);
 
             
             var result = await _reviewService.DeleteReview(1, 100);
 
             
             Assert.That(result, Is.True);
+            Assert.That(product.Rating, Is.EqualTo(4.0f));
+            Assert.That(product.ReviewCount, Is.EqualTo(1));
             _mockReviewImageRepo.Verify(r => r.HardDeleteImagesByReviewId(100), Times.Once);
             _mockReviewRepo.Verify(r => r.Delete(100), Times.Once);
+            _mockProductRepo.Verify(r => r.Update(10, product), Times.Once);
+            _mockTransaction.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Test]
@@ -384,9 +434,9 @@ namespace Ecommerce.Test
             var reviews = new List<Review> { new Review { Id = 1 } };
             var expectedDtos = new List<ReviewDTO> { new ReviewDTO { Id = 1 } };
 
-            _mockReviewRepo.Setup(r => r.GetReviewsByUserIdAsync(1)).ReturnsAsync(reviews);
-            _mockReviewRepo.Setup(r => r.GetReviewsByProductIdAsync(2)).ReturnsAsync(reviews);
-            _mockReviewRepo.Setup(r => r.GetReviewsByVendorIdAsync(3)).ReturnsAsync(reviews);
+            _mockReviewRepo.Setup(r => r.GetReviewsByUserId(1)).ReturnsAsync(reviews);
+            _mockReviewRepo.Setup(r => r.GetReviewsByProductId(2)).ReturnsAsync(reviews);
+            _mockReviewRepo.Setup(r => r.GetReviewsByVendorId(3)).ReturnsAsync(reviews);
             _mockReviewRepo.Setup(r => r.GetAllReviewsWithDetails()).ReturnsAsync(reviews);
 
             _mockMapper.Setup(m => m.Map<ICollection<ReviewDTO>>(reviews)).Returns(expectedDtos);
@@ -402,6 +452,33 @@ namespace Ecommerce.Test
 
             var allReviews = await _reviewService.GetAllReviews();
             Assert.That(allReviews.First().Id, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task GetReviewByUserAndProduct_ShouldReturnMappedReviewDTO_WhenReviewExists()
+        {
+            var review = new Review { Id = 1, UserId = 1, ProductId = 2 };
+            var expectedDto = new ReviewDTO { Id = 1, UserId = 1, ProductId = 2 };
+
+            _mockReviewRepo.Setup(r => r.GetReviewByUserAndProduct(1, 2)).ReturnsAsync(review);
+            _mockMapper.Setup(m => m.Map<ReviewDTO>(review)).Returns(expectedDto);
+
+            var result = await _reviewService.GetReviewByUserAndProduct(1, 2);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Id, Is.EqualTo(1));
+            Assert.That(result.UserId, Is.EqualTo(1));
+            Assert.That(result.ProductId, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task GetReviewByUserAndProduct_ShouldReturnNull_WhenReviewDoesNotExist()
+        {
+            _mockReviewRepo.Setup(r => r.GetReviewByUserAndProduct(1, 2)).ReturnsAsync((Review)null);
+
+            var result = await _reviewService.GetReviewByUserAndProduct(1, 2);
+
+            Assert.That(result, Is.Null);
         }
     }
 }

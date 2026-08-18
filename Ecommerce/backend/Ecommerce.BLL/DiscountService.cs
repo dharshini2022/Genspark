@@ -11,14 +11,23 @@ namespace Ecommerce.BLL
     public class DiscountService : IDiscountService
     {
         private readonly IDiscountRepository _discountRepository;
+        private readonly IDiscountReservationRepository _discountReservationRepository;
         private readonly IVendorService _vendorService;
         private readonly ICategoryService _categoryService;
         private readonly IProductService _productService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
-        public DiscountService(IDiscountRepository discountRepository, IVendorService vendorService,ICategoryService categoryService,IProductService productService, ICurrentUserService currentUserService, IMapper mapper)
+        public DiscountService(
+            IDiscountRepository discountRepository, 
+            IDiscountReservationRepository discountReservationRepository,
+            IVendorService vendorService,
+            ICategoryService categoryService,
+            IProductService productService, 
+            ICurrentUserService currentUserService, 
+            IMapper mapper)
         {
             _discountRepository = discountRepository;
+            _discountReservationRepository = discountReservationRepository;
             _vendorService = vendorService;
             _categoryService = categoryService;
             _productService = productService;
@@ -127,7 +136,7 @@ namespace Ecommerce.BLL
         }
         public async Task<ICollection<DiscountResponse>> GetDiscountsOfProduct(int productId, int categoryId, int vendorId)
         {
-            var discounts = await _discountRepository.GetDiscountsOfProduct(productId, categoryId, vendorId);
+            var discounts = await _discountRepository.GetDiscountsOfProduct(productId, vendorId, categoryId);
 
             return _mapper.Map<List<DiscountResponse>>(discounts);
         }
@@ -169,10 +178,25 @@ namespace Ecommerce.BLL
             
         }
 
+        public async Task<ICollection<DiscountResponse>> GetApplicableLockedDiscounts(CartEvaluationRequest request)
+        {
+            var productIds = request.Items.Select(i => i.ProductId).ToList();
+            var categoryIds = request.Items.Select(i => i.CategoryId).ToList();
+            var vendorIds = request.Items.Select(i => i.VendorId).ToList();
+
+            var result = await _discountRepository.GetApplicableDiscountsAtCart(productIds, categoryIds, vendorIds, decimal.MaxValue);
+            return _mapper.Map<ICollection<DiscountResponse>>(result);
+        }
+
         public async Task<Discount> ValidateDiscount(string discountCode, ICollection<CartItem> eligibleItems, decimal subtotal){
             var discount = await _discountRepository.GetByCode(discountCode);
             if (discount == null || !discount.IsActive || discount.ExpiresAt < DateTime.Now)
                     throw new ValidationException( $"Discount code '{discountCode}' is invalid or expired.");
+
+            if (discount.UsedCount + discount.ReservedCount >= discount.UsageLimit)
+            {
+                throw new ValidationException($"Discount code '{discountCode}' is no longer available.");
+            }
 
             if (discount.Scope == DiscountScope.Product && !eligibleItems.Any(e => e?.Variant?.Product?.Id == discount.ProductId)) {
                 throw new ValidationException( $"Discount code '{discountCode}' is not applicable to the items in the cart.");
@@ -189,13 +213,82 @@ namespace Ecommerce.BLL
             return discount;
         }
 
-        public async Task<decimal> CalculateDiscountAmount(Discount discount, decimal subtotal){
-            return discount.Type == DiscountType.Flat
-                    ? discount.Value
-                    : Math.Round(subtotal * discount.Value / 100, 2);
+        public async Task<decimal> CalculateDiscountAmount(Discount discount, ICollection<CartItem> eligibleItems)
+        {
+            decimal applicableSubtotal = discount.Scope switch
+            {
+                DiscountScope.Product => eligibleItems
+                    .Where(item => item.Variant.Product.Id == discount.ProductId)
+                    .Sum(item => item.Variant.Price * item.Quantity),
+
+                DiscountScope.Category => eligibleItems
+                    .Where(item => item.Variant.Product.CategoryId == discount.CategoryId)
+                    .Sum(item => item.Variant.Price * item.Quantity),
+
+                DiscountScope.Vendor => eligibleItems
+                    .Where(item => item.Variant.Product.VendorId == discount.VendorId)
+                    .Sum(item => item.Variant.Price * item.Quantity),
+
+                DiscountScope.Common or _ => eligibleItems
+                    .Sum(item => item.Variant.Price * item.Quantity)
+            };
+
+            if (discount.Type == DiscountType.Percentage)
+            {
+                return Math.Round(applicableSubtotal * discount.Value / 100, 2);
+            }
+            else 
+            {
+                return Math.Min(discount.Value, applicableSubtotal);
+            }
         }
 
+        public async Task ReserveDiscount(int orderId, int discountId)
+        {
+            var discount = await _discountRepository.GetById(discountId)
+                ?? throw new KeyNotFoundException($"Discount with ID {discountId} not found.");
 
+            if (discount.UsedCount + discount.ReservedCount >= discount.UsageLimit)
+            {
+                throw new ValidationException($"Discount code '{discount.Code}' is no longer available.");
+            }
 
+            discount.ReservedCount += 1;
+            await _discountRepository.Update(discountId, discount);
+            await _discountReservationRepository.Reserve(orderId, discountId);
+        }
+
+        public async Task ConfirmDiscountReservation(int orderId)
+        {
+            var reservation = await _discountReservationRepository.GetActiveByOrderId(orderId);
+            if (reservation != null)
+            {
+                var discount = await _discountRepository.GetById(reservation.DiscountId);
+                if (discount != null)
+                {
+                    discount.UsedCount += 1;
+                    discount.ReservedCount -= 1;
+                    if (discount.ReservedCount < 0) discount.ReservedCount = 0;
+                    await _discountRepository.Update(discount.Id, discount);
+                }
+                await _discountReservationRepository.ReleaseByOrderId(orderId);
+            }
+        }
+
+        public async Task ReleaseDiscountReservation(int orderId)
+        {
+            var reservation = await _discountReservationRepository.GetActiveByOrderId(orderId);
+            if (reservation != null)
+            {
+                var discount = await _discountRepository.GetById(reservation.DiscountId);
+                if (discount != null)
+                {
+                    discount.ReservedCount -= 1;
+                    if (discount.ReservedCount < 0) discount.ReservedCount = 0;
+                    await _discountRepository.Update(discount.Id, discount);
+                }
+                await _discountReservationRepository.ReleaseByOrderId(orderId);
+            }
+        }
     }
 }

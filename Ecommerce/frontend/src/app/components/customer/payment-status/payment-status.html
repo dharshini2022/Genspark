@@ -1,0 +1,23 @@
+<div class="status-container">
+  <div class="status-card">
+    @if (isLoading()) {
+      <div class="spinner-loader"></div>
+      <h2 class="status-title">Verifying Payment…</h2>
+      <p class="status-sub">Please wait, do not close or refresh this page.</p>
+    } @else if (isSuccess()) {
+      <div class="icon-indicator success-icon">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <h2 class="status-title text-success">Payment Successful!</h2>
+      <p class="status-sub">Your order has been confirmed. You will be redirected shortly.</p>
+      <button class="btn-primary" (click)="goToOrders()" id="payment-status-orders-btn">View My Orders</button>
+    } @else {
+      <div class="icon-indicator fail-icon">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <h2 class="status-title text-error">Payment Failed</h2>
+      <p class="status-sub">{{ errorMsg() }}</p>
+      <button class="btn-primary" (click)="goBack()" id="payment-status-retry-btn">Try Again</button>
+    }
+  </div>
+</div>

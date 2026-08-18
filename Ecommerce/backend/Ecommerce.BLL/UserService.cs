@@ -14,12 +14,14 @@ namespace Ecommerce.BLL
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IUserAddressRepository _userAddressRepository;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
 
-        public UserService(IUserRepository userRepository, IMapper mapper, ICurrentUserService currentUserService)
+        public UserService(IUserRepository userRepository, IUserAddressRepository userAddressRepository, IMapper mapper, ICurrentUserService currentUserService)
         {
             _userRepository = userRepository;
+            _userAddressRepository = userAddressRepository;
             _mapper = mapper;
             _currentUserService = currentUserService;
         }
@@ -112,20 +114,70 @@ namespace Ecommerce.BLL
             return _mapper.Map<UserProfileResponse>(result);
         }
 
-        public async Task<AddAddressRequest> AddUserAddress(AddAddressRequest address)
-        {
-            var addressModel = _mapper.Map<UserAddress>(address);
-            addressModel.UserId = _currentUserService.UserId;
-            var result = await _userRepository.AddUserAddress(addressModel);
-            return _mapper.Map<AddAddressRequest>(result);
-        }
-        public async Task<ICollection<AddAddressRequest>> GetAllUserAddress()
+        public async Task<AddressResponse> AddUserAddress(AddAddressRequest address)
         {
             var userId = _currentUserService.UserId;
-            var result = await _userRepository.GetAllAddressByUserId(userId);
-            return _mapper.Map<ICollection<AddAddressRequest>>(result);
+            var addressExists = await _userAddressRepository.Exists(a =>
+                a.UserId == userId &&
+                a.Line1.ToLower().Trim() == address.Line1.ToLower().Trim() &&
+                (a.Line2 ?? "").ToLower().Trim() == (address.Line2 ?? "").ToLower().Trim() &&
+                a.City.ToLower().Trim() == address.City.ToLower().Trim() &&
+                a.State.ToLower().Trim() == address.State.ToLower().Trim() &&
+                a.PostalCode.Trim() == address.PostalCode.Trim() &&
+                a.Country.ToLower().Trim() == address.Country.ToLower().Trim()
+            );
+
+            if (addressExists)
+            {
+                throw new InvalidOperationException("Address already exists.");
+            }
+
+            var addressModel = _mapper.Map<UserAddress>(address);
+            addressModel.UserId = userId;
+            var result = await _userAddressRepository.Create(addressModel);
+            return _mapper.Map<AddressResponse>(result);
+        }
+        public async Task<ICollection<AddressResponse>> GetAllUserAddress()
+        {
+            var userId = _currentUserService.UserId;
+            var result = await _userAddressRepository.GetAllAddressByUserId(userId);
+            return _mapper.Map<ICollection<AddressResponse>>(result);
         }
 
-        
+        public async Task<AddressResponse> UpdateUserAddress(int id, AddAddressRequest address)
+        {
+            var existing = await _userAddressRepository.GetById(id);
+            if (existing == null)
+            {
+                throw new KeyNotFoundException("Address not found.");
+            }
+            if (existing.UserId != _currentUserService.UserId)
+            {
+                throw new UnauthorizedAccessException("You do not own this address.");
+            }
+            var userId = _currentUserService.UserId;
+            var addressExists = await _userAddressRepository.Exists(a =>
+                a.UserId == userId &&
+                a.Id != id &&
+                a.Line1.ToLower().Trim() == address.Line1.ToLower().Trim() &&
+                (a.Line2 ?? "").ToLower().Trim() == (address.Line2 ?? "").ToLower().Trim() &&
+                a.City.ToLower().Trim() == address.City.ToLower().Trim() &&
+                a.State.ToLower().Trim() == address.State.ToLower().Trim() &&
+                a.PostalCode.Trim() == address.PostalCode.Trim() &&
+                a.Country.ToLower().Trim() == address.Country.ToLower().Trim()
+            );
+
+            if (addressExists)
+            {
+                throw new InvalidOperationException("Address already exists.");
+            }
+
+            _mapper.Map(address, existing);
+            existing.Id = id;
+            existing.UserId = _currentUserService.UserId;
+
+            var result = await _userAddressRepository.Update(id, existing);
+            return _mapper.Map<AddressResponse>(result);
+        }
     }
 }

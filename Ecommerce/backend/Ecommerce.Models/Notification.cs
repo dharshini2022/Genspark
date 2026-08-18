@@ -6,10 +6,11 @@ namespace  Ecommerce.Models
         OrderShipped = 2,
         OrderDelivered = 3,
         PaymentFailed = 4,
-        PriceDrop = 5,
-        FlashSale = 6,
-        ReviewApproved = 7,
-        VendorApproved = 8
+        VendorApproved = 5,
+        WishlistReminder = 6,
+        LowStock = 7,
+        OutOfStock = 8,
+        VendorPending = 9
     }
     public enum NotificationLevel
     {
@@ -29,6 +30,7 @@ namespace  Ecommerce.Models
         public bool IsRead { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         //Relation
+        [System.Text.Json.Serialization.JsonIgnore]
         public User User { get; set; } = null!;
     }
 }

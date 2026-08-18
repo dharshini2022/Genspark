@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using Ecommerce.Contracts.Repositories;
 using Ecommerce.Contracts.Services;
@@ -16,8 +17,9 @@ namespace Ecommerce.BLL
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
         private readonly IStockReservationRepository _stockReservationRepository;
+        private readonly INotificationService _notificationService;
 
-        public ProductVariantService(IProductVariantRepository variantRepository, IProductImageRepository imageRepository, IProductRepository productRepository, IVendorRepository vendorRepository, ICurrentUserService currentUser,  IMapper mapper, IStockReservationRepository stockReservationRepository)
+        public ProductVariantService(IProductVariantRepository variantRepository, IProductImageRepository imageRepository, IProductRepository productRepository, IVendorRepository vendorRepository, ICurrentUserService currentUser, IMapper mapper, IStockReservationRepository stockReservationRepository, INotificationService notificationService)
         {
             _variantRepository = variantRepository;
             _imageRepository = imageRepository;
@@ -26,6 +28,7 @@ namespace Ecommerce.BLL
             _currentUser = currentUser;
             _mapper = mapper;
             _stockReservationRepository = stockReservationRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<ProductVariantResponse> GetVariantById(int variantId)
@@ -58,6 +61,16 @@ namespace Ecommerce.BLL
             variant.ProductId = productId;
             variant.IsActive = true;
 
+            if (variant.IsDefault)
+            {
+                var existingDefault = await _variantRepository.GetDefaultVariant(productId);
+                if (existingDefault != null)
+                {
+                    existingDefault.IsDefault = false;
+                    await _variantRepository.Update(existingDefault.Id, existingDefault);
+                }
+            }
+
             var created = await _variantRepository.Create(variant);
             return _mapper.Map<ProductVariantResponse>(created);
         }
@@ -72,19 +85,55 @@ namespace Ecommerce.BLL
             if(request.AvailableValues != null && request.AvailableValues.Count == 0) 
                 throw new ValidationException("Product Variants must contain values ");
 
+            var currentIsActive = variant.IsActive;
+            var currentIsDefault = variant.IsDefault;
+
             _mapper.Map(request, variant);
+
+            if (request.IsActive == null)
+            {
+                variant.IsActive = currentIsActive;
+            }
+
+            if (request.IsDefault == null)
+            {
+                variant.IsDefault = currentIsDefault;
+            }
+
+            if (variant.IsDefault)
+            {
+                var existingDefault = await _variantRepository.GetDefaultVariant(variant.ProductId);
+                if (existingDefault != null && existingDefault.Id != variantId)
+                {
+                    existingDefault.IsDefault = false;
+                    await _variantRepository.Update(existingDefault.Id, existingDefault);
+                }
+            }
+
             var updated = await _variantRepository.Update(variantId, variant);
             return _mapper.Map<ProductVariantResponse>(updated);
         }
 
-        public async Task<bool> ArchiveVariant(int variantId)
+        public async Task<bool> ToggleVariantStatus(int variantId)
         {
             var variant = await _variantRepository.GetById(variantId) ?? throw new InvalidProductException($"Variant with ID {variantId} not found.");
             var product = await _productRepository.GetById(variant.ProductId) ?? throw new InvalidProductException("Product not found.");
             await EnsureVendorOwns(product);
 
-            variant.IsActive = false;
+            variant.IsActive = !variant.IsActive;
             await _variantRepository.Update(variantId, variant);
+
+            var productVariant = product.Variants.FirstOrDefault(v => v.Id == variantId);
+            if (productVariant != null)
+            {
+                productVariant.IsActive = variant.IsActive;
+            }
+
+            if (product.Variants.All(v => !v.IsActive))
+            {
+                product.Status = ProductStatus.Archived;
+                await _productRepository.Update(product.Id, product);
+            }
             return true;
         }
 
@@ -134,21 +183,61 @@ namespace Ecommerce.BLL
             variant.StockQty -= quantity;
             if (variant.StockQty < 0)
                 throw new InvalidOperationException($"Stock underflow for variant {variantId}.");
+
+            var product = await _productRepository.GetById(variant.ProductId);
+            if (product != null)
+            {
+                var vendor = await _vendorRepository.GetById(product.VendorId);
+                if (vendor != null)
+                {
+                    var attributes = string.Join(", ", variant.AvailableValues.Select(x => $"{x.Key}: {x.Value}"));
+
+                    if (variant.StockQty == 0)
+                    {
+                        variant.IsActive = false;
+
+                        // Check if all other variants of the product are now inactive
+                        var allVariants = await _variantRepository.GetVariantsByProductId(product.Id);
+                        if (allVariants.Where(v => v.Id != variantId).All(v => !v.IsActive))
+                        {
+                            product.Status = ProductStatus.Archived;
+                            await _productRepository.Update(product.Id, product);
+                        }
+
+                        await _notificationService.CreateNotification(
+                            vendor.UserId,
+                            NotificationType.OutOfStock,
+                            NotificationLevel.Warning,
+                            "Product Variant Out of Stock",
+                            $"Variant ({attributes}) of product '{product.Name}' is out of stock and has been automatically deactivated."
+                        );
+                    }
+                    else if (variant.StockQty <= 5)
+                    {
+                        await _notificationService.CreateNotification(
+                            vendor.UserId,
+                            NotificationType.LowStock,
+                            NotificationLevel.Info,
+                            "Low Stock Alert",
+                            $"Variant ({attributes}) of product '{product.Name}' is low on stock (Only {variant.StockQty} left)."
+                        );
+                    }
+                }
+            }
+
             await _variantRepository.Update(variantId, variant);
         }
 
         public async Task ReserveStock(int orderId, int variantId, int quantity)
         {
-            var variant = await _variantRepository.GetById(variantId) 
-                ?? throw new KeyNotFoundException($"Variant with ID {variantId} not found.");
-            
-            if (variant.StockQty - variant.ReservedStockQty < quantity)
+            var reserved = await _variantRepository.ReserveStockAtomic(variantId, quantity);
+            if (!reserved)
             {
-                throw new InsufficientStockException($"Insufficient stock for variant {variantId} to reserve. Requested: {quantity}, Available: {variant.StockQty - variant.ReservedStockQty}.");
+                var variant = await _variantRepository.GetById(variantId);
+                int available = variant != null ? (variant.StockQty - variant.ReservedStockQty) : 0;
+                throw new InsufficientStockException($"Insufficient stock for variant {variantId} to reserve. Requested: {quantity}, Available: {available}.");
             }
 
-            variant.ReservedStockQty += quantity;
-            await _variantRepository.Update(variantId, variant);
             await _stockReservationRepository.Reserve(orderId, variantId, quantity);
         }
 

@@ -1,0 +1,121 @@
+<div class="order-list-container">
+  <div class="list-loader-overlay" *ngIf="loading() && orders().length === 0">
+    <div class="loader-spinner"></div>
+    <p>Retrieving orders...</p>
+  </div>
+
+  <div class="message-banner error" *ngIf="errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+    </svg>
+    <span>{{ errorMsg() }}</span>
+  </div>
+
+  <div class="tab-card shadow-sm">
+    <div class="tab-card-header">
+      <h5 class="tab-card-title">
+        Orders ({{ totalCount() }})
+        <span class="loading-indicator-inline" *ngIf="loading() && orders().length > 0">Updating...</span>
+      </h5>
+    </div>
+    
+    <div class="table-container">
+      @if (orders().length === 0 && !loading()) {
+        <div class="empty-row-text">No orders found.</div>
+      } @else {
+        <table class="grid-table desktop-table" aria-label="Orders list">
+          <thead>
+            <tr>
+              <th scope="col">ORDER ID</th>
+              <th scope="col">CUSTOMER</th>
+              <th scope="col">ITEMS</th>
+              <th scope="col">AMOUNT</th>
+              <th scope="col">ORDER STATUS</th>
+              <th scope="col">PAYMENT STATUS</th>
+              <th scope="col">DATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of orders(); track s.orderId) {
+              <tr class="clickable-row" (click)="viewOrderDetail(s.orderId)">
+                <td><span class="order-id-label">#ORD-{{ s.orderId }}</span></td>
+                <td>{{ s.fullName }}</td>
+                <td>{{ s.items?.length || 0 }}</td>
+                <td class="bold-text">₹{{ s.total | number }}</td>
+                <td>
+                  <span class="status-badge" [class]="getOrderStatusClass(s.status)">
+                    {{ getOrderStatusLabel(s.status) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge" [class]="getPaymentStatusClass(s.paymentStatus)">
+                    {{ getPaymentStatusLabel(s.paymentStatus) }}
+                  </span>
+                </td>
+                <td>{{ s.placedAt | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="mobile-cards-container">
+          @for (s of orders(); track s.orderId) {
+            <div class="order-card" (click)="viewOrderDetail(s.orderId)">
+              <div class="card-id-header">
+                <span class="order-id-label">#ORD-{{ s.orderId }}</span>
+                <span class="card-date">{{ s.placedAt | date:'mediumDate' }}</span>
+              </div>
+              
+              <div class="card-info-row">
+                <span class="card-label">Customer:</span>
+                <span class="card-value">{{ s.fullName }}</span>
+              </div>
+
+              <div class="card-info-grid">
+                <div class="info-item">
+                  <span class="card-label">Items:</span>
+                  <span class="card-value">{{ s.items?.length || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="card-label">Amount:</span>
+                  <span class="card-value bold-text">₹{{ s.total | number }}</span>
+                </div>
+              </div>
+
+              <div class="card-footer-row">
+                <div class="footer-badge-group">
+                  <span class="card-label-small">Order:</span>
+                  <span class="status-badge" [class]="getOrderStatusClass(s.status)">
+                    {{ getOrderStatusLabel(s.status) }}
+                  </span>
+                </div>
+                <div class="footer-badge-group">
+                  <span class="card-label-small">Payment:</span>
+                  <span class="status-badge" [class]="getPaymentStatusClass(s.paymentStatus)">
+                    {{ getPaymentStatusLabel(s.paymentStatus) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="table-pagination">
+        <button class="pag-btn" [disabled]="page() === 1 || loading()" (click)="setPage(page() - 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+          </svg>
+        </button>
+        <span class="pag-info">Page {{ page() }} of {{ totalPages() }}</span>
+        <button class="pag-btn" [disabled]="page() === totalPages() || loading()" (click)="setPage(page() + 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </button>
+      </div>
+    }
+  </div>
+</div>

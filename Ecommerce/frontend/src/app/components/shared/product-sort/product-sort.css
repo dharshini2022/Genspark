@@ -1,0 +1,148 @@
+.products-header-sticky {
+  position: sticky;
+  top: 0;
+  background-color: #fafafa;
+  z-index: 10;
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1.5px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+.top-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.breadcrumb-link {
+  color: #8e8e93;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  color: #3b59eb;
+}
+
+.breadcrumb-separator {
+  color: #c7c7cc;
+}
+
+.breadcrumb-current {
+  color: #1c1c1e;
+  font-weight: 600;
+}
+
+.total-units {
+  font-size: 13px;
+  color: #636366;
+}
+
+.sort-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.sort-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8e8e93;
+  letter-spacing: 0.05em;
+}
+
+.sort-divider {
+  color: #e5e7eb;
+}
+
+.sort-options {
+  display: flex;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.sort-option-btn {
+  background-color: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: var(--font-body, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  color: #636366;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sort-option-btn:hover {
+  background-color: #f4f4f5;
+  border-color: #c7c7cc;
+}
+
+.sort-option-btn.active {
+  background-color: #3b59eb;
+  border-color: #3b59eb;
+  color: #ffffff;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #1c1c1e;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 8px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: background-color 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background-color: #eff6ff;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .sort-header-row {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .sort-options {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .sort-option-btn {
+    flex-shrink: 0;
+  }
+
+  .sort-header-row::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .sort-header-row::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 2px;
+  }
+}

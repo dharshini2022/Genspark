@@ -1,0 +1,73 @@
+@if (applicableLockedDiscounts().length > 0) {
+  <div class="locked-discounts-container">
+    <div class="locked-discounts-header-wrapper">
+      <div class="locked-discounts-header-title">
+        <i class="bi bi-tag-fill icon-gift"></i>
+        <h3 class="locked-discounts-header">Applicable Discounts</h3>
+      </div>
+      <p class="locked-discounts-subheader">Click a discount item to apply it to your order</p>
+    </div>
+
+    <div class="locked-discounts-grid">
+      @for (discount of applicableLockedDiscounts(); track discount.id) {
+        <div class="locked-discount-card" 
+             [class.locked]="getProgressPercent(discount) < 100" 
+             [class.active]="discount.code === appliedDiscountCode"
+             (click)="applyDiscountCode(discount)">
+          <div class="card-glow-bg" [class.vendor-glow]="discount.scope === 'Vendor'" [class.category-glow]="discount.scope === 'Category'" [class.product-glow]="discount.scope === 'Product'"></div>
+          
+          <div class="discount-card-top">
+            <span class="badge-value">
+              @if (discount.type === 'Percentage') {
+                {{ discount.value }}% OFF
+              } @else {
+                ₹{{ discount.value }} OFF
+              }
+            </span>
+
+            @if (discount.code === appliedDiscountCode) {
+              <span class="applied-badge"><i class="bi bi-check2-circle"></i> Applied</span>
+            } @else {
+              <div class="coupon-scope">
+                @if (discount.scope === 'Product') {
+                  <span class="scope-badge product-scope">Product Offer</span>
+                } @else if (discount.scope === 'Category') {
+                  <span class="scope-badge category-scope">Category Offer</span>
+                } @else if (discount.scope === 'Vendor') {
+                  <span class="scope-badge vendor-scope">Vendor Offer</span>
+                } @else {
+                  <span class="scope-badge common-scope">Storewide Offer</span>
+                }
+              </div>
+            }
+          </div>
+          
+          <div class="discount-card-middle">
+            <div class="coupon-code-row" (click)="copyToClipboard(discount.code, $event)" title="Click to copy coupon code">
+              <span class="coupon-label">Code:</span>
+              <span class="coupon-code">
+                {{ discount.code }} <i class="bi bi-clipboard copy-icon"></i>
+              </span>
+            </div>
+
+            @if (getProgressPercent(discount) === 100) {
+              <span class="tap-apply-text">Tap to apply</span>
+            }
+          </div>
+
+          <div class="discount-card-bottom">
+            @if (getProgressPercent(discount) < 100) {
+              <p class="min-spend-instruction">
+                Min. amount to unlock: <span class="accent-cost">₹{{ discount.minOrderValue | number:'1.2-2' }}</span>
+              </p>
+            } @else {
+              <p class="min-spend-instruction unlocked">
+                Min. spend met! (₹{{ discount.minOrderValue | number:'1.2-2' }})
+              </p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

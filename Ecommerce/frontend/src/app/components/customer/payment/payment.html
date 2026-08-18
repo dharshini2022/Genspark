@@ -1,0 +1,52 @@
+<section class="redirect-container">
+  <div class="redirect-card">
+
+    @if (isLoading()) {
+      <div class="stripe-brand">
+        <svg height="36" viewBox="0 0 60 25" xmlns="http://www.w3.org/2000/svg">
+          <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a12.28 12.28 0 0 1-4.56.82 7 7 0 0 1-7.24-7.22 7 7 0 0 1 6.89-7.22c4.04 0 6 2.95 6 6.77l-.28 1.93zm-5.92-4.35c-1.23 0-2.06.87-2.28 2.2h4.4c-.04-1.37-.68-2.2-2.12-2.2zM37.19 21c.75 0 1.76-.07 2.54-.18V14c0-2.45-.71-3.38-2.32-3.38-2.06 0-3.08 1.29-3.08 3.8V21h-4.5V7.12h4.5v1.16c.72-.87 2.02-1.39 3.38-1.39 3.44 0 5.06 2.23 5.06 6.55V21h-5.58zm-12.4 0V7.12h4.5V21h-4.5zm2.25-15.95a2.24 2.24 0 1 1 0-4.48 2.24 2.24 0 0 1 0 4.48zM18.97 7.12h4.5L18.97 21h-4.5l-4.5-13.88h4.71L17.1 15.2l2.42-8.08zM12.52 21H8.02v-9.01H5V7.12h3.02V5.76c0-3.2 1.94-5.76 5.69-5.76 1.09 0 2.25.2 2.95.41v4.14c-.52-.17-1.33-.34-2.02-.34-1.29 0-2.12.6-2.12 2.01v.9H16l-.78 4.87h-2.7V21z"/>
+        </svg>
+      </div>
+
+      <div class="pulse-loader"></div>
+
+      <h2 class="redirect-title">Redirecting to Stripe</h2>
+      <p class="redirect-sub">
+        You're being securely transferred to Stripe's payment page.<br>
+        Please do not close or refresh this tab.
+      </p>
+
+      <div class="progress-track">
+        <div class="progress-bar"></div>
+      </div>
+
+      <div class="security-badges">
+        <span class="badge-item">
+          <i class="bi bi-shield-fill-check"></i> SSL Encrypted
+        </span>
+        <span class="badge-item">
+          <i class="bi bi-credit-card-2-front-fill"></i> Card & UPI
+        </span>
+      </div>
+
+      <p class="order-reference">Order #{{ orderId() }} · {{ formatCurrency(amount()) }}</p>
+    }
+
+    @if (errorMessage()) {
+      <div class="error-icon">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h2 class="redirect-title error-text">Payment Setup Failed</h2>
+      <p class="redirect-sub">{{ errorMessage() }}</p>
+      <div class="error-actions">
+        <button class="btn-primary" id="payment-retry-btn" (click)="redirectToStripe(orderId()!)">
+          Try Again
+        </button>
+        <button class="btn-secondary-link" id="payment-back-btn" (click)="goBack()">
+          ← Back to Checkout
+        </button>
+      </div>
+    }
+
+  </div>
+</section>

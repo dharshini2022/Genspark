@@ -52,5 +52,16 @@ namespace Ecommerce.API.Controllers
 
             return Ok(new {message = "Item removed from Wishlist", date = result});
         }
+
+        [HttpDelete("clear")]
+        public async Task<IActionResult> ClearWishlist()
+        {
+            var wishlist = await _wishlistService.GetWishlistByUserId();
+            foreach (var item in wishlist.Items.ToList())
+            {
+                await _wishlistService.RemoveFromWishlist(item.Id);
+            }
+            return Ok(new { message = "Wishlist cleared successfully." });
+        }
     }
 }

@@ -1,0 +1,125 @@
+<div class="category-list-container">
+  <div class="tab-card shadow-sm">
+    <div class="tab-card-header">
+      <h5 class="tab-card-title">Category Tree Management</h5>
+      <button class="action-btn-primary" (click)="openAddRootModal()">Add Root Category</button>
+    </div>
+
+    <div class="loading-indicator" *ngIf="loading() && flattenedNodes().length === 0">
+      <p>Loading category structure...</p>
+    </div>
+
+    <div class="table-container" *ngIf="!loading() || flattenedNodes().length > 0">
+      @if (flattenedNodes().length === 0) {
+        <div class="empty-row-text">No categories defined. Click "Add Root Category" to begin.</div>
+      } @else {
+        <table class="grid-table tree-table" aria-label="Categories tree table">
+          <thead>
+            <tr>
+              <th scope="col">Category Name</th>
+              <th scope="col">Slug</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (node of flattenedNodes(); track node.id) {
+              <tr class="tree-row" [class.inactive-row]="!node.isActive">
+                <td>
+                  <div class="name-cell-wrapper" [style.padding-left.px]="(node.level ?? 0) * 24 + 8">
+                    @if (node.children && node.children.length > 0) {
+                      <button class="caret-btn" (click)="toggleExpand(node, $event)" [aria-label]="node.expanded ? 'Collapse' : 'Expand'">
+                        <i class="bi" [class.bi-caret-down-fill]="node.expanded" [class.bi-caret-right-fill]="!node.expanded"></i>
+                      </button>
+                    } @else {
+                      <span class="caret-placeholder"></span>
+                    }
+
+                    <i class="bi tree-icon" [class.bi-folder-fill]="node.children && node.children.length > 0" [class.bi-file-earmark-text-fill]="!node.children || node.children.length === 0"></i>
+                    
+                    <span class="node-name-text" [class.bold-text]="node.children && node.children.length > 0">{{ node.name }}</span>
+                  </div>
+                </td>
+
+                <td>
+                  <code class="slug-badge">{{ node.slug }}</code>
+                </td>
+
+                <td>
+                  <span class="status-indicator-tree" [class.active]="node.isActive" (click)="toggleActiveStatus(node, $event)" title="Click to toggle status">
+                    <i class="bi" [class.bi-circle-fill]="node.isActive" [class.bi-circle]="!node.isActive"></i>
+                    {{ node.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="actions-cell">
+                  <button class="action-link-btn" (click)="openEditModal(node, $event)">Edit</button>
+
+                  @if (node.isActive) {
+                    <span class="action-divider">|</span>
+                    <button class="action-link-btn" (click)="openAddChildModal(node, $event)">Add Child</button>
+                  } @else {
+                    <span class="action-divider">|</span>
+                    <button class="action-link-btn highlight-activate" (click)="toggleActiveStatus(node, $event)">Activate</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+</div>
+
+@if (showEditModal()) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Category</h3>
+        <button class="close-btn" (click)="closeEditModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="field-label" for="editName">Category Name <span class="req">*</span></label>
+          <input type="text" id="editName" class="text-input" [(ngModel)]="editName" placeholder="e.g. mobiles" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="editSlug">Slug <span class="req">*</span></label>
+          <input type="text" id="editSlug" class="text-input" [(ngModel)]="editSlug" placeholder="e.g. electronics-mobiles" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showAddModal()) {
+  <div class="modal-overlay" (click)="closeAddModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          {{ parentForAdd() ? 'Add Child Category under ' + parentForAdd()!.name : 'Create Root Category' }}
+        </h3>
+        <button class="close-btn" (click)="closeAddModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="field-label" for="newName">Category Name <span class="req">*</span></label>
+          <input type="text" id="newName" class="text-input" [(ngModel)]="newName" placeholder="e.g. laptops" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="newSlug">Slug <span class="req">*</span></label>
+          <input type="text" id="newSlug" class="text-input" [(ngModel)]="newSlug" placeholder="e.g. electronics-laptops" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveAdd()">Create Category</button>
+      </div>
+    </div>
+  </div>
+}

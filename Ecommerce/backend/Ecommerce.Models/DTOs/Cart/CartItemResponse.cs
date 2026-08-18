@@ -10,5 +10,11 @@ namespace Ecommerce.Models.DTOs
         public int Quantity { get; set; }
         public decimal SubTotal { get; set; }
         public bool IsInStock { get; set; }
+        public string? CategoryName { get; set; }
+        public string? ImageUrl { get; set; }
+        public int CategoryId { get; set; }
+        public int VendorId { get; set; }
+        public int StockQty { get; set; }
+        public int ReservedStockQty { get; set; }
     }
 }

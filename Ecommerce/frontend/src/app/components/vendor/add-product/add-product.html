@@ -1,0 +1,147 @@
+<div class="add-product-container">
+  <div class="top-nav-header">
+    <button class="back-btn" (click)="goBack()" aria-label="Go back to products list">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+      </svg>
+    </button>
+    <div class="header-titles">
+      <span class="subtitle">Vendor Dashboard</span>
+      <h2 class="title">Add New Product</h2>
+    </div>
+  </div>
+
+  <div class="product-details-card">
+    <div class="card-header">
+      <span class="icon-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-text" viewBox="0 0 16 16">
+          <path d="M8.5 1.5A1.5 1.5 0 0 1 10 0h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6zm1 1v2a1.5 1.5 0 0 0 1.5 1.5h2L9.5 2.5zM2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5v3a1 1 0 0 1-1 1H5V1H2z"/>
+        </svg>
+      </span>
+      <h3>Product Details</h3>
+    </div>
+
+    <div class="card-body">
+      <div class="form-group">
+        <label for="productName">Product Name <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="productName" 
+          [ngModel]="productName()" 
+          (ngModelChange)="productName.set($event)" 
+          placeholder="e.g. Pro Wireless Headphones X9"
+          [disabled]="createdProductId() !== null || savingProduct()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category <span class="required">*</span></label>
+        <select 
+          id="category" 
+          [ngModel]="categoryId()" 
+          (ngModelChange)="categoryId.set($event)"
+          [disabled]="createdProductId() !== null || savingProduct()"
+        >
+          <option value="" disabled selected>Select category...</option>
+          @for (cat of categories(); track cat.id) {
+            <option [value]="cat.id">{{ cat.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea 
+          id="description" 
+          [ngModel]="description()" 
+          (ngModelChange)="description.set($event)" 
+          placeholder="Describe your product — highlight key features, materials, use cases, and anything that helps buyers make a decision..."
+          rows="4"
+          [disabled]="createdProductId() !== null || savingProduct()"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <button 
+        type="button" 
+        class="btn-secondary" 
+        (click)="saveProduct()" 
+        [disabled]="createdProductId() !== null || savingProduct() || !productName().trim()">
+        <span class="spinner-small" *ngIf="savingProduct()"></span>
+        {{ savingProduct() ? 'Saving...' : 'Save Details' }}
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-primary" 
+        (click)="openAddVariant()" 
+        [disabled]="createdProductId() === null || showAddVariantForm()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5a.5.5 0 0 1 .5-.5"/>
+        </svg>
+        Add Variant
+      </button>
+    </div>
+  </div>
+
+  <div class="message-banner error" *ngIf="errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+    </svg>
+    <span>{{ errorMsg() }}</span>
+  </div>
+
+  <div class="message-banner success" *ngIf="successMsg() && !errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+    </svg>
+    <span>{{ successMsg() }}</span>
+  </div>
+
+  <div class="saved-variants-section" *ngIf="variantsAdded().length > 0">
+    <h4 class="section-title">Saved Variants ({{ variantsAdded().length }})</h4>
+    <div class="variants-list">
+      @for (v of variantsAdded(); track v.id) {
+        <div class="variant-item-pill" [class.default-pill]="v.isDefault">
+          <div class="pill-left">
+            <span class="variant-badge">#{{ $index + 1 }}</span>
+            <span class="variant-price">₹{{ v.price | number:'1.2-2' }}</span>
+            <span class="variant-qty">Qty: {{ v.stockQty }}</span>
+            @for (attr of v.availableValues | keyvalue; track attr.key) {
+              <span class="variant-attr">{{ attr.key }}: {{ attr.value }}</span>
+            }
+          </div>
+          <div class="pill-right" *ngIf="v.isDefault">
+            <span class="badge-default">Default</span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (showAddVariantForm() && createdProductId() !== null) {
+    <app-add-variant 
+      [productId]="createdProductId()!" 
+      [productName]="productName()"
+      [productDescription]="description()"
+      [variantNumber]="variantsAdded().length + 1"
+      (variantSaved)="onVariantSaved($event)"
+      (variantDiscarded)="onVariantDiscarded()">
+    </app-add-variant>
+  }
+
+  <div class="publish-section-banner" *ngIf="variantsAdded().length > 0">
+    <div class="banner-content">
+      <h4>Ready to go live?</h4>
+      <p>Make sure you've added at least one variant before publishing. Your product will appear in search and listings immediately.</p>
+    </div>
+    <button class="publish-btn" (click)="publishProduct()" [disabled]="publishing() || showAddVariantForm()">
+      <span class="spinner-small" *ngIf="publishing()"></span>
+      <svg *ngIf="!publishing()" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send" viewBox="0 0 16 16">
+        <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+      </svg>
+      {{ publishing() ? 'Publishing...' : 'Publish Product' }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,280 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="header-content">
+      <div class="avatar-placeholder">
+        <i class="bi bi-person-fill"></i>
+      </div>
+      <div class="user-meta">
+        <h1 class="user-name">{{ profile()?.fullName || 'Loading...' }}</h1>
+        <p class="user-role-badge"><i class="bi bi-shield-check"></i> {{ profile()?.role }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-grid">
+    <div class="profile-left-column">
+      <div class="profile-card profile-details-card">
+        <div class="card-header">
+          <h2><i class="bi bi-info-circle"></i> Profile Information</h2>
+        </div>
+
+        @if (loadingProfile()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading profile details...</p>
+          </div>
+        } @else {
+          @if (isChangingPassword()) {
+            <form [formGroup]="changePasswordForm" (ngSubmit)="onSubmitChangePassword()" class="profile-form">
+              <div class="form-group">
+                <label for="oldPassword">Old Password</label>
+                <input 
+                  id="oldPassword" 
+                  type="password" 
+                  formControlName="oldPassword" 
+                  placeholder="Enter old password" 
+                  class="form-control"
+                />
+                @if (changePasswordForm.get('oldPassword')?.touched && changePasswordForm.get('oldPassword')?.errors?.['required']) {
+                  <span class="error-text">Old password is required.</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input 
+                  id="newPassword" 
+                  type="password" 
+                  formControlName="newPassword" 
+                  placeholder="Enter new password (min 6 chars)" 
+                  class="form-control"
+                />
+                @if (changePasswordForm.get('newPassword')?.touched && changePasswordForm.get('newPassword')?.errors?.['required']) {
+                  <span class="error-text">New password is required.</span>
+                }
+                @if (changePasswordForm.get('newPassword')?.touched && changePasswordForm.get('newPassword')?.errors?.['minlength']) {
+                  <span class="error-text">Password must be at least 6 characters.</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label for="confirmNewPassword">Confirm New Password</label>
+                <input 
+                  id="confirmNewPassword" 
+                  type="password" 
+                  formControlName="confirmNewPassword" 
+                  placeholder="Confirm new password" 
+                  class="form-control"
+                />
+                @if (changePasswordForm.get('confirmNewPassword')?.touched && changePasswordForm.get('confirmNewPassword')?.errors?.['required']) {
+                  <span class="error-text">Please confirm your new password.</span>
+                }
+                @if (changePasswordForm.touched && changePasswordForm.errors?.['mismatch']) {
+                  <span class="error-text">Passwords do not match.</span>
+                }
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-light" (click)="onCancelChangePassword()">Cancel</button>
+                <button type="submit" class="btn btn-primary" [disabled]="changePasswordForm.invalid">Save Password</button>
+              </div>
+            </form>
+          } @else if (!isEditingProfile()) {
+            <div class="details-list">
+              <div class="detail-item">
+                <span class="detail-label">Full Name</span>
+                <span class="detail-value">{{ profile()?.fullName }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Email Address</span>
+                <span class="detail-value">{{ profile()?.email }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Account Status</span>
+                <span class="detail-value status-badge" [class.active]="profile()?.isActive">
+                  {{ profile()?.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+              <div class="profile-actions-row">
+                <button class="btn btn-secondary btn-sm" (click)="onEditProfile()" title="Edit Profile">
+                  <i class="bi bi-pencil"></i> Edit
+                </button>
+                <button class="btn btn-secondary btn-sm" (click)="onChangePassword()" title="Change Password">
+                  <i class="bi bi-key"></i> Password
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="onToggleAccountStatus()" [title]="profile()?.isActive ? 'Deactivate Account' : 'Activate Account'">
+                  <i class="bi" [class.bi-person-x]="profile()?.isActive" [class.bi-person-check]="!profile()?.isActive"></i> 
+                  {{ profile()?.isActive ? 'Deactivate' : 'Activate' }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()" class="profile-form">
+              <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input 
+                  id="fullName" 
+                  type="text" 
+                  formControlName="fullName" 
+                  placeholder="Enter your full name" 
+                  class="form-control"
+                />
+                @if (profileForm.get('fullName')?.touched && profileForm.get('fullName')?.errors?.['required']) {
+                  <span class="error-text">Full name is required.</span>
+                }
+                @if (profileForm.get('fullName')?.touched && profileForm.get('fullName')?.errors?.['minlength']) {
+                  <span class="error-text">Full name must be at least 4 characters.</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input 
+                  id="email" 
+                  type="email" 
+                  formControlName="email" 
+                  placeholder="Enter your email address" 
+                  class="form-control"
+                />
+                @if (profileForm.get('email')?.touched && profileForm.get('email')?.errors?.['required']) {
+                  <span class="error-text">Email address is required.</span>
+                }
+                @if (profileForm.get('email')?.touched && profileForm.get('email')?.errors?.['pattern']) {
+                  <span class="error-text">Please enter a valid email address (.com, .in, or .org).</span>
+                }
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-light" (click)="onCancelEditProfile()">Cancel</button>
+                <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Save Changes</button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="profile-right-column">
+      <div class="profile-card addresses-card">
+        <div class="card-header">
+          <h2><i class="bi bi-geo-alt"></i> Saved Addresses</h2>
+          @if (!isAddingAddress()) {
+            <button class="btn btn-secondary btn-sm" (click)="onAddAddressClick()" style="align-self: center;">
+              <i class="bi bi-plus-lg"></i> Add New Address
+            </button>
+          }
+        </div>
+
+        @if (isAddingAddress()) {
+          <app-address-form 
+            [address]="selectedAddressForEdit()" 
+            (save)="onSaveAddress($event)" 
+            (cancel)="onCancelAddressForm()">
+          </app-address-form>
+        } @else {
+          @if (loadingAddresses()) {
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading your addresses...</p>
+            </div>
+          } @else {
+            @if (addresses().length === 0) {
+              <div class="empty-state">
+                <i class="bi bi-house-door-fill"></i>
+                <p>You haven't added any addresses yet.</p>
+                <button class="btn btn-secondary btn-sm" (click)="onAddAddressClick()">Add One Now</button>
+              </div>
+            } @else {
+              <div class="address-list">
+                @for (addr of addresses(); track addr.id) {
+                  <div class="address-item">
+                    <div class="address-badge-row">
+                      <span class="address-label-badge" [class]="addr.label?.toLowerCase() || 'home'">
+                        {{ addr.label || 'Home' }}
+                      </span>
+                      <button class="btn-icon" (click)="onEditAddressClick(addr)" title="Edit Address">
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+                    </div>
+                    <div class="address-details">
+                      <p class="recipient"><strong>{{ addr.recipientName }}</strong></p>
+                      <p class="phone"><i class="bi bi-telephone"></i> {{ addr.phone }}</p>
+                      <p class="lines">{{ addr.line1 }}</p>
+                      @if (addr.line2) { <p class="lines">{{ addr.line2 }}</p> }
+                      @if (addr.landmark) { <p class="landmark"><small>Landmark: {{ addr.landmark }}</small></p> }
+                      <p class="location">{{ addr.city }}, {{ addr.state }} - {{ addr.postalCode }}</p>
+                      <p class="country">{{ addr.country }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <div class="profile-card reviews-card">
+        <div class="card-header">
+          <h2><i class="bi bi-chat-left-text"></i> My Reviews</h2>
+        </div>
+
+        @if (loadingReviews()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading your reviews...</p>
+          </div>
+        } @else {
+          @if (reviews().length === 0) {
+            <div class="empty-state">
+              <i class="bi bi-chat-left-text-fill"></i>
+              <p>You haven't submitted any reviews yet.</p>
+            </div>
+          } @else {
+            <div class="reviews-list">
+              @for (review of reviews(); track review.id) {
+                <div class="review-item">
+                  <div class="review-item-header">
+                    <div class="product-info">
+                      <span class="product-name"><strong>{{ review.productName }}</strong></span>
+                      <div class="rating-stars">
+                        @for (star of [1, 2, 3, 4, 5]; track star) {
+                          <i class="bi" 
+                             [class.bi-star-fill]="star <= review.rating" 
+                             [class.bi-star]="star > review.rating"></i>
+                        }
+                      </div>
+                    </div>
+                    <div class="review-meta-actions">
+                      <span class="review-date">{{ review.updatedAt | date:'mediumDate' }}</span>
+                      <div class="review-actions">
+                        <button class="btn-icon" (click)="onEditReview(review)" title="Edit Review">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn-icon btn-icon-danger" (click)="onDeleteReview(review.id)" title="Delete Review">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="review-content">
+                    <h4 class="review-title">{{ review.title }}</h4>
+                    @if (review.body) {
+                      <p class="review-body">{{ review.body }}</p>
+                    }
+                    @if (review.reviewImages && review.reviewImages.length > 0) {
+                      <div class="review-images">
+                        @for (img of review.reviewImages; track img) {
+                          <img [src]="img" alt="Review attachment" class="review-image-thumbnail" />
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>

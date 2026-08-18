@@ -1,0 +1,39 @@
+<div class="panel">
+  <h3>Order Status</h3>
+  <p class="panel-subtitle">This month</p>
+
+  @if (loading()) {
+    <div class="skeleton-container">
+      <div class="skeleton-donut"></div>
+      <div class="skeleton-legend">
+        <div class="skeleton-legend-item"></div>
+        <div class="skeleton-legend-item"></div>
+        <div class="skeleton-legend-item"></div>
+      </div>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <span>{{ error() }}</span>
+      <button (click)="fetchOrderStatus()" class="retry-btn">Retry</button>
+    </div>
+  } @else if (orderStatus(); as data) {
+    <div class="donut-wrapper">
+      <div class="donut" [style.background]="donutGradient(data.slices)">
+        <div class="donut-center">
+          <strong>{{ data.totalOrders / 1000 | number:'1.1-1' }}k</strong>
+          <span>orders</span>
+        </div>
+      </div>
+    </div>
+
+    <ul class="legend">
+      @for (slice of data.slices; track slice.label) {
+        <li>
+          <span class="legend-dot" [style.background]="slice.color"></span>
+          {{ slice.label }}
+          <span class="legend-pct">{{ slice.percentage }}%</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -27,7 +27,7 @@ namespace Ecommerce.DAL.Repositories
         {
             var user = await GetById(userId);
             if (user == null) return false;
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.PasswordHash = newPassword;
             await Update(userId, user);
             return true;
         }
@@ -39,11 +39,6 @@ namespace Ecommerce.DAL.Repositories
             if (creator == null || creator.Role != UserRole.Admin) return null;
             admin.Role = UserRole.Admin;
             return await Create(admin);
-        }
-
-        public async Task<ICollection<UserAddress>> GetAddressByUserId(int userId)
-        {
-            return await _dbContext.UserAddresses.Where(x => x.UserId == userId).ToListAsync();
         }
         public async Task<ICollection<User>> GetAllByRole(UserRole role)
         {
@@ -66,18 +61,6 @@ namespace Ecommerce.DAL.Repositories
                 .ToListAsync(); 
 
             return (items, totalCount);
-        }
-
-        public async Task<ICollection<UserAddress>> GetAllAddressByUserId(int userId)
-        {
-            return await _dbContext.UserAddresses.Where(u => u.UserId == userId).ToListAsync();
-        }
-
-        public async Task<UserAddress> AddUserAddress(UserAddress address)
-        {
-            await _dbContext.AddAsync(address);
-            await _dbContext.SaveChangesAsync();
-            return address;
         }
     }
 }

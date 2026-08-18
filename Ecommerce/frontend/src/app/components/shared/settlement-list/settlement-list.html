@@ -1,0 +1,139 @@
+<div class="orders-settlements-tab-wrapper">
+  <div class="tab-card shadow-sm">
+    <div class="tab-card-header">
+      <h5 class="tab-card-title">Vendor Settlements ({{ totalCount() }})</h5>
+    </div>
+
+    <div class="loading-indicator" *ngIf="loading() && settlements().length === 0">
+      <p>Loading settlements...</p>
+    </div>
+
+    <div class="table-container" *ngIf="!loading() || settlements().length > 0">
+      @if (settlements().length === 0) {
+        <div class="empty-row-text">No settlements recorded for this vendor.</div>
+      } @else {
+        <table class="grid-table desktop-table" aria-label="Vendor settlements payments list">
+          <thead>
+            <tr>
+              <th scope="col">SETTLEMENT ID</th>
+              <th scope="col">ORDER ID</th>
+              <th scope="col">NET PAYOUT</th>
+              <th scope="col">STATUS</th>
+              <th scope="col">SETTLED AT</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (set of settlements(); track set.id) {
+              <tr (click)="toggleSettlementExpand(set.id)" style="cursor: pointer;" class="settlement-row" [class.row-expanded]="expandedSettlementId() === set.id">
+                <td><span class="settlement-id-label">#SET-{{ set.id }}</span></td>
+                <td><span class="order-id-label">#ORD-{{ set.orderId }}</span></td>
+                <td class="val-green bold-text">₹{{ set.netPayoutAmount | number }}</td>
+                <td>
+                  <span class="status-badge" [class.badge-active]="set.status === 'Settled' || set.status === 'Completed' || set.status === 'Paid'" [class.status-confirmed]="set.status === 'Pending'">
+                    {{ set.status || 'Settled' }}
+                  </span>
+                </td>
+                <td>{{ set.settledAt ? (set.settledAt | date:'mediumDate') : getAppliedDate(set.id) }}</td>
+              </tr>
+              @if (expandedSettlementId() === set.id) {
+                <tr class="expanded-details-row">
+                  <td colspan="5">
+                    <div class="settlement-details-expanded">
+                      <div class="detail-item">
+                        <span class="detail-label">Gross Amount</span>
+                        <span class="detail-value">₹{{ set.grossAmount | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="detail-label">Shipping Amount</span>
+                        <span class="detail-value">₹{{ set.shippingAmount | number:'1.2-2' }}</span>
+                      </div>
+                      @if (set.vendorDiscountAmount > 0) {
+                        <div class="detail-item">
+                          <span class="detail-label">Discount Amount</span>
+                          <span class="detail-value val-red">₹{{ set.vendorDiscountAmount | number:'1.2-2' }}</span>
+                        </div>
+                      }
+                      <div class="detail-item">
+                        <span class="detail-label">Platform Commission</span>
+                        <span class="detail-value val-red">₹{{ set.platformCommissionAmount | number:'1.2-2' }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+
+        <div class="mobile-cards-container">
+          @for (set of settlements(); track set.id) {
+            <div class="settlement-card" (click)="toggleSettlementExpand(set.id)" [class.card-expanded]="expandedSettlementId() === set.id">
+              <div class="card-id-header">
+                <span class="card-label">Settlement ID:</span>
+                <span class="card-value bold-text"><span class="settlement-id-label">#SET-{{ set.id }}</span></span>
+              </div>
+              
+              <div class="card-info-row">
+                <span class="card-label">OrderID:</span>
+                <span class="card-value"><span class="order-id-label">#ORD-{{ set.orderId }}</span></span>
+              </div>
+
+              <div class="card-info-row">
+                <span class="card-label">Net Payout:</span>
+                <span class="card-value val-green bold-text">₹{{ set.netPayoutAmount | number }}</span>
+              </div>
+
+              <div class="card-footer-row">
+                <div class="footer-status">
+                  <span class="card-label">Status:</span>
+                  <span class="status-badge" [class.badge-active]="set.status === 'Settled' || set.status === 'Completed' || set.status === 'Paid'" [class.status-confirmed]="set.status === 'Pending'">
+                    {{ set.status || 'Settled' }}
+                  </span>
+                </div>
+                <div class="footer-date">
+                  <span class="card-label">Settled At:</span>
+                  <span class="card-value">{{ set.settledAt ? (set.settledAt | date:'mediumDate') : getAppliedDate(set.id) }}</span>
+                </div>
+              </div>
+
+              @if (expandedSettlementId() === set.id) {
+                <div class="settlement-details-expanded-mobile">
+                  <div class="detail-item-mobile">
+                    <span class="detail-label-mobile">Gross Amount</span>
+                    <span class="detail-value-mobile">₹{{ set.grossAmount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="detail-item-mobile">
+                    <span class="detail-label-mobile">Shipping Amount</span>
+                    <span class="detail-value-mobile">₹{{ set.shippingAmount | number:'1.2-2' }}</span>
+                  </div>
+                  @if (set.vendorDiscountAmount > 0) {
+                    <div class="detail-item-mobile">
+                      <span class="detail-label-mobile">Discount Amount</span>
+                      <span class="detail-value-mobile val-red">₹{{ set.vendorDiscountAmount | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                  <div class="detail-item-mobile">
+                    <span class="detail-label-mobile">Platform Commission</span>
+                    <span class="detail-value-mobile val-red">₹{{ set.platformCommissionAmount | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="table-pagination">
+        <button class="pag-btn" [disabled]="page() === 1" (click)="setPage(page() - 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
+        </button>
+        <span class="pag-info">Page {{ page() }} of {{ totalPages() }}</span>
+        <button class="pag-btn" [disabled]="page() === totalPages()" (click)="setPage(page() + 1)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>
+        </button>
+      </div>
+    }
+  </div>
+</div>

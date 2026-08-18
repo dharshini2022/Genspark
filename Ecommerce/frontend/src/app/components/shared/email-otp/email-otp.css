@@ -1,0 +1,219 @@
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-sunken);
+  padding: 24px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 520px;
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.3s ease;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: var(--space-8);
+  color: var(--ink);
+}
+
+.logo-hex {
+  background: var(--brand-primary);
+  color: var(--surface);
+  border-radius: var(--radius-xs);
+  padding: 2px 8px;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+}
+
+.step-container h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 var(--space-2);
+  color: var(--ink);
+}
+
+.subtitle {
+  color: var(--ink-secondary);
+  font-size: 14px;
+  margin: 0 0 var(--space-6);
+  line-height: 1.5;
+}
+
+.user-email {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.text-input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--brand-primary-tint);
+}
+
+.text-input.invalid {
+  border-color: var(--error);
+  background-color: var(--error-bg);
+}
+
+.otp-input {
+  font-size: 22px;
+  letter-spacing: 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  max-width: 220px;
+  margin: var(--space-4) auto;
+  display: block;
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.btn-primary {
+  width: 100%;
+  background-color: var(--brand-primary);
+  color: var(--surface);
+  border: none;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: var(--space-6);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--brand-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--brand-primary-pressed);
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.back-link {
+  display: block;
+  text-align: center;
+  margin-top: var(--space-6);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: var(--brand-primary-hover);
+  text-decoration: underline;
+}
+
+.otp-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.resend-section {
+  margin-top: var(--space-5);
+  text-align: center;
+}
+
+.countdown-text {
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+.countdown-text span {
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+.btn-resend {
+  background: none;
+  border: none;
+  color: var(--brand-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px var(--space-2);
+}
+
+.btn-resend:hover {
+  color: var(--brand-primary-hover);
+}
+
+.btn-secondary {
+  width: 100%;
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--ink-secondary);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  margin-top: var(--space-4);
+}
+
+.btn-secondary:hover {
+  background-color: var(--surface-sunken);
+  color: var(--ink);
+  border-color: var(--ink-secondary);
+}
+
+@media (max-width: 480px) {
+  .page-wrapper {
+    padding: 0;
+  }
+  .card {
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+    justify-content: center;
+    border: none;
+    padding: var(--space-6);
+  }
+}

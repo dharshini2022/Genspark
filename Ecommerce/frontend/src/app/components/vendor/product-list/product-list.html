@@ -1,0 +1,202 @@
+<div class="product-list-container">
+<div class="tab-card shadow-sm">
+  <div class="tab-card-header">
+    <h5 class="tab-card-title">Listed Products ({{ totalCount() }})</h5>
+    <button class="action-btn-primary" *ngIf="!isAdminView" (click)="addProduct()">Add Product</button>
+  </div>
+  
+  <div class="loading-indicator" *ngIf="loading() && products().length === 0">
+    <p>Loading products...</p>
+  </div>
+
+  <div class="table-container" *ngIf="!loading() || products().length > 0">
+    @if (products().length === 0) {
+      <div class="empty-row-text">No products listed in catalog.</div>
+    } @else {
+      <table class="grid-table desktop-table" aria-label="Vendor products catalog list">
+        <thead>
+          <tr>
+            <th scope="col">PRODUCT</th>
+            <th scope="col">CATEGORY</th>
+            <th scope="col">PRICE</th>
+            <th scope="col">STOCK</th>
+            <th scope="col">SOLD</th>
+            <th scope="col">STATUS</th>
+            <th scope="col" class="text-right" *ngIf="!isAdminView">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of products(); track p.id) {
+            <tr class="clickable-row">
+              <td>
+                <a [routerLink]="isAdminView ? ['/admin-home/product-detail', p.id] : ['/vendor-home/product-detail', p.id]" class="product-name-link">
+                  {{ p.name }}
+                </a>
+              </td>
+              <td>{{ p.categoryName || 'General' }}</td>
+              <td>₹{{ p.variants?.[0]?.price || 0 | number }}</td>
+              <td>
+                <span class="stock-qty-lbl" [class.out-of-stock]="(p.variants?.[0]?.stockQty || 0) <= 0">
+                  {{ (p.variants?.[0]?.stockQty || 0) > 0 ? (p.variants?.[0]?.stockQty || 0) : 'Out' }}
+                </span>
+              </td>
+              <td>{{ 70 + (p.id * 13) % 950 }}</td>
+              <td>
+                <span class="status-badge" [class.badge-active]="p.status === 'Active'" [class.badge-draft]="p.status !== 'Active'">
+                  {{ p.status === 'Active' ? 'ACTIVE' : 'ARCHIVED' }}
+                </span>
+              </td>
+              <td class="text-right actions-column" *ngIf="!isAdminView" (click)="$event.stopPropagation()">
+                <button class="icon-btn-edit" (click)="openEditProductModal(p)" aria-label="Edit product">Update</button>
+                <button 
+                  *ngIf="p.status === 'Archived'" 
+                  class="icon-btn-publish" 
+                  (click)="publishProduct(p)" 
+                  aria-label="Publish product">
+                  Publish
+                </button>
+                <button 
+                  [class]="p.status === 'Archived' ? 'icon-btn-edit' : 'icon-btn-delete'" 
+                  (click)="toggleProductStatus(p)">
+                  {{ p.status === 'Archived' ? 'Activate' : 'Deactivate' }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="mobile-cards-container">
+        @for (p of products(); track p.id) {
+          <div class="product-card">
+            <div class="card-name-header">
+              <span class="card-label">Product:</span>
+              <a [routerLink]="isAdminView ? ['/admin-home/product-detail', p.id] : ['/vendor-home/product-detail', p.id]" class="product-name-link bold-text">
+                {{ p.name }}
+              </a>
+            </div>
+            
+            <div class="card-info-grid">
+              <div class="info-item">
+                <span class="card-label">Category:</span>
+                <span class="card-value">{{ p.categoryName || 'General' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="card-label">Price:</span>
+                <span class="card-value bold-text">₹{{ p.variants?.[0]?.price || 0 | number }}</span>
+              </div>
+            </div>
+
+            <div class="card-info-row">
+              <span class="card-label">Stock:</span>
+              <span class="card-value">
+                <span class="stock-qty-lbl" [class.out-of-stock]="(p.variants?.[0]?.stockQty || 0) <= 0">
+                  {{ (p.variants?.[0]?.stockQty || 0) > 0 ? (p.variants?.[0]?.stockQty || 0) : 'Out' }}
+                </span>
+              </span>
+            </div>
+
+            <div class="card-info-row">
+              <span class="card-label">Sold:</span>
+              <span class="card-value">{{ 70 + (p.id * 13) % 950 }}</span>
+            </div>
+
+            <div class="card-footer-row">
+              <div class="footer-status">
+                <span class="status-badge" [class.badge-active]="p.status === 'Active'" [class.badge-draft]="p.status !== 'Active'">
+                  {{ p.status === 'Active' ? 'ACTIVE' : 'ARCHIVED' }}
+                </span>
+              </div>
+              <div class="footer-actions" *ngIf="!isAdminView">
+                <button class="icon-btn-edit" (click)="openEditProductModal(p)" aria-label="Edit product">Update</button>
+                <button 
+                  *ngIf="p.status === 'Archived'" 
+                  class="icon-btn-publish" 
+                  (click)="publishProduct(p)" 
+                  aria-label="Publish product">
+                  Publish
+                </button>
+                <button 
+                  [class]="p.status === 'Archived' ? 'icon-btn-edit' : 'icon-btn-delete'" 
+                  (click)="toggleProductStatus(p)">
+                  {{ p.status === 'Archived' ? 'Activate' : 'Deactivate' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  
+  @if (totalPages() > 1) {
+    <div class="table-pagination">
+      <button class="pag-btn" [disabled]="page() === 1" (click)="setPage(page() - 1)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
+      </button>
+      <span class="pag-info">Page {{ page() }} of {{ totalPages() }}</span>
+      <button class="pag-btn" [disabled]="page() === totalPages()" (click)="setPage(page() + 1)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>
+      </button>
+    </div>
+  }
+</div>
+
+@if (showEditProductModal() && editingProduct()) {
+  <div class="modal-overlay" (click)="closeEditProductModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="tab-card shadow-sm form-card">
+        <div class="tab-card-header">
+          <h5 class="tab-card-title">Edit Product Details</h5>
+          <button class="action-btn-secondary" (click)="closeEditProductModal()">Cancel</button>
+        </div>
+        <div class="form-container-pad">
+          <form (submit)="saveProductDetails($event)">
+            <div class="form-group-field">
+              <label for="editProductName" class="form-label-style">Product Name</label>
+              <input 
+                type="text" 
+                id="editProductName" 
+                [(ngModel)]="editProductName" 
+                name="name" 
+                required 
+                class="form-control-style">
+            </div>
+
+            <div class="form-group-field">
+              <label for="editProductCategory" class="form-label-style">Category</label>
+              <select 
+                id="editProductCategory" 
+                [(ngModel)]="editProductCategoryId" 
+                name="categoryId" 
+                required 
+                class="form-control-style">
+                <option [value]="null" disabled>-- Select a Category --</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group-field">
+              <label for="editProductDesc" class="form-label-style">Description</label>
+              <textarea 
+                id="editProductDesc" 
+                [(ngModel)]="editProductDescription" 
+                name="description" 
+                required 
+                class="form-control-style" 
+                rows="4"></textarea>
+            </div>
+
+            <div class="form-actions-row" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+              <button type="button" class="action-btn-secondary" (click)="closeEditProductModal()">Cancel</button>
+              <button type="submit" class="action-btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+</div>

@@ -30,6 +30,7 @@ namespace Ecommerce.Test
         private Mock<IProductVariantRepository> _mockVariantRepo;
         private Mock<ICurrentUserService> _mockCurrentUser;
         private Mock<IMapper> _mockMapper;
+        private Mock<IDiscountService> _mockDiscountService;
         private CartService _cartService;
 
         [SetUp]
@@ -52,6 +53,7 @@ namespace Ecommerce.Test
             _mockVariantRepo = new Mock<IProductVariantRepository>();
             _mockCurrentUser = new Mock<ICurrentUserService>();
             _mockMapper = new Mock<IMapper>();
+            _mockDiscountService = new Mock<IDiscountService>();
 
             _cartService = new CartService(
                 _mockDbContext.Object,
@@ -59,7 +61,8 @@ namespace Ecommerce.Test
                 _mockCartItemRepo.Object,
                 _mockVariantRepo.Object,
                 _mockCurrentUser.Object,
-                _mockMapper.Object
+                _mockMapper.Object,
+                _mockDiscountService.Object
             );
         }
 

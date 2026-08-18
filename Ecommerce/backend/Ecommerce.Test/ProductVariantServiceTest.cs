@@ -24,6 +24,7 @@ namespace Ecommerce.Test
         private Mock<ICurrentUserService> _mockCurrentUser;
         private Mock<IMapper> _mockMapper;
         private Mock<IStockReservationRepository> _mockStockReservationRepo;
+        private Mock<INotificationService> _mockNotificationService;
         private ProductVariantService _variantService;
 
         [SetUp]
@@ -36,6 +37,7 @@ namespace Ecommerce.Test
             _mockCurrentUser = new Mock<ICurrentUserService>();
             _mockMapper = new Mock<IMapper>();
             _mockStockReservationRepo = new Mock<IStockReservationRepository>();
+            _mockNotificationService = new Mock<INotificationService>();
 
             _variantService = new ProductVariantService(
                 _mockVariantRepo.Object,
@@ -44,7 +46,8 @@ namespace Ecommerce.Test
                 _mockVendorRepo.Object,
                 _mockCurrentUser.Object,
                 _mockMapper.Object,
-                _mockStockReservationRepo.Object
+                _mockStockReservationRepo.Object,
+                _mockNotificationService.Object
             );
         }
 
@@ -115,6 +118,42 @@ namespace Ecommerce.Test
             Assert.That(result.Id, Is.EqualTo(100));
             Assert.That(variant.IsActive, Is.True);
             Assert.That(variant.ProductId, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AddVariant_ShouldUpdateExistingDefaultVariantToNonDefault_WhenNewVariantIsDefault()
+        {
+            var product = new Product { Id = 1, VendorId = 10 };
+            _mockProductRepo.Setup(r => r.GetById(1)).ReturnsAsync(product);
+
+            _mockCurrentUser.Setup(u => u.UserId).Returns(2);
+            _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
+            _mockVariantRepo.Setup(r => r.GetVariantsByProductId(1)).ReturnsAsync(new List<ProductVariant>());
+
+            var existingDefault = new ProductVariant { Id = 50, ProductId = 1, IsDefault = true, IsActive = true };
+            _mockVariantRepo.Setup(r => r.GetDefaultVariant(1)).ReturnsAsync(existingDefault);
+            _mockVariantRepo.Setup(r => r.Update(existingDefault.Id, existingDefault)).ReturnsAsync(existingDefault);
+
+            var request = new AddProductVariantRequest 
+            { 
+                Price = 15,
+                IsDefault = true,
+                AvailableValues = new Dictionary<string, string> { { "Color", "Red" } }
+            };
+            var variant = new ProductVariant { Price = 15, IsDefault = true, AvailableValues = request.AvailableValues };
+            _mockMapper.Setup(m => m.Map<ProductVariant>(request)).Returns(variant);
+
+            var created = new ProductVariant { Id = 100, Price = 15, ProductId = 1, IsDefault = true, AvailableValues = request.AvailableValues };
+            _mockVariantRepo.Setup(r => r.Create(variant)).ReturnsAsync(created);
+            _mockMapper.Setup(m => m.Map<ProductVariantResponse>(created)).Returns(new ProductVariantResponse { Id = 100 });
+
+            var result = await _variantService.AddVariant(1, request);
+
+            Assert.That(result.Id, Is.EqualTo(100));
+            Assert.That(variant.IsActive, Is.True);
+            Assert.That(variant.ProductId, Is.EqualTo(1));
+            Assert.That(existingDefault.IsDefault, Is.False);
+            _mockVariantRepo.Verify(r => r.Update(existingDefault.Id, It.Is<ProductVariant>(v => v.IsDefault == false)), Times.Once);
         }
 
         [Test]
@@ -251,10 +290,10 @@ namespace Ecommerce.Test
         }
 
         [Test]
-        public async Task ArchiveVariant_ShouldSetIsActiveToFalse_WhenValid()
+        public async Task UpdateVariant_ShouldResetExistingDefaultVariant_WhenNewDefaultSelected()
         {
-           
-            var variant = new ProductVariant { Id = 1, ProductId = 2, IsActive = true };
+            // Arrange
+            var variant = new ProductVariant { Id = 1, ProductId = 2, IsDefault = false };
             _mockVariantRepo.Setup(r => r.GetById(1)).ReturnsAsync(variant);
             
             var product = new Product { Id = 2, VendorId = 10 };
@@ -263,8 +302,43 @@ namespace Ecommerce.Test
             _mockCurrentUser.Setup(u => u.UserId).Returns(2);
             _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
 
+            var request = new UpdateProductVariantRequest { Price = 20, IsDefault = true, AvailableValues = null };
             
-            var result = await _variantService.ArchiveVariant(1);
+            _mockMapper.Setup(m => m.Map(request, variant))
+                .Callback<UpdateProductVariantRequest, ProductVariant>((req, var) => var.IsDefault = true)
+                .Returns(variant);
+            
+            var existingDefault = new ProductVariant { Id = 3, ProductId = 2, IsDefault = true };
+            _mockVariantRepo.Setup(r => r.GetDefaultVariant(2)).ReturnsAsync(existingDefault);
+            
+            _mockVariantRepo.Setup(r => r.Update(3, It.IsAny<ProductVariant>())).ReturnsAsync(existingDefault);
+            _mockVariantRepo.Setup(r => r.Update(1, variant)).ReturnsAsync(variant);
+            _mockMapper.Setup(m => m.Map<ProductVariantResponse>(variant)).Returns(new ProductVariantResponse { Id = 1, IsDefault = true });
+
+            // Act
+            var result = await _variantService.UpdateVariant(1, request);
+
+            // Assert
+            Assert.That(result.Id, Is.EqualTo(1));
+            Assert.That(existingDefault.IsDefault, Is.False);
+            _mockVariantRepo.Verify(r => r.Update(3, It.Is<ProductVariant>(v => v.IsDefault == false)), Times.Once);
+        }
+
+        [Test]
+        public async Task ToggleVariantStatus_ShouldToggleIsActive_WhenValid()
+        {
+           
+            var variant = new ProductVariant { Id = 1, ProductId = 2, IsActive = true };
+            _mockVariantRepo.Setup(r => r.GetById(1)).ReturnsAsync(variant);
+            
+            var product = new Product { Id = 2, VendorId = 10, Variants = new List<ProductVariant> { variant } };
+            _mockProductRepo.Setup(r => r.GetById(2)).ReturnsAsync(product);
+
+            _mockCurrentUser.Setup(u => u.UserId).Returns(2);
+            _mockVendorRepo.Setup(r => r.GetByUserId(2)).ReturnsAsync(new Vendor { Id = 10 });
+
+            
+            var result = await _variantService.ToggleVariantStatus(1);
 
             
             Assert.That(result, Is.True);
@@ -452,6 +526,66 @@ namespace Ecommerce.Test
             
             Assert.That(variant.ReservedStockQty, Is.EqualTo(1));
             _mockStockReservationRepo.Verify(r => r.ReleaseByOrderId(100), Times.Once);
+        }
+
+        [Test]
+        public async Task DecrementStock_ShouldDeactivateVariantAndNotifyVendor_WhenStockIsZero()
+        {
+            // Arrange
+            var variant = new ProductVariant { Id = 1, ProductId = 10, StockQty = 3, IsActive = true, AvailableValues = new Dictionary<string, string> { { "Size", "M" } } };
+            var product = new Product { Id = 10, VendorId = 20, Name = "Shirt", Status = ProductStatus.Active };
+            var vendor = new Vendor { Id = 20, UserId = 30 };
+            var otherVariants = new List<ProductVariant> { variant };
+
+            _mockVariantRepo.Setup(r => r.GetById(1)).ReturnsAsync(variant);
+            _mockProductRepo.Setup(r => r.GetById(10)).ReturnsAsync(product);
+            _mockVendorRepo.Setup(r => r.GetById(20)).ReturnsAsync(vendor);
+            _mockVariantRepo.Setup(r => r.GetVariantsByProductId(10)).ReturnsAsync(otherVariants);
+            _mockVariantRepo.Setup(r => r.Update(It.IsAny<int>(), It.IsAny<ProductVariant>())).ReturnsAsync(variant);
+            _mockProductRepo.Setup(r => r.Update(It.IsAny<int>(), It.IsAny<Product>())).ReturnsAsync(product);
+
+            // Act
+            await _variantService.DecrementStock(1, 3);
+
+            // Assert
+            Assert.That(variant.StockQty, Is.EqualTo(0));
+            Assert.That(variant.IsActive, Is.False);
+            Assert.That(product.Status, Is.EqualTo(ProductStatus.Archived));
+            _mockNotificationService.Verify(n => n.CreateNotification(
+                30,
+                NotificationType.OutOfStock,
+                NotificationLevel.Warning,
+                "Product Variant Out of Stock",
+                It.Is<string>(s => s.Contains("Shirt") && s.Contains("Size: M"))
+            ), Times.Once);
+        }
+
+        [Test]
+        public async Task DecrementStock_ShouldSendLowStockNotification_WhenStockIsFiveOrLess()
+        {
+            // Arrange
+            var variant = new ProductVariant { Id = 1, ProductId = 10, StockQty = 8, IsActive = true, AvailableValues = new Dictionary<string, string> { { "Size", "M" } } };
+            var product = new Product { Id = 10, VendorId = 20, Name = "Shirt", Status = ProductStatus.Active };
+            var vendor = new Vendor { Id = 20, UserId = 30 };
+
+            _mockVariantRepo.Setup(r => r.GetById(1)).ReturnsAsync(variant);
+            _mockProductRepo.Setup(r => r.GetById(10)).ReturnsAsync(product);
+            _mockVendorRepo.Setup(r => r.GetById(20)).ReturnsAsync(vendor);
+            _mockVariantRepo.Setup(r => r.Update(It.IsAny<int>(), It.IsAny<ProductVariant>())).ReturnsAsync(variant);
+
+            // Act
+            await _variantService.DecrementStock(1, 4);
+
+            // Assert
+            Assert.That(variant.StockQty, Is.EqualTo(4));
+            Assert.That(variant.IsActive, Is.True);
+            _mockNotificationService.Verify(n => n.CreateNotification(
+                30,
+                NotificationType.LowStock,
+                NotificationLevel.Info,
+                "Low Stock Alert",
+                It.Is<string>(s => s.Contains("Shirt") && s.Contains("Size: M") && s.Contains("4"))
+            ), Times.Once);
         }
     }
 }

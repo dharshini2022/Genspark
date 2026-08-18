@@ -1,0 +1,43 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>Recent Orders</h3>
+    <a class="view-all" routerLink="/admin-home/order-list">View all</a>
+  </div>
+
+  @if (loading()) {
+    <ul class="order-list">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <li class="skeleton-row">
+          <div class="skeleton-col">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line medium"></div>
+          </div>
+          <div class="skeleton-col align-right">
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-badge"></div>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else if (error()) {
+    <div class="error-container">
+      <span>{{ error() }}</span>
+      <button (click)="fetchRecentOrders()" class="retry-btn">Retry</button>
+    </div>
+  } @else {
+    <ul class="order-list">
+      @for (order of recentOrders(); track order.id) {
+        <li>
+          <div>
+            <div class="order-id">#{{ order.id }}</div>
+            <div class="order-customer">{{ order.customerName }}</div>
+          </div>
+          <div class="order-right">
+            <div class="order-amount">₹{{ order.amount | number }}</div>
+            <span [class]="statusClass(order.status)">{{ order.status }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

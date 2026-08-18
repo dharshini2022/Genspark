@@ -68,12 +68,29 @@ namespace Ecommerce.DAL.Repositories
             var existingVendor = await GetById(id);
             if (existingVendor == null) throw new KeyNotFoundException("Vendor not found.");
             existingVendor.IsActive = !existingVendor.IsActive;
+            existingVendor.Status = existingVendor.IsActive ? VendorStatus.Approved : VendorStatus.Cancelled;
             return await base.Update(id, existingVendor);
         }
 
         public async Task<bool> VerifyEmailUnique(string email, int id = 0)
         {
             return !await _dbContext.Vendors.AnyAsync(v => v.StoreEmail == email && v.Id != id);
+        }
+
+        public async Task<Dictionary<int, decimal>> GetVendorTurnoversAsync(IEnumerable<int> vendorIds)
+        {
+            var idList = vendorIds.ToList();
+            var turnovers = await _dbContext.OrderItems
+                .Where(oi => idList.Contains(oi.VendorId) && oi.Order.Status != OrderStatus.Cancelled && oi.Order.Status != OrderStatus.PaymentFailed)
+                .GroupBy(oi => oi.VendorId)
+                .Select(g => new
+                {
+                    VendorId = g.Key,
+                    TotalRevenue = g.Sum(oi => oi.UnitPrice * oi.Quantity)
+                })
+                .ToDictionaryAsync(x => x.VendorId, x => x.TotalRevenue);
+
+            return turnovers;
         }
     }
 }

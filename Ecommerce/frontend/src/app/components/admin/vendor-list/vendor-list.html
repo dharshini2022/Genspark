@@ -1,0 +1,293 @@
+<div class="vendor-list-container">
+  
+  <div class="message-banner success" *ngIf="successMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+    </svg>
+    <span>{{ successMsg() }}</span>
+  </div>
+
+  <div class="message-banner error" *ngIf="errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+    </svg>
+    <span>{{ errorMsg() }}</span>
+  </div>
+
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <h2 class="title">Vendors</h2>
+      <p class="subtitle">Review applications and manage every store on the platform</p>
+    </div>
+    
+    <div class="header-actions">
+      <span class="awaiting-badge" *ngIf="pendingCount() > 0">
+        <span class="bullet">●</span> {{ pendingCount() }} awaiting approval
+      </span>
+      <button class="export-btn" aria-label="Export list to CSV">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+          <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+          <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+        </svg>
+        Export list
+      </button>
+    </div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card card-pending">
+      <div class="card-meta">
+        <span class="card-label">Pending Approval</span>
+        <span class="badge badge-orange">{{ pendingCount() }}</span>
+      </div>
+      <div class="card-value">{{ pendingCount() }}</div>
+    </div>
+
+    <div class="metric-card card-active">
+      <div class="card-meta">
+        <span class="card-label">Active Vendors</span>
+        <span class="badge badge-green">✓</span>
+      </div>
+      <div class="card-value">{{ activeCount() }}</div>
+    </div>
+
+    <div class="metric-card card-suspended">
+      <div class="card-meta">
+        <span class="card-label">Suspended</span>
+        <span class="badge badge-red">!</span>
+      </div>
+      <div class="card-value">{{ suspendedCount() }}</div>
+    </div>
+
+    <div class="metric-card card-total">
+      <div class="card-meta">
+        <span class="card-label">Total Vendors</span>
+        <span class="badge badge-blue">Σ</span>
+      </div>
+      <div class="card-value">{{ totalCount() }}</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    
+    <div class="table-toolbar">
+      <div class="toolbar-tabs">
+        <button 
+          class="tab-link" 
+          [class.active]="activeTab() === 'pending'" 
+          (click)="setActiveTab('pending')">
+          Pending Approval <span class="tab-count">{{ pendingCount() }}</span>
+        </button>
+        <button 
+          class="tab-link" 
+          [class.active]="activeTab() === 'all'" 
+          (click)="setActiveTab('all')">
+          All Vendors <span class="tab-count count-muted">{{ totalCount() }}</span>
+        </button>
+      </div>
+
+      <div class="toolbar-search">
+        <div class="search-input-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search search-icon" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+          </svg>
+          <input 
+            type="text" 
+            [ngModel]="searchTerm()" 
+            (ngModelChange)="searchTerm.set($event)" 
+            placeholder="Filter this list..."
+            aria-label="Filter vendors"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="vendors-table" aria-label="Vendors registration entries">
+        <thead>
+          <tr>
+            <th scope="col">STORE</th>
+            <th scope="col">OWNER</th>
+            <th scope="col">GST · PAN</th>
+            <th scope="col">APPLIED</th>
+            <th scope="col" class="text-right">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading()">
+            <td colspan="5" class="table-info-row">
+              <div class="spinner"></div>
+              <span>Loading vendor records...</span>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading() && filteredVendors().length === 0">
+            <td colspan="5" class="table-info-row">
+              <span class="info-muted">No applications found in this category matching your filters.</span>
+            </td>
+          </tr>
+
+          @for (v of filteredVendors(); track v.id) {
+            <tr class="vendor-row" [routerLink]="['/admin-home/vendor-profile', v.id]">
+              <td>
+                <div class="store-cell">
+                   @if (v.logoUrl) {
+                    <img [src]="v.logoUrl | resolveImage" alt="{{ v.storeName }} logo" class="store-logo" />
+                  } @else {
+                    <div class="store-avatar bg-color-{{ v.id % 6 }}">
+                      {{ getInitials(v.storeName) }}
+                    </div>
+                  }
+                  <div class="store-info">
+                    <span class="store-name">{{ v.storeName }}</span>
+                    <span class="store-desc">
+                      {{ getCategoryForMock(v.id) }} · <a href="mailto:{{ v.storeEmail }}" class="email-link" (click)="$event.stopPropagation()">{{ v.storeEmail }}</a>
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <div class="owner-info">
+                  <span class="owner-name">{{ v.userFullName || 'Unknown Owner' }}</span>
+                  <a href="mailto:{{ v.userEmail }}" class="email-link owner-email" (click)="$event.stopPropagation()">{{ v.userEmail }}</a>
+                </div>
+              </td>
+
+              <td>
+                <div class="legal-info">
+                  <span class="legal-number">
+                    <span class="masked">{{ v.gstNumber ? v.gstNumber.substring(0, 4) : 'GST' }}</span>••••••••<span class="masked">{{ v.gstNumber ? v.gstNumber.substring(v.gstNumber.length - 2) : '' }}</span>
+                  </span>
+                  <span class="legal-number pan-number">
+                    <span class="masked">{{ v.panNumber ? v.panNumber.substring(0, 3) : 'PAN' }}</span>••••<span class="masked">{{ v.panNumber ? v.panNumber.substring(v.panNumber.length - 2) : '' }}</span>
+                  </span>
+                </div>
+              </td>
+
+              <td class="date-cell">
+                {{ getAppliedDate(v.id) }}
+              </td>
+
+              <td class="text-right actions-cell">
+                <button class="review-btn" (click)="$event.stopPropagation(); openReview(v)" aria-label="Review vendor application">
+                  Review
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (selectedReviewVendor(); as selectedVendor) {
+    <div class="modal-overlay" (click)="closeReview()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="header-titles">
+            <span class="badge-status" [class]="'status-' + selectedVendor.status">
+              {{ selectedVendor.status === VendorStatusEnum.Pending ? 'Pending Review' : (selectedVendor.status === VendorStatusEnum.Approved ? 'Approved' : 'Rejected') }}
+            </span>
+            <h3>Review Store Application</h3>
+          </div>
+          <button class="close-btn" (click)="closeReview()" aria-label="Close modal dialog">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+              <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="merchant-profile-row">
+            @if (selectedVendor.logoUrl) {
+              <img [src]="selectedVendor.logoUrl | resolveImage" alt="Merchant logo" class="merchant-logo-large" />
+            } @else {
+              <div class="merchant-avatar-large bg-color-{{ selectedVendor.id % 6 }}">
+                {{ getInitials(selectedVendor.storeName) }}
+              </div>
+            }
+            <div class="merchant-profile-titles">
+              <h4>{{ selectedVendor.storeName }}</h4>
+              <p class="merchant-category">{{ getCategoryForMock(selectedVendor.id) }}</p>
+            </div>
+          </div>
+
+          <div class="details-section">
+            <h5>Legal & Tax Identifications</h5>
+            <div class="data-grid">
+              <div class="grid-item">
+                <span class="data-label">GSTIN Number</span>
+                <span class="data-val bold-text">{{ selectedVendor.gstNumber }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="data-label">PAN Card Number</span>
+                <span class="data-val bold-text">{{ selectedVendor.panNumber }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="details-section">
+            <h5>Contact Details</h5>
+            <div class="data-grid">
+              <div class="grid-item">
+                <span class="data-label">Store Email Address</span>
+                <span class="data-val">
+                  <a href="mailto:{{ selectedVendor.storeEmail }}" class="link-colored">{{ selectedVendor.storeEmail }}</a>
+                </span>
+              </div>
+              <div class="grid-item">
+                <span class="data-label">Owner Name</span>
+                <span class="data-val">{{ selectedVendor.userFullName }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="data-label">Owner Email</span>
+                <span class="data-val">
+                  <a href="mailto:{{ selectedVendor.userEmail }}" class="link-colored">{{ selectedVendor.userEmail }}</a>
+                </span>
+              </div>
+              <div class="grid-item">
+                <span class="data-label">Application Date</span>
+                <span class="data-val">{{ getAppliedDate(selectedVendor.id) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="details-section" *ngIf="selectedVendor.description">
+            <h5>Store Description</h5>
+            <p class="merchant-description-text">{{ selectedVendor.description }}</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button 
+            type="button" 
+            class="modal-btn-secondary" 
+            (click)="closeReview()" 
+            [disabled]="processingAction()">
+            Close
+          </button>
+          
+          @if (selectedVendor.status === VendorStatusEnum.Pending) {
+            <button 
+              type="button" 
+              class="modal-btn-danger" 
+              (click)="rejectVendor(selectedVendor.id)" 
+              [disabled]="processingAction()">
+              <span class="spinner-small" *ngIf="processingAction()"></span>
+              Reject Application
+            </button>
+            <button 
+              type="button" 
+              class="modal-btn-success" 
+              (click)="approveVendor(selectedVendor.id)" 
+              [disabled]="processingAction()">
+              <span class="spinner-small" *ngIf="processingAction()"></span>
+              Approve Store
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

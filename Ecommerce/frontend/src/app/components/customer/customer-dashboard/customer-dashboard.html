@@ -1,0 +1,50 @@
+<div class="dashboard-full-width">
+  <app-hero-carousel></app-hero-carousel>
+</div>
+
+<div class="dashboard-page">
+  <div class="dashboard-content-container">
+    <div class="dashboard-section">
+      <app-category-list></app-category-list>
+    </div>
+
+    <div class="dashboard-section">
+      <app-promo-banners></app-promo-banners>
+    </div>
+
+    <div class="dashboard-section new-arrivals-section">
+      <div class="section-header">
+        <h2 class="section-title">New Arrivals</h2>
+        <a [routerLink]="['/customer-home/products-list']" [queryParams]="{ sortBy: 'newest', sortOrder: 'desc' }" class="see-all-link">
+          See all <i class="bi bi-arrow-right-short"></i>
+        </a>
+      </div>
+
+      @if (loading()) {
+        <div class="loader-container">
+          <div class="spinner"></div>
+          <p>Fetching newest items...</p>
+        </div>
+      } @else if (newArrivals().length === 0) {
+        <div class="empty-state">
+          <i class="bi bi-box-seam"></i>
+          <p>No new arrivals found at the moment.</p>
+        </div>
+      } @else {
+        <div class="products-grid">
+          @for (prod of newArrivals(); track prod.id) {
+            <app-product-card [product]="prod"></app-product-card>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="dashboard-section">
+      <app-trust-badge></app-trust-badge>
+    </div>
+
+    <div class="dashboard-section">
+      <app-activity-promos></app-activity-promos>
+    </div>
+  </div>
+</div>

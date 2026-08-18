@@ -9,7 +9,7 @@ public class Review
     public decimal Rating { get; set; }              
     public string? Title { get; set; }
     public string? Body { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     // Relation
     public Product Product { get; set; } = null!;

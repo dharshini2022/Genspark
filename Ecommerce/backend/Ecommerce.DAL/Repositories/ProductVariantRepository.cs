@@ -19,6 +19,7 @@ namespace Ecommerce.DAL.Repositories
         {
             return await _dbContext.ProductVariants
                 .Include(v => v.VariantImages)
+                .Include(v => v.OrderItems)
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
@@ -26,6 +27,7 @@ namespace Ecommerce.DAL.Repositories
         {
             return await _dbContext.ProductVariants
                 .Include(v => v.VariantImages)
+                .Include(v => v.OrderItems)
                 .Where(v => v.ProductId == productId && v.IsActive)
                 .ToListAsync();
         }
@@ -34,6 +36,7 @@ namespace Ecommerce.DAL.Repositories
         {
             return await _dbContext.ProductVariants
                 .Include(v => v.VariantImages)
+                .Include(v => v.OrderItems)
                 .FirstOrDefaultAsync(v => v.ProductId == productId && v.IsDefault && v.IsActive);
         }
 
@@ -51,6 +54,17 @@ namespace Ecommerce.DAL.Repositories
             variant.StockQty -= quantity;
             await Update(variantId, variant);
             return true;
+        }
+
+        public async Task<bool> ReserveStockAtomic(int variantId, int quantity)
+        {
+            var rowsAffected = await _dbContext.Database.ExecuteSqlRawAsync(
+                @"UPDATE product_variants 
+                  SET ""ReservedStockQty"" = ""ReservedStockQty"" + {0} 
+                  WHERE ""Id"" = {1} AND (""StockQty"" - ""ReservedStockQty"") >= {0}",
+                quantity, variantId);
+
+            return rowsAffected > 0;
         }
     }
 }

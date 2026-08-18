@@ -1,0 +1,33 @@
+<div class="promos-grid">
+  <div class="promo-box shopping-card" (click)="viewCart()">
+    <div class="promo-header">
+      <div class="icon-circle blue-icon">
+        <i class="bi bi-cart3"></i>
+      </div>
+    </div>
+    <div class="promo-body">
+      <h3 class="box-title">Continue Shopping</h3>
+      <p class="box-description">
+        @if (isLoggedIn()) {
+          You have {{ cartCount() }} {{ cartCount() === 1 ? 'item' : 'items' }} waiting in your cart.
+        } @else {
+          Log in to view your shopping bag and items waiting.
+        }
+      </p>
+      <button class="box-action-btn blue-btn">View Cart <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <div class="promo-box discounts-card" (click)="viewDiscounts()">
+    <div class="promo-header">
+      <div class="icon-circle gold-icon">
+        <i class="bi bi-percent animate-bounce"></i>
+      </div>
+    </div>
+    <div class="promo-body">
+      <h3 class="box-title">View All Discounts</h3>
+      <p class="box-description">Exclusive deals updated daily across every category.</p>
+      <button class="box-action-btn gold-btn">See All Deals <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,118 @@
+.dashboard-full-width {
+  width: 100%;
+}
+
+.dashboard-page {
+  max-width: var(--container-max, 1280px);
+  margin: 0 auto;
+  padding: var(--space-6, 24px) var(--space-10, 40px);
+  box-sizing: border-box;
+}
+
+.dashboard-content-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8, 32px);
+}
+
+.dashboard-section {
+  width: 100%;
+}
+
+/* New Arrivals Section Styling */
+.new-arrivals-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5, 20px);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink, #1f1f1f);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.see-all-link {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-primary, #2563eb);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.see-all-link:hover {
+  color: var(--brand-primary-hover, #1d4ed8);
+  text-decoration: underline;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-6, 24px);
+}
+
+/* Spinner Loader */
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 12px;
+  color: var(--ink-secondary, #6e6e73);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(37, 99, 235, 0.15);
+  border-top-color: var(--brand-primary, #2563eb);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px var(--space-4, 16px);
+  text-align: center;
+  color: var(--ink-tertiary, #a1a1a6);
+  border: 1px dashed var(--border, #e2e2e5);
+  border-radius: var(--radius-lg, 16px);
+  background-color: var(--surface, #ffffff);
+}
+
+.empty-state i {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: var(--space-4, 16px) var(--space-4, 16px);
+  }
+  .section-title {
+    font-size: 20px;
+  }
+}

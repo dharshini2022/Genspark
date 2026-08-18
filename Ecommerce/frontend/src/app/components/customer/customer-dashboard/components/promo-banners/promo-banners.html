@@ -1,0 +1,65 @@
+<div class="promo-container">
+  <div class="benefits-sidebar">
+    <div class="benefit-item">
+      <div class="benefit-icon-wrapper blue-tint">
+        <i class="bi bi-truck"></i>
+      </div>
+      <div class="benefit-details">
+        <h4 class="benefit-title">Standard Shipping</h4>
+        <p class="benefit-subtitle">Delivery within 2-5 business days</p>
+      </div>
+    </div>
+    
+    <div class="benefit-item">
+      <div class="benefit-icon-wrapper green-tint">
+        <i class="bi bi-arrow-left-right"></i>
+      </div>
+      <div class="benefit-details">
+        <h4 class="benefit-title">Verified Vendors</h4>
+        <p class="benefit-subtitle">Wide selection of products</p>
+      </div>
+    </div>
+
+    <div class="benefit-item">
+      <div class="benefit-icon-wrapper orange-tint">
+        <i class="bi bi-shield-lock"></i>
+      </div>
+      <div class="benefit-details">
+        <h4 class="benefit-title">Secure Payments</h4>
+        <p class="benefit-subtitle">100% secure checkout</p>
+      </div>
+    </div>
+
+    <div class="benefit-item">
+      <div class="benefit-icon-wrapper purple-tint">
+        <i class="bi bi-chat-dots"></i>
+      </div>
+      <div class="benefit-details">
+        <h4 class="benefit-title">24/7 Support</h4>
+        <p class="benefit-subtitle">We're here to help</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="promo-cards">
+    <div class="promo-card b-sellers-card" (click)="onCtaClick('rating', 'desc')">
+      <div class="card-bg-glow"></div>
+      <div class="promo-card-content">
+        <span class="promo-badge">BEST SELLERS</span>
+        <h3 class="promo-title">Loved by Thousands</h3>
+        <p class="promo-description">Discover what everyone is buying right now.</p>
+        <button class="promo-btn">Shop Best Sellers <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <div class="promo-card t-rated-card" (click)="onCtaClick('rating', 'desc')">
+      <div class="card-bg-glow"></div>
+      <div class="promo-card-content">
+        <span class="promo-badge">TOP RATED</span>
+        <h3 class="promo-title">★ 4.8+ Rated Products</h3>
+        <p class="promo-description">Handpicked from thousands of verified reviews.</p>
+        <button class="promo-btn primary-btn">View All <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

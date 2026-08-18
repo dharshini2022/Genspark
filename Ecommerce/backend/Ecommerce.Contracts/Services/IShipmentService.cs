@@ -1,4 +1,5 @@
 using Ecommerce.Models;
+using Ecommerce.Models.DTOs;
 
 namespace Ecommerce.Contracts.Services
 {
@@ -9,6 +10,7 @@ namespace Ecommerce.Contracts.Services
         Task<ICollection<Shipment>> GetVendorShipments(int vendorId);
         Task<ICollection<Shipment>> GetAllShipments(int? productId, int? vendorId);
         Task<ICollection<Shipment>> GetCustomerShipments(int userId);
+        Task<ICollection<ShipmentResponseDTO>> GetShipmentsByOrderIdAsync(int orderId);
 
         // Core Shipment Status transitions
         Task<Shipment> ScheduleShipment(int orderId, int userAddressId, decimal shippingFee);

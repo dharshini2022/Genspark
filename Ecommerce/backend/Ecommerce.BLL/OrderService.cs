@@ -29,6 +29,7 @@ namespace Ecommerce.BLL
         private readonly ICartRepository _cartRepository;
         private readonly IOrderItemRepository _orderItemRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IUserAddressRepository _userAddressRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
         private readonly ICartService _cartService;
@@ -38,11 +39,12 @@ namespace Ecommerce.BLL
         private readonly IProductVariantService _productVariantService;
         private readonly IServiceProvider _serviceProvider;
         private readonly IBackgroundJobScheduler _backgroundJobScheduler;
+        private readonly ICalculationService _calculationService;
 
-        public const decimal PlatformCommissionRate = 0.05m;  
-        public const decimal VendorShippingRate = 0.02m;     
-        private const decimal TaxRate = 0.05m;                 
-        public TimeSpan StockReleaseDelay { get; set; } = TimeSpan.FromMinutes(10);
+        public const decimal VendorShippingRate = 0.01m;     
+        public const decimal PlatformCommissionRate = 0.02m;  
+        private const decimal TaxRate = 0.02m;                 
+        public TimeSpan StockReleaseDelay { get; set; } = TimeSpan.FromMinutes(15);
 
         public OrderService(
             AppDbContext dbContext,
@@ -52,6 +54,7 @@ namespace Ecommerce.BLL
             ICartRepository cartRepository,
             IOrderItemRepository orderItemRepository,
             IUserRepository userRepository,
+            IUserAddressRepository userAddressRepository,
             IDiscountService discountService,
             ICartService cartService,
             IPaymentService paymentService,
@@ -60,7 +63,8 @@ namespace Ecommerce.BLL
             IShipmentService shipmentService,
             IProductVariantService productVariantService,
             IServiceProvider serviceProvider,
-            IBackgroundJobScheduler backgroundJobScheduler)
+            IBackgroundJobScheduler backgroundJobScheduler,
+            ICalculationService calculationService)
         {
             _dbContext = dbContext;
             _orderRepository = orderRepository;
@@ -69,6 +73,7 @@ namespace Ecommerce.BLL
             _cartRepository = cartRepository;
             _orderItemRepository = orderItemRepository;
             _userRepository = userRepository;
+            _userAddressRepository = userAddressRepository;
 
             _discountService = discountService;
             _cartService = cartService;
@@ -80,13 +85,36 @@ namespace Ecommerce.BLL
             _currentUser = currentUser;
             _mapper = mapper;
             _backgroundJobScheduler = backgroundJobScheduler;
+            _calculationService = calculationService;
         }
 
-        public async Task<OrderResponse> CreateOrder(CreateOrderRequest request)
+        public async Task<OrderResponse> CreateOrder(CreateOrderRequest request, string? idempotencyKey = null)
         {
             int userId = _currentUser.UserId;
 
-            var addresses = await _userRepository.GetAllAddressByUserId(userId);
+            if (!string.IsNullOrWhiteSpace(idempotencyKey))
+            {
+                var existingOrder = await _dbContext.Orders
+                    .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey && o.UserId == userId);
+
+                if (existingOrder != null)
+                {
+                    return new OrderResponse
+                    {
+                        OrderId = existingOrder.Id,
+                        Subtotal = existingOrder.Subtotal,
+                        DiscountAmount = existingOrder.DiscountAmount,
+                        TaxAmount = existingOrder.TaxAmount,
+                        ShippingAmount = existingOrder.ShippingAmount,
+                        PlatformCommission = existingOrder.PlatformCommission,
+                        Total = existingOrder.Total,
+                        Currency = "inr",
+                        Message = "Order already placed successfully (idempotent request)."
+                    };
+                }
+            }
+
+            var addresses = await _userAddressRepository.GetAllAddressByUserId(userId);
             var address = addresses.FirstOrDefault(a => a.Id == request.UserAddressId);
             if (address == null)
             {
@@ -110,25 +138,30 @@ namespace Ecommerce.BLL
             if (!string.IsNullOrWhiteSpace(request.DiscountCode))
             {
                 discount =await _discountService.ValidateDiscount(request.DiscountCode,eligibleItems,summary.Subtotal);
-                summary.DiscountAmount =await _discountService.CalculateDiscountAmount(discount,summary.Subtotal);
+                summary.DiscountAmount =await _discountService.CalculateDiscountAmount(discount,eligibleItems);
             }
 
-            summary.ShippingAmount =CalculateShipping(eligibleItems);
-            summary.TaxAmount =CalculateTax(summary.Subtotal,summary.DiscountAmount);
+            summary.ShippingAmount = _calculationService.CalculateShipping(eligibleItems);
+            summary.TaxAmount = _calculationService.CalculateTax(summary.Subtotal, summary.DiscountAmount);
             summary.PlatformCommission = 20.00m;
-            summary.Total = CalculateTotal(summary);
+            summary.Total = _calculationService.CalculateTotal(summary.Subtotal, summary.ShippingAmount, summary.TaxAmount, summary.DiscountAmount);
 
             using var orderTransaction =await _dbContext.Database.BeginTransactionAsync();
             try
             {
                 var payment =await _paymentService.CreatePendingPayment(summary.Total);
-                var order = await CreateInitialOrder(userId,payment,discount,summary,request.UserAddressId);
+                var order = await CreateInitialOrder(userId,payment,discount,summary,request.UserAddressId, idempotencyKey);
                 var shipmentsMap = await CreateOrderShipments(order.Id, request.UserAddressId, eligibleItems);
                 await CreateOrderItems(order.Id, eligibleItems, shipmentsMap);
 
                 foreach (var item in eligibleItems)
                 {
                     await _productVariantService.ReserveStock(order.Id, item.VariantId, item.Quantity);
+                }
+
+                if (discount != null)
+                {
+                    await _discountService.ReserveDiscount(order.Id, discount.Id);
                 }
 
                 await orderTransaction.CommitAsync();
@@ -158,25 +191,9 @@ namespace Ecommerce.BLL
                 }
             }
         }
-        private decimal CalculateShipping(ICollection<CartItem> items)
-        {
-            return items.GroupBy(ci => ci.Variant.Product.VendorId)
-                .Sum(g =>Math.Round(g.Sum(ci => ci.Variant.Price * ci.Quantity) * VendorShippingRate,2));
-        }
 
-        private decimal CalculateTax(decimal subtotal, decimal discountAmount)
-        {
-           decimal taxableAmount = subtotal - discountAmount;
-           return Math.Round(taxableAmount*TaxRate,2);
-        }
 
-        private decimal CalculateTotal(OrderSummary summary)
-        {
-            decimal taxableAmount = summary.Subtotal - summary.DiscountAmount;
-            return taxableAmount + summary.ShippingAmount + summary.TaxAmount;
-        }
-
-        private async Task<Order> CreateInitialOrder(int userId, Payment payment, Discount? discount, OrderSummary summary, int userAddressId)
+        private async Task<Order> CreateInitialOrder(int userId, Payment payment, Discount? discount, OrderSummary summary, int userAddressId, string? idempotencyKey)
         {
             var order = new Order
             {
@@ -192,7 +209,8 @@ namespace Ecommerce.BLL
                 Status = OrderStatus.PendingPayment,
                 OrderPaymentStatus = PaymentStatus.Pending,
                 PlacedAt = DateTime.Now,
-                UserAddressId = userAddressId
+                UserAddressId = userAddressId,
+                IdempotencyKey = idempotencyKey
             };
 
             return await _orderRepository.Create(order);
@@ -253,8 +271,6 @@ namespace Ecommerce.BLL
             _backgroundJobScheduler.ScheduleStockRelease(orderId, StockReleaseDelay);
         }
 
-
-
         public async Task<OrderSummaryResponse> GetOrderDetails(int orderId)
         {
             var order = await _orderRepository.GetOrderWithDetailsById(orderId) ?? throw new KeyNotFoundException($"Order {orderId} not found.");
@@ -265,16 +281,23 @@ namespace Ecommerce.BLL
             if (role == "Customer" && order.UserId != userId)   throw new UnauthorizedAccessException("Access denied.");
             if(role == "Vendor"){
                 var vendor = await _vendorRepository.GetByUserId(userId) ?? throw new KeyNotFoundException("Vendor profile not found for current user.");
-                if(order.Items.Any(i => i.VendorId != vendor.Id))    throw new UnauthorizedAccessException("Access denied.");
+                if(!order.Items.Any(i => i.VendorId == vendor.Id))    throw new UnauthorizedAccessException("Access denied.");
             }
 
             return _mapper.Map<OrderSummaryResponse>(order);
         }
 
-        public async Task<ICollection<OrderSummaryResponse>> GetMyOrders()
+        public async Task<PageResponse<OrderSummaryResponse>> GetMyOrders(OrderFilterRequest? query = null)
         {
-            var orders = await _orderRepository.GetOrdersByUserId(_currentUser.UserId);
-            return _mapper.Map<ICollection<OrderSummaryResponse>>(orders);
+            query ??= new OrderFilterRequest { PageNumber = 1, PageSize = 10 };
+            var (items, totalCount) = await _orderRepository.GetPagedOrdersByUserId(_currentUser.UserId, query.PageNumber, query.PageSize, query.SearchTerm);
+            return new PageResponse<OrderSummaryResponse>
+            {
+                Items = _mapper.Map<ICollection<OrderSummaryResponse>>(items),
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<PageResponse<OrderSummaryResponse>> GetAllOrders(OrderFilterRequest query)
@@ -290,11 +313,21 @@ namespace Ecommerce.BLL
             };
         }
 
-        public async Task<ICollection<OrderSummaryResponse>> GetVendorOrders()
+        public async Task<PageResponse<OrderSummaryResponse>> GetVendorOrders(int? vendorId = null, OrderFilterRequest? query = null)
         {
-            var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId)   ?? throw new KeyNotFoundException("Vendor profile not found for current user.");
-            var orders = await _orderRepository.GetOrdersByVendorId(vendor.Id);
-            return _mapper.Map<ICollection<OrderSummaryResponse>>(orders);
+            query ??= new OrderFilterRequest { PageNumber = 1, PageSize = 10 };
+            if(!vendorId.HasValue){
+                var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId)   ?? throw new KeyNotFoundException("Vendor profile not found for current user.");
+                vendorId = vendor.Id;
+            }
+            var (items, totalCount) = await _orderRepository.GetPagedOrdersByVendorId(vendorId.Value, query.PageNumber, query.PageSize, query.SearchTerm);
+            return new PageResponse<OrderSummaryResponse>
+            {
+                Items = _mapper.Map<ICollection<OrderSummaryResponse>>(items),
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize,
+                TotalCount = totalCount
+            };
         }
 
         private static string GenerateTrackingNumber() => $"TRK{DateTime.Now:yyyyMMdd}{Guid.NewGuid().ToString("N")[..8].ToUpper()}";

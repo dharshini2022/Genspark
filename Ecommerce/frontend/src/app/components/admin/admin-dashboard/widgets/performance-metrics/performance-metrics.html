@@ -1,0 +1,81 @@
+@if (loading()) {
+  <div class="row row-2col">
+    <div class="panel">
+      <h3>Category Performance</h3>
+      <p class="panel-subtitle">Orders this month, by category</p>
+      <ul class="category-list">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <li class="skeleton-row-cat">
+            <div class="skeleton-label"></div>
+            <div class="skeleton-bar-track"></div>
+            <div class="skeleton-val"></div>
+          </li>
+        }
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Vendor Performance</h3>
+        <span class="leaderboard-tag">LEADERBOARD</span>
+      </div>
+      <ul class="vendor-list">
+        @for (i of [1, 2, 3]; track i) {
+          <li class="skeleton-row-vendor">
+            <div class="skeleton-rank"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-label"></div>
+              <div class="skeleton-bar-track"></div>
+            </div>
+            <div class="skeleton-val"></div>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <span>{{ error() }}</span>
+    <button (click)="fetchPerformance(month())" class="retry-btn">Retry</button>
+  </div>
+} @else {
+  <div class="row row-2col">
+    <div class="panel">
+      <h3>Category Performance</h3>
+      <p class="panel-subtitle">Orders this month, by category</p>
+
+      <ul class="category-list">
+        @for (cat of categoryPerformance(); track cat.category) {
+          <li>
+            <span class="category-name">{{ cat.category }}</span>
+            <div class="category-bar-track">
+              <div class="category-bar-fill" [style.width.%]="cat.percentage"></div>
+            </div>
+            <span class="category-value">{{ cat.orders | number }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Vendor Performance</h3>
+        <span class="leaderboard-tag">LEADERBOARD</span>
+      </div>
+
+      <ul class="vendor-list">
+        @for (vendor of vendorPerformance(); track vendor.rank) {
+          <li>
+            <span class="rank-badge">{{ vendor.rank }}</span>
+            <div class="vendor-info">
+              <div class="vendor-name">{{ vendor.name }}</div>
+              <div class="vendor-bar-track">
+                <div class="vendor-bar-fill" [style.width.%]="vendor.percentage"></div>
+              </div>
+            </div>
+            <div class="vendor-revenue">₹{{ vendor.revenue | number }}</div>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+}

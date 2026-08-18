@@ -24,13 +24,37 @@ namespace Ecommerce.API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Vendor")]
-        public async Task<IActionResult> GetMySettlements()
+        public async Task<IActionResult> GetMySettlements([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
             var vendor = await _vendorRepository.GetByUserId(_currentUser.UserId) 
                 ?? throw new KeyNotFoundException("Vendor profile not found for current user.");
             
             var settlements = await _vendorSettlementService.GetVendorSettlements(vendor.Id);
-            return Ok(settlements);
+            var totalCount = settlements.Count;
+            var items = settlements.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<VendorSettlementDTO>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
+        }
+
+        [HttpGet("vendor/{vendorId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetVendorSettlementsById([FromRoute] int vendorId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
+        {
+            var settlements = await _vendorSettlementService.GetVendorSettlements(vendorId);
+            var totalCount = settlements.Count;
+            var items = settlements.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return Ok(new PageResponse<VendorSettlementDTO>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            });
         }
 
         [HttpGet("overall")]

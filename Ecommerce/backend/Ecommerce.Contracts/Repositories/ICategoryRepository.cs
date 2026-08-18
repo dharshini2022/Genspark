@@ -6,6 +6,7 @@ namespace Ecommerce.Contracts.Repositories
     {
         Task<ICollection<Category>> GetRootCategories();
         Task<ICollection<Category>> GetAllWithChildren();
+        Task<ICollection<Category>> GetFlatList();
         Task<Category?> GetBySlug(string slug);
         Task<bool> SlugExists(string slug);
         Task<bool> NameExists(string name);

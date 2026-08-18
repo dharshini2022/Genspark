@@ -58,10 +58,8 @@ namespace Ecommerce.Test
             Assert.That(dto.VariantId, Is.EqualTo(2));
             Assert.That(dto.ProductId, Is.EqualTo(42));
             Assert.That(dto.ProductName, Is.EqualTo("Test Product"));
-            Assert.That(dto.VendorStoreName, Is.EqualTo("Test Store"));
             Assert.That(dto.Quantity, Is.EqualTo(5));
             Assert.That(dto.UnitPrice, Is.EqualTo(100.50m));
-            Assert.That(dto.VendorId, Is.EqualTo(3));
         }
 
         [Test]
@@ -113,7 +111,6 @@ namespace Ecommerce.Test
             Assert.That(itemDto.Id, Is.EqualTo(10));
             Assert.That(itemDto.ProductId, Is.EqualTo(42));
             Assert.That(itemDto.ProductName, Is.EqualTo("Test Product"));
-            Assert.That(itemDto.VendorStoreName, Is.EqualTo("Test Store"));
         }
 
         [Test]

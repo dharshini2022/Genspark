@@ -61,7 +61,7 @@ namespace Ecommerce.API.Controllers
         }
 
         [HttpGet("product/{productId}")]
-        [Authorize(Roles = "Customer,Vendor,Admin")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetProductReviews([FromRoute] int productId)
         {
             var result = await _reviewService.GetProductReviews(productId);
@@ -90,6 +90,18 @@ namespace Ecommerce.API.Controllers
             }
 
             return Forbid();
+        }
+
+        [HttpGet("user/{userId}/product/{productId}")]
+        [Authorize]
+        public async Task<IActionResult> GetReviewByUserAndProduct([FromRoute] int userId, [FromRoute] int productId)
+        {
+            var result = await _reviewService.GetReviewByUserAndProduct(userId, productId);
+            if (result == null)
+            {
+                return NotFound(new { message = "Review not found." });
+            }
+            return Ok(result);
         }
     }
 }

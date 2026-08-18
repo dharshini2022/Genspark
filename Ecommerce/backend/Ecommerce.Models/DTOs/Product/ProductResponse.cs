@@ -11,6 +11,8 @@ namespace Ecommerce.Models.DTOs
         public DateTime CreatedAt { get; set; }
         public string StoreName { get; set; } = null!;
         public string CategoryName { get; set; } = null!;
+        public decimal AverageRating { get; set; }
+        public int ReviewCount { get; set; }
         public List<ProductVariantResponse> Variants { get; set; } = new();
     }
     

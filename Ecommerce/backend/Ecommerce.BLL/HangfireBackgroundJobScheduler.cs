@@ -26,5 +26,11 @@ namespace Ecommerce.BLL
                 executor => executor.ReleaseStock(orderId),
                 delay);
         }
+
+        public void ScheduleOrderConfirmationNotifications(int orderId)
+        {
+            _backgroundJobClient.Enqueue<IJobExecutor>(
+                executor => executor.SendOrderConfirmationNotifications(orderId));
+        }
     }
 }

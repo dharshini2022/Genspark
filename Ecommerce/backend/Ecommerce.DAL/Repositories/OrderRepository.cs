@@ -21,6 +21,9 @@ namespace Ecommerce.DAL.Repositories
                     .ThenInclude(oi => oi.Variant)
                         .ThenInclude(v => v.Product)
                 .Include(o => o.Items)
+                    .ThenInclude(oi => oi.Variant)
+                        .ThenInclude(v => v.VariantImages)
+                .Include(o => o.Items)
                     .ThenInclude(oi => oi.Vendor)
                 .Include(o => o.Payment)
                 .Include(o => o.Discount);
@@ -90,6 +93,60 @@ namespace Ecommerce.DAL.Repositories
         public async Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrders(int pageNumber, int pageSize, string? searchTerm)
         {
             var query = FullOrderQuery();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                if (System.Enum.TryParse<OrderStatus>(searchTerm, true, out var status))
+                {
+                    query = query.Where(o => o.Status == status);
+                }
+                else
+                {
+                    return (new List<Order>(), 0);
+                }
+            }
+
+            query = query.OrderByDescending(o => o.PlacedAt);
+
+            int totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrdersByUserId(int userId, int pageNumber, int pageSize, string? searchTerm)
+        {
+            var query = FullOrderQuery().Where(o => o.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                if (System.Enum.TryParse<OrderStatus>(searchTerm, true, out var status))
+                {
+                    query = query.Where(o => o.Status == status);
+                }
+                else
+                {
+                    return (new List<Order>(), 0);
+                }
+            }
+
+            query = query.OrderByDescending(o => o.PlacedAt);
+
+            int totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task<(ICollection<Order> Items, int TotalCount)> GetPagedOrdersByVendorId(int vendorId, int pageNumber, int pageSize, string? searchTerm)
+        {
+            var query = FullOrderQuery().Where(o => o.Items.Any(oi => oi.VendorId == vendorId));
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {

@@ -55,7 +55,7 @@ namespace Ecommerce.Models.DTOs
         public decimal Rating { get; set; }
         public string Title { get; set; } = null!;
         public string? Body { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public ICollection<string> ReviewImages { get; set; } = new List<string>();
     }
 }

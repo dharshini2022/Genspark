@@ -6,5 +6,8 @@ namespace Ecommerce.Contracts.Services
     {
         Task DeliverOrder(int orderId);
         Task ReleaseStock(int orderId);
+        Task ProcessWishlistReminders();
+        Task CleanUpExpiredRefreshTokens();
+        Task SendOrderConfirmationNotifications(int orderId);
     }
 }

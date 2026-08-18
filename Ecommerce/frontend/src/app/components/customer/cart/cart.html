@@ -1,0 +1,149 @@
+<div class="cart-page-container">
+  <div class="cart-top-bar">
+    <h2 class="cart-title">Shopping Cart <span class="item-count">({{ totalItemsCount() }} items)</span></h2>
+    <a routerLink="/customer-home/products-list" class="continue-shopping-link">
+      Continue Shopping <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <p>Loading your cart...</p>
+    </div>
+  } @else if (cartItems().length === 0) {
+    <div class="empty-cart-state">
+      <i class="bi bi-cart-x empty-icon"></i>
+      <h3>Your cart is empty</h3>
+      <p>Looks like you haven't added anything to your cart yet.</p>
+      <button class="btn-primary-shopping" routerLink="/customer-home/products-list">Continue Shopping</button>
+    </div>
+  } @else {
+    <div class="cart-content-grid">
+      
+      <div class="cart-left-col">
+        <div class="cart-items-card">
+          <div class="cart-items-header">
+            <div class="cart-items-title-wrapper">
+              <i class="bi bi-cart3 cart-icon-title"></i>
+              <span class="cart-items-title-text">Cart Items</span>
+              <span class="cart-items-count-badge">{{ totalItemsCount() }}</span>
+            </div>
+            <button class="clear-cart-btn" (click)="clearCart()">Clear cart</button>
+          </div>
+
+          <div class="cart-items-list">
+            @for (item of cartItems(); track item.id) {
+              <div class="cart-item-row">
+                <button class="remove-item-btn" (click)="removeItem(item.id)" aria-label="Remove item">×</button>
+                
+                <div class="item-product-details">
+                  <img [src]="item.imageUrl | resolveImage" alt="{{ item.name }}" class="item-thumbnail" />
+                  <div class="item-meta">
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="item-category">{{ item.category }}</span>
+                    <div class="item-stock-status">
+                      @if (item.isInStock) {
+                        <span class="status-badge in-stock"><span class="dot-indicator"></span> In Stock</span>
+                      } @else {
+                        <span class="status-badge out-of-stock"><span class="dot-indicator"></span> Out of Stock</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="item-quantity-price-section">
+                  <div class="qty-stepper-box">
+                    <button class="stepper-btn minus" (click)="decrementQuantity(item.id)">−</button>
+                    <span class="stepper-val">{{ item.quantity }}</span>
+                    <button class="stepper-btn plus" (click)="incrementQuantity(item.id)">+</button>
+                  </div>
+                  
+                  <div class="item-price-info">
+                    <span class="item-subtotal">₹{{ (item.price * item.quantity) | number:'1.2-2' }}</span>
+                    <span class="item-unit-price">₹{{ item.price | number:'1.2-2' }} each</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <app-cart-discount [cartItems]="cartItems()" [subTotal]="subTotal()" [appliedDiscountCode]="couponCode()" (selectDiscount)="onDiscountSelected($event)"></app-cart-discount>
+      </div>
+
+      <div class="cart-right-col">
+        <div class="order-summary-card">
+          <div class="summary-header">
+            <i class="bi bi-file-earmark-text summary-icon"></i>
+            <h3 class="summary-card-title">Order Summary</h3>
+          </div>
+          
+          <div class="summary-breakdown-rows">
+            <div class="summary-row">
+              <span class="row-label">Subtotal ({{ totalItemsCount() }} items)</span>
+              <span class="row-value">₹{{ subTotal() | number:'1.2-2' }}</span>
+            </div>
+            
+            <div class="summary-row">
+              <span class="row-label">Shipping</span>
+              @if (shippingCost() === 0) {
+                <span class="row-value shipping-free">Free</span>
+              } @else {
+                <span class="row-value">₹{{ shippingCost() | number:'1.2-2' }}</span>
+              }
+            </div>
+            
+            <div class="summary-row">
+              <span class="row-label">Taxes <span class="tax-note">(2% GST)</span></span>
+              <span class="row-value">₹{{ taxes() | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="summary-row platform-fee-row">
+              <span class="row-label">Platform fee <i class="bi bi-question-circle platform-fee-help" title="Platform maintenance fee"></i></span>
+              <span class="row-value">₹{{ platformCommission() | number:'1.2-2' }}</span>
+            </div>
+
+            @if (couponApplied() && couponDiscountAmount() > 0) {
+              <div class="summary-row coupon-discount">
+                <span class="row-label">Coupon Discount</span>
+                <span class="row-value">-₹{{ couponDiscountAmount() | number:'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="summary-divider-line"></div>
+
+          <div class="summary-row total-row">
+            <span class="total-label">Total</span>
+            <div class="total-value-wrapper">
+              <span class="total-value">₹{{ grandTotal() | number:'1.2-2' }}</span>
+              <span class="total-subtext">incl. all taxes</span>
+            </div>
+          </div>
+
+          @if (couponApplied() && couponDiscountAmount() > 0) {
+            <div class="savings-banner">
+              <i class="bi bi-check-circle-fill"></i> Total savings on this order ₹{{ couponDiscountAmount() | number:'1.2-2' }}
+            </div>
+          }
+
+          <div class="checkout-sticky-footer">
+            <button 
+              class="proceed-checkout-btn" 
+              [disabled]="hasOutOfStockItems()" 
+              (click)="proceedToCheckout()">
+              Proceed to Checkout <i class="bi bi-arrow-right"></i>
+            </button>
+
+            <div class="summary-footer-badges">
+              <span><i class="bi bi-lock-fill"></i> Secure checkout</span>
+              <span><i class="bi bi-arrow-clockwise"></i> Easy returns</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

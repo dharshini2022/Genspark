@@ -1,0 +1,249 @@
+<div class="vendor-profile-wrapper">
+  
+  <div class="message-banner success" *ngIf="successMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+    </svg>
+    <span>{{ successMsg() }}</span>
+  </div>
+
+  <div class="message-banner error" *ngIf="errorMsg()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+    </svg>
+    <span>{{ errorMsg() }}</span>
+  </div>
+
+  <div class="profile-loader-overlay" *ngIf="loading() && !vendorProfile()">
+    <div class="loader-spinner"></div>
+    <p>Loading merchant profile details...</p>
+  </div>
+
+  <div class="profile-content-area" *ngIf="vendorProfile()">
+    <nav class="breadcrumb-nav">
+      @if (isAdminView()) {
+        <a routerLink="/admin-home/vendors" class="bc-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+          </svg>
+          Vendors
+        </a>
+      } @else {
+        <a routerLink="/vendor-home" class="bc-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+          </svg>
+          Dashboard
+        </a>
+      }
+      <span class="bc-separator">/</span>
+      <span class="bc-active">{{ vendorProfile()!.storeName }}</span>
+    </nav>
+
+    <div class="profile-header-card">
+      <div class="header-main-info">
+        @if (vendorProfile()!.logoUrl) {
+          <img [src]="vendorProfile()!.logoUrl | resolveImage" alt="{{ vendorProfile()!.storeName }} logo" class="profile-logo-large" />
+        } @else {
+          <div class="profile-avatar-large bg-color-{{ vendorProfile()!.id % 6 }}">
+            {{ getInitials(vendorProfile()!.storeName) }}
+          </div>
+        }
+        <div class="header-titles">
+          <div class="store-badge-row">
+            <h4>{{ vendorProfile()!.storeName }}</h4>
+            <span class="status-indicator" [class.active]="isApproved()">
+              {{ isApproved() ? 'ACTIVE' : (isPending() ? 'PENDING' : 'SUSPENDED') }}
+            </span>
+          </div>
+          <p class="store-meta">
+            {{ vendorProfile()!.userFullName }} · {{ getCategoryForMock(vendorProfile()!.id) }} · Vendor ID <span class="vendor-id-label">VND-10{{ vendorProfile()!.id }}</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        @if (isPending()) {
+          @if (isAdminView()) {
+            <button 
+              class="deactivate-btn activate-style" 
+              [disabled]="loading()"
+              (click)="approveVendor()">
+              Approve Vendor
+            </button>
+          } @else {
+            <span class="pending-badge-status">Awaiting Approval</span>
+          }
+        } @else {
+          <button 
+            class="deactivate-btn" 
+            [class.activate-style]="!isApproved()" 
+            [disabled]="loading()"
+            (click)="toggleVendorStatus()">
+            {{ isApproved() ? 'Deactivate Account' : 'Activate Account' }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="summary-metrics-grid">
+      <div class="metric-card shadow-sm">
+        <div class="card-top">
+          <span class="card-title">Revenue generated</span>
+          <span class="metric-icon val-blue">📈</span>
+        </div>
+        <div class="card-body">
+          <div class="metric-value">₹{{ revenueGenerated() | number:'1.0-2' }}</div>
+          <span class="metric-sub">{{ isAdminView() ? 'Platform commission revenue' : 'Lifetime gross sales' }}</span>
+        </div>
+      </div>
+
+      <div class="metric-card shadow-sm">
+        <div class="card-top">
+          <span class="card-title">Products</span>
+          <span class="metric-icon val-green">📦</span>
+        </div>
+        <div class="card-body">
+          <div class="metric-value">{{ productsCount() }}</div>
+          <span class="metric-sub">Listed in catalog</span>
+        </div>
+      </div>
+
+
+      <div class="metric-card shadow-sm">
+        <div class="card-top">
+          <span class="card-title">Active discounts</span>
+          <span class="metric-icon val-orange">🏷️</span>
+        </div>
+        <div class="card-body">
+          <div class="metric-value">{{ activeDiscountsCount() }}</div>
+          <span class="metric-sub">Live coupon codes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="details-split-grid">
+      <div class="detail-panel">
+        <div class="panel-header">
+          <span class="panel-icon">👤</span>
+          <h5>Account details</h5>
+        </div>
+        <div class="panel-body">
+          <div class="info-group">
+            <span class="info-label">FULL NAME</span>
+            <span class="info-value">{{ vendorProfile()!.userFullName }}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="info-label">LOGIN EMAIL</span>
+            <span class="info-value">{{ vendorProfile()!.userEmail }}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="info-label">PASSWORD</span>
+            <div class="password-value-row">
+              <span class="info-value password-font">
+                {{ showPassword() ? 'AdminPass2026!' : '••••••••••••' }}
+              </span>
+              <button class="reveal-link-btn" (click)="showPassword.set(!showPassword())">
+                {{ showPassword() ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-panel">
+        <div class="panel-header">
+          <span class="panel-icon">🏪</span>
+          <h5>Store details</h5>
+        </div>
+        <div class="panel-body">
+          <div class="info-group">
+            <span class="info-label">STORE NAME</span>
+            <span class="info-value">{{ vendorProfile()!.storeName }}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="info-label">STORE EMAIL</span>
+            <span class="info-value">{{ vendorProfile()!.storeEmail }}</span>
+          </div>
+
+          <div class="info-group">
+            <span class="info-label">GST NUMBER</span>
+            <div class="password-value-row">
+              <span class="info-value text-mono">
+                @if (revealGST()) {
+                  {{ vendorProfile()!.gstNumber }}
+                } @else {
+                  {{ vendorProfile()!.gstNumber ? vendorProfile()!.gstNumber.substring(0, 4) : 'GST' }}••••••••{{ vendorProfile()!.gstNumber ? vendorProfile()!.gstNumber.substring(vendorProfile()!.gstNumber.length - 2) : '' }}
+                }
+              </span>
+              <button class="reveal-link-btn" (click)="revealGST.set(!revealGST())">
+                {{ revealGST() ? 'Hide' : 'Reveal' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="info-group">
+            <span class="info-label">PAN</span>
+            <div class="password-value-row">
+              <span class="info-value text-mono">
+                @if (revealPAN()) {
+                  {{ vendorProfile()!.panNumber }}
+                } @else {
+                  {{ vendorProfile()!.panNumber ? vendorProfile()!.panNumber.substring(0, 3) : 'PAN' }}••••{{ vendorProfile()!.panNumber ? vendorProfile()!.panNumber.substring(vendorProfile()!.panNumber.length - 2) : '' }}
+                }
+              </span>
+              <button class="reveal-link-btn" (click)="revealPAN.set(!revealPAN())">
+                {{ revealPAN() ? 'Hide' : 'Reveal' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs-based layout wrapper (Admin View only) -->
+    @if (isAdminView()) {
+      <div class="profile-tabs-container">
+        <div class="tabs-header-bar">
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'products'" 
+            (click)="setTab('products')">
+            📦 Products
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'settlements'" 
+            (click)="setTab('settlements')">
+            💰 Settlements
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab() === 'discounts'" 
+            (click)="setTab('discounts')">
+            🏷️ Discounts
+          </button>
+        </div>
+
+        <div class="tab-content-panel">
+          @if (activeTab() === 'products') {
+            <app-product-list [vendorId]="vendorProfile()?.id || null" [isAdminView]="true"></app-product-list>
+          }
+          @if (activeTab() === 'settlements') {
+            @if (settlementsLoaded()) {
+              <app-settlement-list [vendorId]="vendorProfile()?.id || null" [isAdminView]="true"></app-settlement-list>
+            }
+          }
+          @if (activeTab() === 'discounts') {
+            @if (discountsLoaded()) {
+              <app-discount-list [vendorId]="vendorProfile()?.id || null" [isAdminView]="true"></app-discount-list>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

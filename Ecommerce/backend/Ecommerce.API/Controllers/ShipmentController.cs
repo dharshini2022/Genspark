@@ -96,5 +96,13 @@ namespace Ecommerce.API.Controllers
             var response = _mapper.Map<ICollection<ShipmentResponseDTO>>(shipments);
             return Ok(response);
         }
+
+        [HttpGet("order/{orderId}")]
+        [Authorize(Roles = "Customer,Vendor,Admin")]
+        public async Task<IActionResult> GetShipmentByOrderId([FromRoute] int orderId)
+        {
+            var shipments = await _shipmentService.GetShipmentsByOrderIdAsync(orderId);
+            return Ok(shipments);
+        }
     }
 }

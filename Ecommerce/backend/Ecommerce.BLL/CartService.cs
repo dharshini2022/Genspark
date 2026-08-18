@@ -16,8 +16,9 @@ namespace Ecommerce.BLL
         private readonly IProductVariantRepository _variantRepository;
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
+        private readonly IDiscountService _discountService;
 
-        public CartService(AppDbContext dbContext, ICartRepository cartRepository,ICartItemRepository cartItemRepository,IProductVariantRepository variantRepository,ICurrentUserService currentUser, IMapper mapper)
+        public CartService(AppDbContext dbContext, ICartRepository cartRepository, ICartItemRepository cartItemRepository, IProductVariantRepository variantRepository, ICurrentUserService currentUser, IMapper mapper, IDiscountService discountService)
         {
             _dbContext = dbContext;
             _cartRepository = cartRepository;
@@ -25,6 +26,7 @@ namespace Ecommerce.BLL
             _variantRepository = variantRepository;
             _currentUser = currentUser;
             _mapper = mapper;
+            _discountService = discountService;
         }
         
         public async Task<Cart> GetOrCreateCart()
@@ -182,6 +184,32 @@ namespace Ecommerce.BLL
         
             item.Quantity = newQuantity;
             await _cartItemRepository.Update(item.Id, item);
+        }
+
+        public async Task ApplyDiscount(string discountCode)
+        {
+            var cart = await GetOrCreateCart();
+            var eligibleItems = cart.Items.Where(ci => ci.Variant.IsActive).ToList();
+            decimal subtotal = eligibleItems.Sum(ci => ci.Variant.Price * ci.Quantity);
+            
+            // Validate first before applying
+            await _discountService.ValidateDiscount(discountCode, eligibleItems, subtotal);
+
+            cart.DiscountCode = discountCode;
+            cart.DiscountAppliedAt = DateTime.Now;
+            cart.UpdatedAt = DateTime.Now;
+
+            await _cartRepository.Update(cart.Id, cart);
+        }
+
+        public async Task RemoveDiscount()
+        {
+            var cart = await GetOrCreateCart();
+            cart.DiscountCode = null;
+            cart.DiscountAppliedAt = null;
+            cart.UpdatedAt = DateTime.Now;
+
+            await _cartRepository.Update(cart.Id, cart);
         }
     }
 }

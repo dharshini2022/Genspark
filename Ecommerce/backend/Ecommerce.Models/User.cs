@@ -25,4 +25,5 @@ public class User
     public ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<RefreshToken> RefreshTokens   { get; set; } = new List<RefreshToken>();
+    public ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
 }

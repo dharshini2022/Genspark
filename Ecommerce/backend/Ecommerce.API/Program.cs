@@ -12,15 +12,29 @@ using Ecommerce.Contracts.Repositories;
 using Ecommerce.DAL.Repositories;
 using Ecommerce.Contracts.Services;
 using Ecommerce.BLL;
+using Ecommerce.BLL.Hubs;
 using Serilog;
 using Ecommerce.API.Middlewares;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Azure.Identity;
+
 
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+
+#region Key Vault injection at Production
+if (!builder.Environment.IsDevelopment())
+{
+    var keyVaultUrl = builder.Configuration["KeyVault:VaultUri"];
+    if (!string.IsNullOrEmpty(keyVaultUrl))
+    {
+        builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUrl), new DefaultAzureCredential());
+    }
+}
+#endregion
 
 
 #region Logging
@@ -38,7 +52,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -112,6 +128,7 @@ builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 
 #region Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserAddressRepository, UserAddressRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductVariantRepository, ProductVariantRepository>();
 builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
@@ -133,7 +150,10 @@ builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 builder.Services.AddScoped<IWishlistItemRepository, WishlistItemRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IStockReservationRepository, StockReservationRepository>();
+builder.Services.AddScoped<IDiscountReservationRepository, DiscountReservationRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 #endregion
 
 #region Service
@@ -148,6 +168,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICalculationService, CalculationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
 builder.Services.AddScoped<IVendorSettlementService, VendorSettlementService>();
@@ -155,6 +176,14 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
 builder.Services.AddScoped<IJobExecutor, JobExecutor>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ChatbotPlugins>();
+builder.Services.AddScoped<Ecommerce.BLL.Helper.Validation>();
+builder.Services.AddScoped<ILLMService, LLMService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IBlobStorageService, LocalStorageService>();
+
 #endregion
 
 #region Authentication & Authorization
@@ -179,6 +208,25 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                return Task.CompletedTask;
+            }
+
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+            {
+                context.Token = accessToken;
+                return Task.CompletedTask;
+            }
+
+            return Task.CompletedTask;
+        },
         OnChallenge = async context =>
         {
             context.HandleResponse();
@@ -199,6 +247,21 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 #endregion
 
+#region CORS
+var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]?.Split(',') ?? new[] { "http://localhost:4200" };
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+    {
+        //policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+#endregion
+
 
 var app = builder.Build();
 
@@ -210,7 +273,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseStaticFiles();
+
+app.UseCors("AllowAngular");
 
 app.UseRateLimiter();   
 
@@ -219,6 +289,14 @@ app.UseAuthorization();
 
 app.UseHangfireDashboard();
 
+RecurringJob.AddOrUpdate<IJobExecutor>("WishlistReminderJob", executor => executor.ProcessWishlistReminders(), Cron.Daily);
+
+RecurringJob.AddOrUpdate<IJobExecutor>(
+    "clean-up-expired-refresh-tokens",
+    executor => executor.CleanUpExpiredRefreshTokens(),
+    Cron.Daily);
+
+app.MapHub<NotificationHub>("/notificationHub");
 app.MapControllers();
 
 app.Run();

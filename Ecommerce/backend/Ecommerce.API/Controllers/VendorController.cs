@@ -43,10 +43,17 @@ namespace Ecommerce.API.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Vendor")]
+        [Authorize(Roles = "Vendor,Admin")]
         [HttpPut]
-        public async Task<IActionResult> ToggleVendorStatus()
-        {   int userId = _currentUserService.UserId;
+        public async Task<IActionResult> ToggleVendorStatus([FromQuery] int? vendorId)
+        {   
+            int userId = _currentUserService.UserId;
+            if (vendorId.HasValue && _currentUserService.Role == "Admin")
+            {
+                var vendor = await _vendorService.GetVendorById(vendorId.Value);
+                if (vendor == null) return NotFound("Vendor not found.");
+                userId = vendor.UserId;
+            }
             var result = await _vendorService.ToggleVendorStatus(userId); 
             return Ok(new
             {
@@ -118,8 +125,16 @@ namespace Ecommerce.API.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Customer")]
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin-revenue/{vendorId}")]
+        public async Task<IActionResult> GetAdminRevenueForVendor([FromRoute] int vendorId)
+        {
+            var revenue = await _vendorService.GetAdminRevenueForVendor(vendorId);
+            return Ok(new { revenue });
+        }
+
         [HttpGet("searchBasicById/{Id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetVendorBasicProfileById([FromRoute] int Id)
         {
             var result = await _vendorService.GetVendorBasicById(Id);

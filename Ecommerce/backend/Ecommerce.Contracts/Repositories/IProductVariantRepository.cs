@@ -8,5 +8,6 @@ namespace Ecommerce.Contracts.Repositories
         Task<ProductVariant?> GetDefaultVariant(int productId);
         Task<bool> DecreaseStock(int variantId, int quantity);
         Task<bool> IncreaseStock(int variantId, int quantity);
+        Task<bool> ReserveStockAtomic(int variantId, int quantity);
     }
 }

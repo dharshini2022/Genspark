@@ -1,0 +1,39 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>Top Selling Products</h3>
+    <a class="view-all">View all</a>
+  </div>
+
+  @if (loading()) {
+    <ul class="product-list">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <li class="skeleton-row">
+          <div class="skeleton-rank"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+          <div class="skeleton-revenue"></div>
+        </li>
+      }
+    </ul>
+  } @else if (error()) {
+    <div class="error-container">
+      <span>{{ error() }}</span>
+      <button (click)="fetchTopProducts(month())" class="retry-btn">Retry</button>
+    </div>
+  } @else {
+    <ul class="product-list">
+      @for (product of topProducts(); track product.rank) {
+        <li>
+          <span class="rank-badge">{{ product.rank }}</span>
+          <div class="product-info">
+            <div class="product-name">{{ product.name }}</div>
+            <div class="product-meta">{{ product.category }} · {{ product.unitsSold | number }} sold</div>
+          </div>
+          <div class="product-revenue">₹{{ product.revenue | number }}</div>
+        </li>
+      }
+    </ul>
+  }
+</div>

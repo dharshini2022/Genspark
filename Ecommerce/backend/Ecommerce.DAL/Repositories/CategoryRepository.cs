@@ -18,6 +18,9 @@ namespace Ecommerce.DAL.Repositories
         {
             return await _dbContext.Categories.Include(c => c.Products).ToListAsync();
         }
+        public async Task<ICollection<Category>> GetFlatList(){
+            return await _dbContext.Categories.Where(c => c.isActive).ToListAsync();
+        }
 
         public override async Task<Category?> GetById(int id)
         {
@@ -65,7 +68,7 @@ namespace Ecommerce.DAL.Repositories
 
         public async Task<int> GetProductCount(int id)
         {
-            return await _dbContext.Products.CountAsync(p => p.CategoryId == id);
+            return await _dbContext.Products.CountAsync(p => p.CategoryId == id && p.Status == ProductStatus.Active);
         }
 
         public override async Task<Category?> Delete(int id)

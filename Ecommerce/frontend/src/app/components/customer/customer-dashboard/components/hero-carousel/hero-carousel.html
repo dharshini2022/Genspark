@@ -1,0 +1,34 @@
+<div class="carousel-container" (mouseenter)="stopAutoPlay()" (mouseleave)="startAutoPlay()">
+  <div class="carousel-track" [style.transform]="'translate3d(-' + (activeIdx() * 100) + '%, 0, 0)'">
+    @for (slide of slides; track slide.id; let idx = $index) {
+      <div 
+        class="carousel-slide" 
+        [class.active]="activeIdx() === idx"
+        [style.backgroundImage]="'url(' + slide.bgImage + ')'">
+        
+        <div class="slide-inner">
+          <div class="slide-content">
+            <span class="hot-badge">{{ slide.label }}</span>
+            <h1 class="slide-title">{{ slide.title }}</h1>
+            <p class="slide-subtitle">{{ slide.subtitle }}</p>
+            <button class="slide-cta" (click)="onActionClick(slide.queryParams)">
+              {{ slide.btnText }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    }
+  </div>
+
+  <div class="carousel-indicators">
+    @for (slide of slides; track slide.id; let idx = $index) {
+      <button 
+        class="indicator-dot" 
+        [class.active]="activeIdx() === idx"
+        (click)="setSlide(idx)"
+        [attr.aria-label]="'Go to slide ' + (idx + 1)">
+      </button>
+    }
+  </div>
+</div>

@@ -12,5 +12,6 @@ namespace Ecommerce.Contracts.Repositories
         Task<bool> VerifyPANUnique(string panNumber, int id = 0);
         Task<Vendor?> ToggleVendorStatus(int id);
         Task<bool> VerifyEmailUnique(string email, int id);
+        Task<Dictionary<int, decimal>> GetVendorTurnoversAsync(IEnumerable<int> vendorIds);
     }
 }

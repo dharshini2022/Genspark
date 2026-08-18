@@ -1,3 +1,8 @@
+using System;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+
 namespace Ecommerce.Contracts.Repositories
 {
     public interface IRepository<K,T> where T : class
@@ -8,5 +13,6 @@ namespace Ecommerce.Contracts.Repositories
         public Task<T?> Update(K key, T item);
         public Task<T?> Delete(K key);
         public Task SaveChangesAsync();
+        public Task<bool> Exists(Expression<Func<T, bool>> predicate);
     }
 }

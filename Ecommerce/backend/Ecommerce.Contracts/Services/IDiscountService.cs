@@ -12,8 +12,11 @@ namespace Ecommerce.Contracts.Services
         Task<ICollection<DiscountResponse>> GetAllDiscounts(PageRequest request);
         Task<ToggleDiscountStatusResponse> DeactivateDiscount(string Code);
         Task<ICollection<DiscountCartResponse>> EvaluateCartDiscounts(CartEvaluationRequest request);
+        Task<ICollection<DiscountResponse>> GetApplicableLockedDiscounts(CartEvaluationRequest request);
         Task<Discount> ValidateDiscount(string discountCode, ICollection<CartItem> eligibleItems, decimal subtotal);
-        Task<decimal> CalculateDiscountAmount(Discount discount, decimal subtotal);
-
+        Task<decimal> CalculateDiscountAmount(Discount discount, ICollection<CartItem> eligibleItems);
+        Task ReserveDiscount(int orderId, int discountId);
+        Task ConfirmDiscountReservation(int orderId);
+        Task ReleaseDiscountReservation(int orderId);
     }
 }
